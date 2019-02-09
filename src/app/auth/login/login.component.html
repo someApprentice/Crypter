@@ -1,0 +1,6 @@
+<form [formGroup]="form" #loginForm="ngForm" (ngSubmit)="login($event)">
+    <label>email: <input formControlName="email"  type="email" name="email" required maxlength="255" [autofocus]="!form.get('email').value"></label>
+    <label>password: <input formControlName="password" type="password" name="password" required [autofocus]="form.get('email').value"></label>
+
+    <input type="submit" name="login" value="Log In" [disabled]="!form.valid"> {{ error }}
+</form>

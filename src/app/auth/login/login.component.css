@@ -1,0 +1,7 @@
+input.ng-touched.ng-valid, input[name="email"].ng-pristine.ng-valid {
+    border: solid 2px green;
+}
+
+input.ng-touched.ng-invalid {
+    border: solid 2px red;
+}

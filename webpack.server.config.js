@@ -1,12 +1,15 @@
 const path = require('path');
 const webpack = require('webpack');
+const nodeExternals = require('webpack-node-externals');
 
 module.exports = {
   entry: {  server: './server.ts' },
-  resolve: { extensions: ['.js', '.ts'] },
+  resolve: {
+    extensions: ['.js', '.ts']
+  },
   target: 'node',
   // this makes sure we include node_modules and other 3rd party libraries
-  externals: [/(node_modules|main\..*\.js)/],
+  externals: [nodeExternals()],
   output: {
     path: path.join(__dirname, 'dist'),
     filename: '[name].js'
@@ -34,5 +37,5 @@ module.exports = {
     // keep minimization off
     // workaround for https://github.com/angular/angular-cli/issues/10635
     minimize: false
-  },
+  }
 }

@@ -1,0 +1,5 @@
+<form [formGroup]="form" (ngSubmit)="next($event)">
+    <label>email: <input formControlName="email" type="email" name="email" required maxlength="255" autofocus></label>
+
+    <input type="submit" name="next" value="Next" [disabled]="!form.valid">  {{ error }}
+</form>

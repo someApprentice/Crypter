@@ -10,13 +10,16 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "importHelpers": true,
-    "target": "es5",
+    "target": "es6",
     "typeRoots": [
       "node_modules/@types"
     ],
     "lib": [
       "es2018",
       "dom"
-    ]
+    ],
+    // https://github.com/Microsoft/TypeScript-React-Starter/issues/8#issuecomment-403441343
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true
   }
 }

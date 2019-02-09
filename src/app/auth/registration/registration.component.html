@@ -1,0 +1,8 @@
+<form [formGroup]="form" (ngSubmit)="registrate($event)">
+    <label>email: <input formControlName="email"  type="email" name="email" required [autofocus]="!form.get('email').value"></label>    
+    <label>name: <input formControlName="name" type="text" name="name" required minlength="1" maxlength="255" [autofocus]="form.get('email').value"></label>
+    <label>password: <input formControlName="password" type="password" name="password" required minlength="6"></label>
+    <label>retry password: <input formControlName="retryPassword" type="password" name="retryPassword" required minlength="6"></label>
+
+    <input type="submit" name="registrate" value="Registrate" [disabled]="!form.valid">  {{ error }}
+</form>

@@ -2,4 +2,11 @@
   {{ title }}
 </h1>
 
+<nav>
+  <a routerLink="/">Main</a>
+  <a *ngIf="!authService.isLoggedIn" routerLink="/login">Login</a>
+  <a *ngIf="!authService.isLoggedIn" routerLink="/registration">Registration</a>
+  <app-logout *ngIf="authService.isLoggedIn"></app-logout>
+</nav>
+
 <router-outlet></router-outlet>
