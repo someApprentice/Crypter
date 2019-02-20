@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-import { Sequelize } from 'sequelize-typescript';
+import sequelize from './services/Database';
+
 import { difference } from 'lodash';
 
 import * as token from 'jsonwebtoken';
@@ -19,18 +20,14 @@ import { User as U } from '../src/app/models/User';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-
-const sequelize =  new Sequelize({
-  dialect: 'postgres',
-  database: (process.env.NODE_ENV === 'test') ? process.env.TEST_DB_NAME : process.env.DB_NAME,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  logging: false,
-  operatorsAliases: false
-});
-
-sequelize.addModels([User]); // Is there any way to declare all classes at once for a webpack output file?
-
+// ???
+// ERROR: Cannot read property 'createdAt' of undefined
+// at User._initValues (C:\Users\ILJYa\Documents\Crypter\node_modules\sequelize\lib\model.js:3123:49)
+// at new Model (C:\Users\ILJYa\Documents\Crypter\node_modules\sequelize\lib\model.js:3097:10)
+// at new Model (C:\Users\ILJYa\Documents\Crypter\node_modules\sequelize-typescript\lib\models\v4\Model.js:8:9)
+// at new User (C:\Users\ILJYa\Documents\Crypter\api\models\User.ts:5:1)
+// at Object.<anonymous> (C:\Users\ILJYa\Documents\Crypter\api\api.ts:46:14)
+const db = sequelize;
 
 const router = express.Router();
 
