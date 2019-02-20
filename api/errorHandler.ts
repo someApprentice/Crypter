@@ -2,6 +2,8 @@ import { ValidationError  } from 'sequelize';
 import * as token from 'jsonwebtoken';
 import * as authenticate from 'express-jwt';
 
+import logger from './services/Logger';
+
 export function errorHandler(err, req, res, next) {
   if (err instanceof ValidationError) {
     return res.sendStatus(400); 
@@ -13,6 +15,8 @@ export function errorHandler(err, req, res, next) {
   ) {
     return res.set('WWW-Authenticate', 'Bearer').sendStatus(401);
   }
+
+  logger.error(err);
 
   return res.sendStatus(500);
 }
