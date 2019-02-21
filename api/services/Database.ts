@@ -1,5 +1,9 @@
 import { Sequelize } from 'sequelize-typescript';
 
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 import { User } from '../models/User';
 
 const sequelize =  new Sequelize({
