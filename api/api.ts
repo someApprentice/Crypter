@@ -56,10 +56,10 @@ router.post('/registrate', asyncHandler(async (req, res, next) => {
   token.sign(u.dataValues, JWT_SECRET, (err, jwt) => {
     if (err) throw new err;
 
-    res.cookie('uuid', uuid, { expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('email', email, { expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('name', name, { expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('jwt', jwt, { expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+    res.cookie('uuid', uuid, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+    res.cookie('email', email, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+    res.cookie('name', name, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+    res.cookie('jwt', jwt, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
 
     return res.status(200).type('json').json(<U> { uuid, email, name, jwt });
   });
@@ -89,10 +89,10 @@ router.post('/login', asyncHandler(async (req, res, next) => {
   token.sign(u.dataValues, JWT_SECRET, (err, jwt) => {
     if (err) throw new err;
 
-    res.cookie('uuid', uuid, { expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('email', email, { expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('name', name, { expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('jwt', jwt, { expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+    res.cookie('uuid', uuid, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+    res.cookie('email', email, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+    res.cookie('name', name, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+    res.cookie('jwt', jwt, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
 
     return res.status(200).type('json').json(<U> { uuid, email, name, jwt });
   });
