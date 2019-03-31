@@ -31,14 +31,23 @@ const router = express.Router();
 // Does Bearer token provide XSRF protection?
 
 
-// https://stackoverflow.com/a/51391081
-const asyncHandler = fn => (req, res, next) => {
+/*
+  This function is needs for adapting an async route's handlers which is not supported by express yet. 
+
+  // This won't work without adapter
+  express.get('/route', async (...) => {
+    await promise = ...
+  });
+
+  https://stackoverflow.com/a/51391081
+*/
+const asyncAdapter = fn => (req, res, next) => {
   return Promise
     .resolve(fn(req, res, next))
     .catch(next);
 };
 
-router.post('/registrate', asyncHandler(async (req, res, next) => {
+router.post('/registrate', asyncAdapter(async (req, res, next) => {
   let email = req.body.email.toLowerCase();
   let name = req.body.name;
   let password = req.body.password;
@@ -65,7 +74,7 @@ router.post('/registrate', asyncHandler(async (req, res, next) => {
   });
 }));
 
-router.post('/login', asyncHandler(async (req, res, next) => {
+router.post('/login', asyncAdapter(async (req, res, next) => {
   let email = req.body.email.toLowerCase();
   let password  = req.body.password;
 
@@ -108,7 +117,7 @@ router.post('/logout', jwt({ secret: JWT_SECRET, requestProperty: 'jwt' }), (req
   return res.sendStatus(200);
 });
 
-router.get('/email/:email', asyncHandler(async (req, res, next) => {
+router.get('/email/:email', asyncAdapter(async (req, res, next) => {
   let email = req.params.email.toLowerCase();
 
   let user = new User({email});
