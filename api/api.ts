@@ -63,7 +63,7 @@ router.post('/registrate', asyncAdapter(async (req, res, next) => {
   let uuid = u.dataValues.uuid;
 
   token.sign(u.dataValues, JWT_SECRET, (err, jwt) => {
-    if (err) throw new err;
+    if (err) throw err;
 
     res.cookie('uuid', uuid, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
     res.cookie('email', email, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
@@ -96,7 +96,7 @@ router.post('/login', asyncAdapter(async (req, res, next) => {
   let name = u.dataValues.name;
 
   token.sign(u.dataValues, JWT_SECRET, (err, jwt) => {
-    if (err) throw new err;
+    if (err) throw err;
 
     res.cookie('uuid', uuid, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
     res.cookie('email', email, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });

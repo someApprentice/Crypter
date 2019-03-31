@@ -48,7 +48,7 @@ describe("API", () => {
     let cookies = cookieParser(response.header['set-cookie']);
 
     token.sign(user.dataValues, JWT_SECRET, (err, jwt) => {
-      if (err) throw new err;
+      if (err) throw err;
 
       expect(response).not.toBeNull();
 
@@ -96,7 +96,7 @@ describe("API", () => {
     let cookies = cookieParser(response.header['set-cookie']);
 
     token.sign(user.dataValues, JWT_SECRET, (err, jwt) => {
-      if (err) throw new err;
+      if (err) throw err;
 
       expect(response).not.toBeNull();
 
@@ -127,7 +127,7 @@ describe("API", () => {
     let uuid = user.dataValues.uuid;
 
     token.sign(user.dataValues, JWT_SECRET, async (err, jwt) => {
-      if (err) throw new err;
+      if (err) throw err;
 
       let response = await request(server)
         .post('/api/logout')
