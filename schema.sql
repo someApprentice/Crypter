@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 11.2 (Debian 11.2-1.pgdg90+1)
--- Dumped by pg_dump version 11.2 (Debian 11.2-1.pgdg90+1)
+-- Dumped from database version 11.2
+-- Dumped by pg_dump version 11.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -46,6 +46,14 @@ CREATE TABLE public."user" (
 
 
 ALTER TABLE public."user" OWNER TO crypter;
+
+--
+-- Name: user unique_email; Type: CONSTRAINT; Schema: public; Owner: crypter
+--
+
+ALTER TABLE ONLY public."user"
+    ADD CONSTRAINT unique_email UNIQUE (email);
+
 
 --
 -- Name: user user_pkey; Type: CONSTRAINT; Schema: public; Owner: crypter

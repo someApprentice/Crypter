@@ -1,4 +1,4 @@
-import { Model, Table, Column, DataType, AllowNull, PrimaryKey, Default, IsUUID, IsEmail, Is } from 'sequelize-typescript';
+import { Model, Table, Column, DataType, AllowNull, PrimaryKey, Default, IsUUID, IsEmail, Unique, Is } from 'sequelize-typescript';
 
  
 @Table({tableName: 'user', modelName: 'user'})
@@ -13,6 +13,7 @@ export class User extends Model<User> {
  
   @AllowNull(false)
   @IsEmail
+  @Unique
   @Column
   email: string;
 
