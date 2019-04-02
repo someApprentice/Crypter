@@ -4,7 +4,7 @@ import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 
 import { REQUEST } from '@nguniversal/express-engine/tokens';
 
-import { StorageWrapper } from  './models/StorageWrapper';
+import { StorageWrapper } from  './StorageWrapper';
 
 @Injectable({
   providedIn: 'root'

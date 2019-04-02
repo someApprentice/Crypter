@@ -4,7 +4,7 @@ import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http
 import { Observable, of, throwError } from 'rxjs';
 import { delay, tap, map, catchError } from 'rxjs/operators';
 
-import { StorageService } from '../storage.service';
+import { StorageService } from '../services/storage/storage.service';
 
 import { User } from '../models/User';
 

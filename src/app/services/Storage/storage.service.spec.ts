@@ -5,7 +5,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { REQUEST } from '@nguniversal/express-engine/tokens';
 
 import { StorageService } from './storage.service';
-import { StorageWrapper } from  './models/StorageWrapper';
+import { StorageWrapper } from  './StorageWrapper';
 
 describe('StorageService', () => {
   let service: StorageService;
