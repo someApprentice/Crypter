@@ -93,9 +93,11 @@ router.get('/email/:email', asyncAdapter(async (req, res, next) => {
 
   let u = await User.findOne({ where: { email } });
 
-  let exist = Boolean(u);
+  if (!u) {
+    return res.sendStatus(404);
+  }
 
-  return res.status(200).type('json').json({ email, exist });
+  return res.sendStatus(200);
 }));
 
 export { router };

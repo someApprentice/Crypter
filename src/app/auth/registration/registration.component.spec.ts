@@ -79,7 +79,7 @@ describe('RegistrationComponent', () => {
 
 
     let req = httpTestingController.expectOne(`/api/email/${email}`);
-    req.flush({ email, exist: true });
+    req.flush('OK', { status: 200, statusText: 'OK' });
 
     fixture.detectChanges();
 

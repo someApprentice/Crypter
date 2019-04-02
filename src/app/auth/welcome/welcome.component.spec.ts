@@ -84,14 +84,14 @@ describe('WelcomeComponent', () => {
 
     formDe.triggerEventHandler('ngSubmit', new Event('submit'));
     req = httpTestingController.expectOne(`/api/email/${email}`);
-    req.flush({ email, exist: true });
+    req.flush('OK', { status: 200, statusText: 'OK' });
     route = router.config.find(r => r.path === 'login');
     expect(route.data['email']).toEqual(email);
     expect(navigateSpy).toHaveBeenCalledWith(['login']);
 
     formDe.triggerEventHandler('ngSubmit', new Event('submit'));
     req = httpTestingController.expectOne(`/api/email/${email}`);
-    req.flush({ email, exist: false });
+    req.flush('Not Found', { status: 404, statusText: 'Not Found' });
     route = router.config.find(r => r.path === 'registration');
     expect(route.data['email']).toEqual(email);
     expect(navigateSpy).toHaveBeenCalledWith(['login']);

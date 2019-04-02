@@ -51,9 +51,15 @@ export class AuthService {
 
   isEmailExist(email): Observable<boolean> {
     // Is it right way to turn Observable<T> to Observable<boolean>?
-    return this.http.get<{ email: string, exist: boolean }>(`/api/email/${email}`).pipe(
-      map(d => d.exist),
-      catchError(this.handleErrors)
+    return this.http.get<any>(`/api/email/${email}`).pipe(
+      map(d => true),
+      catchError(err => {
+        if (err.status === 404) {
+          return of(false);
+        }
+
+        return throwError(err);
+      })
     );
   }
 

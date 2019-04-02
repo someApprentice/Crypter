@@ -140,9 +140,6 @@ describe('AuthService', () => {
 
   it('should get response of email existence', () => {
     let email = 'tester@crypter.com';
-    let exist = true;
-
-    let res = { email, exist };
 
     service.isEmailExist(email).subscribe(d => {
       expect(typeof d).toEqual('boolean');
@@ -152,7 +149,7 @@ describe('AuthService', () => {
 
     expect(req.request.method).toEqual('GET');
 
-    req.flush(res);
+    req.flush('Not Found', { status: 404, statusText: 'Not Found' });
   });
 
   it('should catch errors in the right way', () => {

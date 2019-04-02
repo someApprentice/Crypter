@@ -156,11 +156,8 @@ describe("API", () => {
 
     await request(server)
       .get(`/api/email/${email}`)
-      .expect(200)
-      .expect('Content-Type', /json/)
-      .expect({ email, exist: false })
+      .expect(404)
     ;
-
 
     let name = 'Tester';
     let password = 'secret';
@@ -174,8 +171,6 @@ describe("API", () => {
     await request(server)
       .get(`/api/email/${email}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .expect({ email, exist: true })
     ;
 
     User.truncate();
