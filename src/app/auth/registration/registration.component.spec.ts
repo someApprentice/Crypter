@@ -86,6 +86,48 @@ describe('RegistrationComponent', () => {
     expect(input.classList.contains('ng-invalid')).toBeTruthy();
   });
 
+  it("should validate input errors", () => {
+    let invalidEmail = 'tester.com'
+    let invalidName = ''
+    let invalidPassword = '';
+
+    component.form.get('email').setValue(invalidEmail);
+    component.form.get('password').setValue(invalidPassword);
+
+    fixture.detectChanges();
+
+    let emailInputDe = fixture.debugElement.query(By.css('input[name="email"]'));
+    let emailInput = emailInputDe.nativeElement;
+    expect(emailInput.classList.contains('ng-invalid')).toBeTruthy();
+
+    let nameInputDe = fixture.debugElement.query(By.css('input[name="name"]'));
+    let nameInput = emailInputDe.nativeElement;
+    expect(emailInput.classList.contains('ng-invalid')).toBeTruthy();
+
+    let passwordInputDe = fixture.debugElement.query(By.css('input[name="password"]'));
+    let passwordInput = emailInputDe.nativeElement;
+    expect(emailInput.classList.contains('ng-invalid')).toBeTruthy();
+  });
+
+  it("should validate required inputs", () => {
+    let email = '';
+    let name = ''
+    let password = '';
+    let retryPassword = '';
+
+    component.form.get('email').setValue(email);
+    component.form.get('name').setValue(name);
+    component.form.get('password').setValue(password);
+    component.form.get('retryPassword').setValue(retryPassword);
+
+    fixture.detectChanges();
+
+    let formDe = fixture.debugElement.query(By.css('form'));
+    let form = formDe.nativeElement;
+
+    expect(form.classList.contains('ng-invalid')).toBeTruthy();
+  });
+
   it('should validate password match error', () => {
     let password = 'secret';
     let retryPassword = 'not-secret';

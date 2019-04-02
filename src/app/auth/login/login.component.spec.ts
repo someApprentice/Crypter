@@ -63,7 +63,38 @@ describe('LoginComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  // should there be a tests of every validation behavior?
+  it("should validate input errors", () => {
+    let invalidEmail = 'tester.com'
+    let invalidPassword = '';
+
+    component.form.get('email').setValue(invalidEmail);
+    component.form.get('password').setValue(invalidPassword);
+
+    fixture.detectChanges();
+
+    let emailInputDe = fixture.debugElement.query(By.css('input[name="email"]'));
+    let emailInput = emailInputDe.nativeElement;
+    expect(emailInput.classList.contains('ng-invalid')).toBeTruthy();
+
+    let passwordInputDe = fixture.debugElement.query(By.css('input[name="password"]'));
+    let passwordInput = emailInputDe.nativeElement;
+    expect(emailInput.classList.contains('ng-invalid')).toBeTruthy();
+  });
+
+  it("should validate required inputs", () => {
+    let email = '';
+    let password = '';
+
+    component.form.get('email').setValue(email);
+    component.form.get('password').setValue(password);
+
+    fixture.detectChanges();
+
+    let formDe = fixture.debugElement.query(By.css('form'));
+    let form = formDe.nativeElement;
+
+    expect(form.classList.contains('ng-invalid')).toBeTruthy();
+  });
 
   it('should take focus on email input if email route data is empty after content init', () => {
     let inputDe = fixture.debugElement.query(By.css('input[name="email"]'));

@@ -56,7 +56,31 @@ describe('WelcomeComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  // should there be a tests of every validation behavior?
+  it("should validate email error", () => {
+    let invalidEmail = 'tester.com'
+
+    component.form.get('email').setValue(invalidEmail);
+
+    fixture.detectChanges();
+
+    let inputDe = fixture.debugElement.query(By.css('input[name="email"]'));
+    let input = inputDe.nativeElement;
+
+    expect(input.classList.contains('ng-invalid')).toBeTruthy();
+  });
+
+  it("should validate required input", () => {
+    let email = '';
+
+    component.form.get('email').setValue(email);
+
+    fixture.detectChanges();
+
+    let formDe = fixture.debugElement.query(By.css('form'));
+    let form = formDe.nativeElement;
+
+    expect(form.classList.contains('ng-invalid')).toBeTruthy();
+  });
 
   it('should take focus on email input after content init', () => {
     let inputDe = fixture.debugElement.query(By.css('input[name="email"]'));
