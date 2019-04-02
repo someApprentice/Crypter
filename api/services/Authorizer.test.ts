@@ -1,3 +1,5 @@
+import 'jest-extended';
+
 import authorizer from './Authorizer';
 
 import { User } from '../models/User';

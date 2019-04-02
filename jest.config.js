@@ -15,5 +15,5 @@ module.exports = {
     '**/api/**/*.test.(ts|js)'
   ],
   testEnvironment: 'node',
-  setupFilesAfterEnv: ['./jest.setup.js']
+  setupFilesAfterEnv: ['jest-extended', './jest.setup.js'],
 };
