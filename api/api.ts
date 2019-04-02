@@ -2,29 +2,19 @@ import express from 'express';
 
 import sequelize from './services/Database';
 
-import { difference } from 'lodash';
+import authorizer from './services/Authorizer';
 
-import * as token from 'jsonwebtoken';
 //import * as authenticate from 'express-jwt';
 import jwt from 'express-jwt';
 
-
-import bcrypt from 'bcrypt';
-
 import { User } from './models/User';
-import { User as U } from '../src/app/models/User';
+
+import { difference } from 'lodash';
 
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// ???
-// ERROR: Cannot read property 'createdAt' of undefined
-// at User._initValues (C:\Users\ILJYa\Documents\Crypter\node_modules\sequelize\lib\model.js:3123:49)
-// at new Model (C:\Users\ILJYa\Documents\Crypter\node_modules\sequelize\lib\model.js:3097:10)
-// at new Model (C:\Users\ILJYa\Documents\Crypter\node_modules\sequelize-typescript\lib\models\v4\Model.js:8:9)
-// at new User (C:\Users\ILJYa\Documents\Crypter\api\models\User.ts:5:1)
-// at Object.<anonymous> (C:\Users\ILJYa\Documents\Crypter\api\api.ts:46:14)
-const db = sequelize;
+
 
 const router = express.Router();
 
@@ -52,59 +42,32 @@ router.post('/registrate', asyncAdapter(async (req, res, next) => {
   let name = req.body.name;
   let password = req.body.password;
 
-  let hash = await bcrypt.hash(password, 13);
+  let u = await authorizer.registrate(email, name, password);
 
-  let user = new User({ email, name, hash });
+  res.cookie('uuid', u.uuid, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+  res.cookie('email', u.email, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+  res.cookie('name', u.name, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+  res.cookie('jwt', u.jwt, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
 
-  await user.validate();
-
-  let u = await user.save();
-
-  let uuid = u.dataValues.uuid;
-
-  token.sign(u.dataValues, JWT_SECRET, (err, jwt) => {
-    if (err) throw err;
-
-    res.cookie('uuid', uuid, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('email', email, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('name', name, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('jwt', jwt, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-
-    return res.status(200).type('json').json(<U> { uuid, email, name, jwt });
-  });
+  return res.status(200).type('json').json(u);
 }));
 
 router.post('/login', asyncAdapter(async (req, res, next) => {
   let email = req.body.email.toLowerCase();
   let password  = req.body.password;
 
-  let user = new User({ email });
+  let u = await authorizer.login(email, password);
 
-  // Argument of type '{ fields: string[]; }' is not assignable to parameter of type '{ skip?: string[]; }'.
-  // Object literal may only specify known properties, and 'fields' does not exist in type '{ skip?: string[]; }'.
-  // https://github.com/sequelize/sequelize/blob/master/lib/instance-validator.js#L24
-  //await user.validate({ fields: ['email'] });
-  await user.validate({ skip: difference(Object.keys(User.rawAttributes), ['email']) });
-
-  let u = await User.findOne({ where: { email } });
-
-  if (!u || !await bcrypt.compare(password, u.dataValues.hash)) {
+  if (!u) {
     return res.sendStatus(404);
   }
 
-  let uuid = u.dataValues.uuid;
-  let name = u.dataValues.name;
+  res.cookie('uuid', u.uuid, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+  res.cookie('email', u.email, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+  res.cookie('name', u.name, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
+  res.cookie('jwt', u.jwt, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
 
-  token.sign(u.dataValues, JWT_SECRET, (err, jwt) => {
-    if (err) throw err;
-
-    res.cookie('uuid', uuid, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('email', email, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('name', name, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-    res.cookie('jwt', jwt, { httpOnly: true, secure: true,  expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)) });
-
-    return res.status(200).type('json').json(<U> { uuid, email, name, jwt });
-  });
+  return res.status(200).type('json').json(u);
 }));
 
 // router.post('/logout', authenticate({ secret: JWT_SECRET, requestProperty: 'jwt' }), (req, res) => {
