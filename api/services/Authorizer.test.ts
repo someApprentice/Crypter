@@ -8,6 +8,10 @@ import { User as U } from '../../src/app/models/User';
 import { UniqueConstraintError, ValidationError }  from 'sequelize';
 
 describe("Authorizer", () => {
+  beforeEach(() => {
+    User.truncate();
+  });
+
   it("should registrate an User", async (done) => {
     let email = 'tester@crypter.com'
     let name = 'Tester';
@@ -24,7 +28,7 @@ describe("Authorizer", () => {
 
     u = await authorizer.login(email, password);
 
-    expect(u).not.toEqual(undefined);
+    expect(u).not.toBeUndefined();
 
     User.truncate();
 
@@ -68,7 +72,15 @@ describe("Authorizer", () => {
       User.truncate();
 
       done();
-    })
+    });
+
+    // ???
+    // Received function did not throw
+    // expect(async () => { await authorizer.registrate(email, name, password) }).toThrowError(UniqueConstraintError);
+
+    // User.truncate();
+
+    // done();
   });
 
   it("should login an User", async (done) => {
@@ -102,7 +114,15 @@ describe("Authorizer", () => {
       User.truncate();
 
       done();
-    })
+    });
+
+    // ???
+    // Received function did not throw
+    // expect(async () => { await authorizer.registrate(email, name, password) }).toThrowError(UniqueConstraintError);
+
+    // User.truncate();
+
+    // done();
   });
 
   afterAll(async () => {

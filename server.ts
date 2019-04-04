@@ -61,5 +61,3 @@ server.use(errorHandler);
 server.listen(PORT, () => {
   console.log(`Node server listening on http://localhost:${PORT}`);
 });
-
-export default server;

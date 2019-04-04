@@ -1,73 +1,147 @@
-import request from "supertest";
+import 'jest-extended';
 
+import express from 'express';
+import dotenv from 'dotenv';
+import { join } from 'path';
+import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 
-import * as token from 'jsonwebtoken';
+dotenv.config();
 
-import bcrypt from 'bcrypt';
+import { router as api } from './api';
+import { errorHandler } from './errorHandler'
+
+import request from "supertest";
+import { Response } from "supertest";
 
 import { User } from './models/User';
 import { User as U } from '../src/app/models/User';
 
-import server from "../server";
-
 describe("API", () => {
-  const JWT_SECRET = process.env.JWT_SECRET;
+  let app;
+  let server;
 
-  const cookieParser = function(cookies: []) {
+  const PORT = process.env.PORT || 4000;
+
+
+  function parseCookiesFromResponse(res: Response) {
+    let cookies = res.header['set-cookie'];
+
     let c = [];
 
-    cookies.map((v: string) => v.split('; ')).map(a => a.map(v => v.split('='))).map(a => {
+    cookies.map((cookie:string) => cookie.split('; ')).map(attribute => attribute.map(a => a.split('='))).map(split => {
       c.push({ });
       
-      a.map(v => {
-        c[c.length - 1][v[0]] = v[1]; 
-      })
+      split.map((s:any) => {
+        c[c.length - 1][s[0]] = (typeof s[1] === 'undefined') ? true : decodeURIComponent(s[1]);
+      });
     });
 
     return c;
   };
+
+
+  beforeAll(() => {
+    app = express();
+
+    app.use(bodyParser.urlencoded({
+      extended: true
+    }));
+
+    app.use(bodyParser.json());
+
+    app.use(cookieParser());
+    app.use('/api', api);
+    app.use(errorHandler);
+
+    server = app.listen(PORT, () => {
+      console.log(`Node test server listening on http://localhost:${PORT}`);
+    });
+  });
+
+  beforeEach(() => {
+    User.truncate();
+  });
   
   it('should registrate User', async (done) => {
     let email = 'tester@crypter.com'
     let name = 'Tester';
     let password = 'secret';
 
-    let hash = await bcrypt.hash(password, 13);
+    let response;
 
-    let response = await request(server)
+    response = await request(server)
+      .post('/api/registrate')
+      .send({ email, name, password })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .expect(res => {
+        expect(res.body).toHaveProperty('uuid');
+        expect(res.body).toHaveProperty('email', email);
+        expect(res.body).toHaveProperty('name', name);
+        expect(res.body).toHaveProperty('jwt');
+      })
+    ;
+
+    let cookies = parseCookiesFromResponse(response);
+
+    expect(cookies.find(c => c.hasOwnProperty('uuid'))).toHaveProperty('uuid');
+    expect(cookies.find(c => c.hasOwnProperty('email'))).toHaveProperty('email', email);
+    expect(cookies.find(c => c.hasOwnProperty('name'))).toHaveProperty('name', name);
+    expect(cookies.find(c => c.hasOwnProperty('jwt'))).toHaveProperty('jwt');
+
+    response = await request(server)
+      .post('/api/login')
+      .send({ email, password })
+      .expect('Content-Type', /json/)
+      .expect(200)
+    ;
+
+    done();
+  });
+
+  it("should not registrate twice", async (done) => {
+    let email = 'tester@crypter.com'
+    let name = 'Tester';
+    let password = 'secret';
+
+    let response;
+
+    response = await request(server)
       .post('/api/registrate')
       .send({ email, name, password })
       .expect(200)
     ;
 
-    let user = await User.findOne({ where: { email } });
+    response = await request(server)
+      .post('/api/registrate')
+      .send({ email, name, password })
+      .expect(400)
+    ;
 
-    let uuid = user.dataValues.uuid;
+    done();
+  });
 
-    let cookies = cookieParser(response.header['set-cookie']);
+  it("should not allow to registrate without required fields", async (done) => {
+    let email = ''
+    let name = '';
+    let password = '';
 
-    token.sign(user.dataValues, JWT_SECRET, (err, jwt) => {
-      if (err) throw err;
-
-      expect(response).not.toBeNull();
-
-      expect(cookies.find(c => c.hasOwnProperty('uuid')['uuid'])).toBe(uuid);
-      expect(cookies.find(c => c.hasOwnProperty('email')['email'])).toBe(email);
-      expect(cookies.find(c => c.hasOwnProperty('name')['name'])).toBe(name);
-      expect(cookies.find(c => c.hasOwnProperty('jwt')['jwt'])).toBe(jwt);
-
-      expect(response.body).toBe({uuid, email, name, jwt});
-    });
-
-    User.truncate();
+    let response = await request(server)
+      .post('/api/registrate')
+      .send({ email, name, password })
+      .expect(400)
+    ;
 
     done();
   });
 
   it('should login User or retrive 404 status', async (done) => {
     let email = 'tester@crypter.com'
+    let name = 'Tester';
     let password = 'secret';
+
+    let response;
 
     await request(server)
       .post('/api/login')
@@ -75,116 +149,113 @@ describe("API", () => {
       .expect(404)
     ;
 
+    await request(server)
+      .post('/api/registrate')
+      .send({ email, name, password })
+    ;
 
-    let name = 'Tester';
+    response = await request(server)
+      .post('/api/login')
+      .send({ email, password })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .expect(res => {
+        expect(res.body).toHaveProperty('uuid');
+        expect(res.body).toHaveProperty('email', email);
+        expect(res.body).toHaveProperty('name', name);
+        expect(res.body).toHaveProperty('jwt');
+      })
+    ;
 
-    let hash = await bcrypt.hash(password, 13);
+    let jwt = response.body.jwt;
 
-    let user = new User({ email, name, hash });
+    let cookies = parseCookiesFromResponse(response);
 
-    await user.save();
+    expect(cookies.find(c => c.hasOwnProperty('uuid'))).toHaveProperty('uuid');
+    expect(cookies.find(c => c.hasOwnProperty('email'))).toHaveProperty('email', email);
+    expect(cookies.find(c => c.hasOwnProperty('name'))).toHaveProperty('name', name);
+    expect(cookies.find(c => c.hasOwnProperty('jwt'))).toHaveProperty('jwt');
+
+    await request(server)
+      .post('/api/logout')
+      .set('Authorization', `Bearer ${jwt}`)
+      .expect(200)
+    ;
+
+    done();
+  });
+
+  it("should not allow to login without required fields", async (done) => {
+    let email = '';
+    let password = '';
 
     let response = await request(server)
       .post('/api/login')
       .send({ email, password })
-      .expect(200)
-      .expect('Content-Type', /json/)
+      .expect(400)
     ;
-
-    let uuid = user.dataValues.uuid;
-
-    let cookies = cookieParser(response.header['set-cookie']);
-
-    token.sign(user.dataValues, JWT_SECRET, (err, jwt) => {
-      if (err) throw err;
-
-      expect(response).not.toBeNull();
-
-      expect(cookies.find(c => c.hasOwnProperty('uuid')['uuid'])).toBe(uuid);
-      expect(cookies.find(c => c.hasOwnProperty('email')['email'])).toBe(email);
-      expect(cookies.find(c => c.hasOwnProperty('name')['name'])).toBe(name);
-      expect(cookies.find(c => c.hasOwnProperty('jwt')['jwt'])).toBe(jwt);
-
-      expect(response.body).toBe({uuid, email, name, jwt});
-    });
-
-    User.truncate();
 
     done();
   });
+
 
   it('should logout user', async (done) => {
     let email = 'tester@crypter.com'
     let name = 'Tester';
     let password = 'secret';
 
-    let hash = await bcrypt.hash(password, 13);
+    let response;
 
-    let user = new User({ email, name, hash });
+    response = await request(server)
+      .post('/api/registrate')
+      .send({ email, name, password })
+    ;
 
-    await user.save();
+    let uuid = response.body.uuid;
+    let jwt = response.body.jwt;
 
-    let uuid = user.dataValues.uuid;
+    response = await request(server)
+      .post('/api/logout')
+      .set('Authorization', `Bearer ${jwt}`)
+      .set('Cookie', [`uuid=${uuid}; email=${email}; name=${name}; jwt=${jwt}`])
+      .expect(200)
+    ;
 
-    token.sign(user.dataValues, JWT_SECRET, async (err, jwt) => {
-      if (err) throw err;
+    let cookies = parseCookiesFromResponse(response);
 
-      let response = await request(server)
-        .post('/api/logout')
-        .set('Authorization', `Bearer ${jwt}`)
-        .set('Cookie', [`uuid=${uuid}; email=${email}; name=${name}; jwt=${jwt}`])
-        .expect(200)
-      ;
-
-      expect(response).not.toBeNull();
-
-      let cookies = cookieParser(response.header['set-cookie']);
-
-      expect(cookies.find(c => c.hasOwnProperty('uuid')['uuid'])).toBeUndefined();
-      expect(cookies.find(c => c.hasOwnProperty('email')['email'])).toBeUndefined();
-      expect(cookies.find(c => c.hasOwnProperty('name')['name'])).toBeUndefined();
-      expect(cookies.find(c => c.hasOwnProperty('jwt')['jwt'])).toBeUndefined();
-    });
-
-    User.truncate();
+    expect(cookies.find(c => c.hasOwnProperty('uuid'))['uuid']).toBeEmpty();
+    expect(cookies.find(c => c.hasOwnProperty('email'))['email']).toBeEmpty();
+    expect(cookies.find(c => c.hasOwnProperty('name'))['name']).toBeEmpty();
+    expect(cookies.find(c => c.hasOwnProperty('jwt'))['jwt']).toBeEmpty();
 
     done();
   });
 
   it('should retrive email existence', async(done) => {
     let email = 'tester@crypter.com'
+    let name = 'Tester';
+    let password = 'secret';
 
     await request(server)
       .get(`/api/email/${email}`)
       .expect(404)
     ;
 
-    let name = 'Tester';
-    let password = 'secret';
 
-    let hash = await bcrypt.hash(password, 13);
-
-    let user = new User({ email, name, hash });
-
-    await user.save();
+    await request(server)
+      .post('/api/registrate')
+      .send({ email, name, password })
+    ;
 
     await request(server)
       .get(`/api/email/${email}`)
       .expect(200)
     ;
 
-    User.truncate();
-
     done();
   });
 
-  afterAll(async () => {
-    //Jest has detected the following 1 open handle potentially keeping Jest from exiting:
-    // > 60 | server.listen(PORT, () => {
-    //      |        ^
-    //   61 |   console.log(`Node server listening on http://localhost:${PORT}`);
-    //   62 | });
-    // at Function.listen (node_modules/express/lib/application.js:618:24)
-    // at Object.<anonymous> (server.ts:60:8)
-  })
+  afterAll((done) => {
+    server.close(done);
+  });
 });

@@ -5,7 +5,10 @@ import * as authenticate from 'express-jwt';
 import logger from './services/Logger';
 
 export function errorHandler(err, req, res, next) {
-  if (err instanceof ValidationError) {
+  if (
+    err instanceof ValidationError ||
+    err instanceof SyntaxError
+  ) {
     return res.sendStatus(400); 
   }
 
