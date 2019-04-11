@@ -1,7 +1,12 @@
-
-
-// is it right directory for this?
-
+/*
+ * This wrapper is needed to turn any object to the localStorage-like API.
+ *
+ * https://developer.mozilla.org/en-US/docs/Web/API/Storage#Methods
+ *
+ * Primarily, this wrapper is needed to turn a Cookies object from a
+ * server request to a localStorage-like API for interoperability
+ * during Server Side Rendering.
+ */
 export class StorageWrapper {
   // @todo StorageEvent
 

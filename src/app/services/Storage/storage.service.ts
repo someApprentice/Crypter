@@ -6,6 +6,13 @@ import { REQUEST } from '@nguniversal/express-engine/tokens';
 
 import { StorageWrapper } from  './StorageWrapper';
 
+
+/**
+ * This service allows to determine what type of storage is needed
+ * for the application, either localStorage for the web application or
+ * Cookies for Server Side Rendering, and provide the same level of
+ * abstraction to them.
+ */
 @Injectable({
   providedIn: 'root'
 })
