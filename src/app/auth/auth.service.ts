@@ -40,7 +40,6 @@ export class AuthService {
   logout(): Observable<boolean> {
     let jwt = this.storageService.storage.jwt;
 
-    // Is it right way to turn Observable<T> to Observable<boolean>?
     // responseType: 'text' as 'json' https://github.com/angular/angular/issues/18586
     return this.http.post<any>('/api/logout', {}, { headers: new HttpHeaders({ 'Authorization': `Bearer ${jwt}` }), responseType: 'text' as 'json' }).pipe(
       map(d => true),
@@ -50,8 +49,8 @@ export class AuthService {
   }
 
   isEmailExist(email): Observable<boolean> {
-    // Is it right way to turn Observable<T> to Observable<boolean>?
-    return this.http.get<any>(`/api/email/${email}`).pipe(
+    // responseType: 'text' as 'json' https://github.com/angular/angular/issues/18586
+    return this.http.get<any>(`/api/email/${email}`, { responseType: 'text' as 'json' }).pipe(
       map(d => true),
       catchError(err => {
         if (err.status === 404) {

@@ -141,15 +141,26 @@ describe('AuthService', () => {
   it('should get response of email existence', () => {
     let email = 'tester@crypter.com';
 
-    service.isEmailExist(email).subscribe(d => {
-      expect(typeof d).toEqual('boolean');
+    let req;
+
+    let isEmailExist$;
+
+    isEmailExist$ = service.isEmailExist(email).subscribe(d => {
+      expect(d).toBeTruthy();
     });
-
-    let req = httpTestingController.expectOne(`/api/email/${email}`);
-
+    req = httpTestingController.expectOne(`/api/email/${email}`);
     expect(req.request.method).toEqual('GET');
+    req.flush('OK', { status: 200, statusText: 'OK' });
+    isEmailExist$.unsubscribe();
 
+
+    isEmailExist$ = service.isEmailExist(email).subscribe(d => {
+      expect(d).toBeFalsy();
+    });
+    req = httpTestingController.expectOne(`/api/email/${email}`);
+    expect(req.request.method).toEqual('GET');
     req.flush('Not Found', { status: 404, statusText: 'Not Found' });
+    isEmailExist$.unsubscribe();
   });
 
   it('should catch errors in the right way', () => {
