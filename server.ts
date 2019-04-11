@@ -16,6 +16,10 @@ import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
+import swaggerJSDoc from 'swagger-jsdoc';
+import swaggerUiExpress from 'swagger-ui-express';
+import swaggerJSDocOptions from './openapi';
+
 import { router as api } from './api/api';
 import { errorHandler } from './api/errorHandler'
 
@@ -51,6 +55,8 @@ server.use(cookieParser());
 server.get('*.*', express.static(join(DIST_FOLDER, 'browser')));
 
 server.use('/api', api);
+
+server.use('/documentation', swaggerUiExpress.serve, swaggerUiExpress.setup(swaggerJSDoc(swaggerJSDocOptions)));
 
 server.get('*', (req, res) => {
   res.render(join(DIST_FOLDER, 'browser', 'index.html'), { req });
