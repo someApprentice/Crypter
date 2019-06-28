@@ -4,9 +4,9 @@
 
 <nav>
   <a routerLink="/">Main</a>
-  <a *ngIf="!authService.isLoggedIn" routerLink="/login">Login</a>
-  <a *ngIf="!authService.isLoggedIn" routerLink="/registration">Registration</a>
-  <app-logout *ngIf="authService.isLoggedIn"></app-logout>
+  <a *ngIf="!authService.user" routerLink="/login">Login</a>
+  <a *ngIf="!authService.user" routerLink="/registration">Registration</a>
+  <app-logout *ngIf="authService.user"></app-logout>
 </nav>
 
 <router-outlet></router-outlet>

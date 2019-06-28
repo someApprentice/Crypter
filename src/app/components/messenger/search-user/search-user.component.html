@@ -1,0 +1,13 @@
+<input #searchBox (input)="search(searchBox.value)" placeholder="Search for users">
+
+<ul>
+    <li *ngFor="let user of users$ | async"><a (click)="select(user)">{{ user.name }}</a></li>
+</ul>
+
+<div *ngIf="selected" class="wrapper">
+    <div class="wrapped">
+        <div class="close clearfix"><button type="button" (click)="close()">Close</button></div>
+
+        <app-message-form [to]="selected.uuid" (sent)=onSent($event)></app-message-form>
+    </div>
+</div>

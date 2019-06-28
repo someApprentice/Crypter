@@ -1,5 +1,6 @@
 export const environment = {
-  production: true
+  production: true,
+  test: false
 };
 
 // ignore zone.js errors 

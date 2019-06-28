@@ -1,0 +1,14 @@
+<span *ngIf="conference">{{ conference.participant.name }} ({{ conference.unread }})</span>
+
+<ul
+    #scroller
+    infiniteScroll
+    [infiniteScrollUpDistance]="3.3"
+    [infiniteScrollThrottle]="666"
+    (scrolledUp)="onScroll(messages[0].date)"
+    [scrollWindow]="false"
+>
+    <li *ngFor="let message of messages">[{{ message.date * 1000 | date:'long' }}] {{ message.author.name }}: {{ message.content }}</li>
+</ul>
+
+<app-message-form *ngIf="conference" [to]="conference.participant.uuid"></app-message-form>

@@ -1,0 +1,6 @@
+<form [formGroup]="form" #messageForm="ngForm" (ngSubmit)="onSubmit($event)">
+    <label><input formControlName="to" type="hidden"  name="to" required></label>
+    <label>message: <textarea formControlName="message" name="message" (keydown)="onEnter($event)" required autofocus></textarea></label>
+
+    <input type="submit" name="send" value="send" [disabled]="!form.valid"> {{ error }}
+</form>

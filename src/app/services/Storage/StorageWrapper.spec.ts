@@ -10,7 +10,7 @@ describe('StorageWrapper', () => {
   it("should return the name of the nth key or null if key doesn't exist", () => {
     let n = 0;
 
-    let items = {
+    let items: { [key: string]: string } = {
       foo: "FOO",
       bar: "BAR",
       baz: "BAZ"
@@ -75,7 +75,7 @@ describe('StorageWrapper', () => {
   });
 
   it("should clear all keys of storage", () => {
-    let items = {
+    let items: { [key: string]: string } = {
       foo: "FOO",
       bar: "BAR",
       baz: "BAZ"

@@ -10,7 +10,9 @@ import { Title } from '@angular/platform-browser';
 
 import { of } from 'rxjs';
 
-import { AuthService } from './auth/auth.service';
+import { AuthService } from './components/auth/auth.service';
+
+import { User } from './models/User';
 
 
 import { AppComponent } from './app.component';
@@ -29,7 +31,7 @@ describe('AppComponent', () => {
 
   beforeEach(async(() => {
     authServiceStub = {
-      isLoggedIn: false
+      user: undefined
     };
 
     @Component({selector: 'app-main', template: ''})
@@ -79,7 +81,7 @@ describe('AppComponent', () => {
     expect(h1.textContent).toContain(component.title);
   });
 
-  it('should render login and registration links if User logged off or LogoutComponent if logged in ', () => {
+  it('should render login and registration links if User is logged off or LogoutComponent if logged in ', () => {
     let loginLinkDe = fixture.debugElement.query(By.css('a[href="/login"]'));
     let registrationLinkDe = fixture.debugElement.query(By.css('a[href="/registration"]'));
 
@@ -87,7 +89,12 @@ describe('AppComponent', () => {
     expect(registrationLinkDe.nativeElement).not.toBeNull();
 
 
-    authService.isLoggedIn = true;
+    authService.user = <User> {
+      uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      email: 'tester@crypter.com',
+      name: 'Tester',
+      jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
+    };
 
     fixture.detectChanges();
 

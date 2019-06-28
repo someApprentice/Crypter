@@ -1,35 +1,29 @@
-import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { BrowserModule, BrowserTransferStateModule } from '@angular/platform-browser';
+import { NgModule, APP_INITIALIZER } from '@angular/core';
 import { HttpClientModule }    from '@angular/common/http';
-import { AutofocusModule } from './modules/autofocus/autofocus.module';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 
-import { AuthModule } from './auth/auth.module';
-import { MainComponent } from './main/main.component';
-import { WelcomeComponent } from './auth/welcome/welcome.component';
-import { LogoutComponent } from './auth/logout/logout.component';
-import { NotFoundComponent } from './not-found/not-found.component';
+import { MainComponent } from './components/main/main.component';
+import { NotFoundComponent } from './components/not-found/not-found.component';
 
+import { AuthModule } from './components/auth/auth.module';
+import { MessengerModule } from './components/messenger/messenger.module';
 
 @NgModule({
   declarations: [
     AppComponent,
     MainComponent,
-    WelcomeComponent,
-    LogoutComponent,
     NotFoundComponent
   ],
   imports: [
     BrowserModule.withServerTransition({appId: 'crypter'}),
-    FormsModule,
-    ReactiveFormsModule,
+    BrowserTransferStateModule,
     HttpClientModule,
-    AutofocusModule,
     AuthModule,
-    AppRoutingModule,
+    MessengerModule,
+    AppRoutingModule
   ],
   bootstrap: [AppComponent]
 })

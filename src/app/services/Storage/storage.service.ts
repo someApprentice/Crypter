@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject  } from '@angular/core';
+import { Injector, Injectable } from '@angular/core';
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 
@@ -10,8 +10,8 @@ import { StorageWrapper } from  './StorageWrapper';
 /**
  * This service allows to determine what type of storage is needed
  * for the application, either localStorage for the web application or
- * Cookies for Server Side Rendering, and provide the same level of
- * abstraction to them.
+ * Cookies for Server Side Rendering, and provides to it the same level of
+ * abstraction.
  */
 @Injectable({
   providedIn: 'root'

@@ -1,0 +1,123 @@
+{
+    "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
+    "version": 2,
+    "controller": {
+    },
+    "workers": [
+        {
+            "type": "router",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
+            "realms": [
+                {
+                    "name": "realm1",
+                    "roles": [
+                        {
+                            "name": "authenticator",
+                            "permissions": [
+                                {
+                                    "uri": "authenticate",
+                                    "match": "exact",
+                                    "allow": {
+                                        "call": false,
+                                        "register": true,
+                                        "publish": false,
+                                        "subscribe": false
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": false
+                                }
+                            ]
+                        },
+                        {
+                            "name": "authorizer",
+                            "permissions": [
+                                {
+                                    "uri": "authorize",
+                                    "match": "exact",
+                                    "allow": {
+                                        "register": true
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "server",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": false
+                                }
+                            ]
+                        },
+                        {
+                            "name": "user",
+                            "authorizer": "authorize"
+                        },
+                        {
+                            "name": "anonymous"
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "websocket",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                    },
+                    "auth": {
+                        "anonymous": {
+                            "type": "dynamic",
+                            "authenticator": "authenticate"
+                        }
+                    },
+                    "options": {
+                       "enable_webstatus": false,
+                       "auto_ping_interval": 60000,
+                       "auto_ping_timeout": 30000,
+                       "auto_ping_size": 4
+                    }
+                }
+            ],
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "AuthenticatorSession.AuthenticatorSession",
+                    "realm": "realm1",
+                    "role": "authenticator"
+                },
+                {
+                    "type": "class",
+                    "classname": "AuthorizerSession.AuthorizerSession",
+                    "realm": "realm1",
+                    "role": "authorizer"
+                },
+                {
+                    "type": "class",
+                    "classname": "MessangerSession.MessangerSession",
+                    "realm": "realm1",
+                    "role": "server"
+                }
+            ]
+        }
+    ]
+}

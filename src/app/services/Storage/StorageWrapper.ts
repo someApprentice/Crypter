@@ -12,9 +12,11 @@ export class StorageWrapper {
 
   // @todo find a way to set length if a properties sets manually
 
+  [key: string]: any;
+
   length: number;
 
-  constructor(o: Object = { }) {    
+  constructor(o:{ [key:string]: any  } = { }) {    
     Object.defineProperty(this, 'length', Object.getOwnPropertyDescriptor(Array, 'length'));
     
     for (let k in o) {
@@ -22,7 +24,7 @@ export class StorageWrapper {
     }
   }
 
-  key(index: number) {
+  key(index: number): string | null {
     let keys = Object.keys(this);
     
     let key = keys[index]
@@ -30,19 +32,19 @@ export class StorageWrapper {
     return (key) ? key : null;
   }
   
-  getItem(key) {
+  getItem(key: string): any | null {
     let item = this[key];
 
     return (item) ? item : null;
   }
   
-  setItem(key, value) {
+  setItem(key:string, value:any): void {
     this[key] = value;
     
     Object.defineProperty(this, 'length', { value: Object.keys(this).length });
   }
   
-  removeItem(key) {
+  removeItem(key: string): void {
     delete this[key];
     
     Object.defineProperty(this, 'length', { value: Object.keys(this).length });
@@ -50,7 +52,7 @@ export class StorageWrapper {
     return void(0); //somewhy it's should return Void https://developer.mozilla.org/en-US/docs/Web/API/Storage/removeItem#Return_value
   }
   
-  clear() {
+  clear(): void {
     for (let key in this) {
       delete this[key];
     }

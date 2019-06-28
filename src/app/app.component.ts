@@ -5,7 +5,7 @@ import { Title } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 
-import { AuthService } from './auth/auth.service';
+import { AuthService } from './components/auth/auth.service';
 
 @Component({
   selector: 'app-root',

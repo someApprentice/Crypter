@@ -1,0 +1,7 @@
+<app-search-user (searching)="onSearch($event)"></app-search-user>
+
+<ul *ngIf="!searching">
+    <li *ngFor="let conference of conferences">
+        <a [routerLink]="['/conference', conference.uuid]">{{ conference.participant.name }} ({{ conference.unread }}):</a>
+    </li>
+</ul>
