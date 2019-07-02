@@ -10,7 +10,6 @@ import { provideModuleMap } from '@nguniversal/module-map-ngfactory-loader';
 // import * as express from 'express';
 import express from 'express';
 import { join } from 'path';
-import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 
 // Faster server renders w/ Prod mode (dev mode never needed)
@@ -33,12 +32,6 @@ server.engine('html', ngExpressEngine({
 
 server.set('view engine', 'html');
 server.set('views', join(DIST_FOLDER, 'browser'));
-
-server.use(bodyParser.urlencoded({
-  extended: true
-}));
-
-server.use(bodyParser.json());
 
 server.use(cookieParser());
 
