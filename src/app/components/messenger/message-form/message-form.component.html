@@ -1,6 +1,11 @@
-<form [formGroup]="form" #messageForm="ngForm" (ngSubmit)="onSubmit($event)">
-    <label><input formControlName="to" type="hidden"  name="to" required></label>
-    <label>message: <textarea formControlName="message" name="message" (keydown)="onEnter($event)" required autofocus></textarea></label>
+<form [formGroup]="form" #messageForm="ngForm" (ngSubmit)="onSubmit($event)" class="d-flex flex-row flex-nowrap align-items-center d-xl-block mx-3 my-2 mx-xl-5 clearfix">
+    <input formControlName="to" type="hidden"  name="to" required>
 
-    <input type="submit" name="send" value="send" [disabled]="!form.valid"> {{ error }}
+    <textarea formControlName="message" name="message" (keydown)="onEnter($event)" required autofocus class="d-none d-xl-block form-control"></textarea>
+    <input formControlName="message" type="text" name="message" (keydown)="onEnter($event)" required class="d-xl-none form-control form-control-sm">
+
+    <input type="submit" name="send" value="Send" [disabled]="!form.valid" class="d-none d-xl-inline-block btn btn-outline-secondary float-right mt-1">
+    <input type="submit" name="send" value="Send" [disabled]="!form.valid" class="d-xl-none btn btn-outline-secondary btn-sm mx-1">
+
+    {{ error }}
 </form>

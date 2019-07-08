@@ -1,6 +1,34 @@
-<form [formGroup]="form" #loginForm="ngForm" (ngSubmit)="login($event)">
-    <label>email: <input formControlName="email"  type="email" name="email" required maxlength="255" [autofocus]="!form.get('email').value"></label>
-    <label>password: <input formControlName="password" type="password" name="password" required [autofocus]="form.get('email').value"></label>
+<div class="wrapper d-flex flex-column justify-content-center mx-auto px-2">
+    <form [formGroup]="form" #loginForm="ngForm" (ngSubmit)="login($event)">
+        <input
+            formControlName="email"
+            type="email" name="email"
+            placeholder="email"
+            required maxlength="255"
+            [autofocus]="!form.get('email').value"
+            class="form-control my-1"
+            [class.is-valid]="form.controls['email'].valid && form.controls['email'].dirty"
+            [class.is-invalid]="form.controls['email'].invalid && form.controls['email'].dirty"
+        >
+        <div class="invalid-feedback d-none" [class.d-block]="form.controls['email'].invalid && form.controls['email'].dirty">
+            Email must contain name and domain divided by @, and not be longer than 255 characters.
+        </div>
 
-    <input type="submit" name="login" value="Log In" [disabled]="!form.valid"> {{ error }}
-</form>
+        <input
+            formControlName="password"
+            type="password"
+            name="password"
+            placeholder="password"
+            required
+            [autofocus]="form.get('email').value"
+            class="form-control my-1"
+            [class.is-valid]="form.controls['password'].valid && form.controls['password'].dirty"
+            [class.is-invalid]="form.controls['password'].invalid && form.controls['password'].dirty"
+        >
+        <div class="invalid-feedback d-none" [class.d-block]="form.controls['password'].invalid && form.controls['password'].dirty">
+            Password required.
+        </div>
+
+        <input type="submit" name="login" value="Log In" [disabled]="!form.valid" class="btn btn-outline-primary btn-block"> {{ error }}
+    </form>
+</div>

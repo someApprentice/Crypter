@@ -1,13 +1,31 @@
-<input #searchBox (input)="search(searchBox.value)" placeholder="Search for users">
+<form class="p-2">
+    <input #searchBox (input)="search(searchBox.value)" type="text" name="search" placeholder="Search for users..." class="d-none d-xl-inline-block form-control">
+    <input #searchBoxSm (input)="search(searchBoxSm.value)" type="text" name="search" placeholder="Search for users..." class="d-xl-none form-control form-control-sm">
+</form>
 
-<ul>
-    <li *ngFor="let user of users$ | async"><a (click)="select(user)">{{ user.name }}</a></li>
+<ul *ngIf="(users$ | async)?.length > 0 && (users$ | async) as users" class="overflow-auto">
+    <li *ngFor="let user of users">
+        <a (click)="select(user, content)" class="d-block mx-2 p-2">
+            <span class="name font-weight-bold font-italic">{{ user.name }}</span>
+        </a>
+    </li>
 </ul>
 
-<div *ngIf="selected" class="wrapper">
-    <div class="wrapped">
-        <div class="close clearfix"><button type="button" (click)="close()">Close</button></div>
 
-        <app-message-form [to]="selected.uuid" (sent)=onSent($event)></app-message-form>
-    </div>
-</div>
+<ng-template #content let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title" id="modal-basic-title">New message to @{{ selected?.name }}</h4>
+
+    <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+
+  <div class="modal-body">
+    <app-message-form [to]="selected?.uuid" (sent)=onSent($event)></app-message-form>
+  </div>
+
+  <div class="modal-footer">
+    Stupid form which <b>MUST</b> and will be fixed soon
+  </div>
+</ng-template>

@@ -1,5 +1,18 @@
-<form [formGroup]="form" (ngSubmit)="next($event)">
-    <label>email: <input formControlName="email" type="email" name="email" required maxlength="255" autofocus></label>
+<div class="wrapper d-flex flex-column justify-content-center mx-2 mx-sm-auto">
+    <form [formGroup]="form" (ngSubmit)="next($event)" class="form-inline flex-nowrap">
+        <input
+            formControlName="email"
+            type="email"
+            name="email"
+            placeholder="email"
+            required
+            maxlength="255"
+            autofocus
+            class="form-control"
+            [class.is-valid]="form.controls['email'].valid && form.controls['email'].dirty"
+            [class.is-invalid]="form.controls['email'].invalid && form.controls['email'].dirty"
+        >
 
-    <input type="submit" name="next" value="Next" [disabled]="!form.valid">  {{ error }}
-</form>
+        <input type="submit" name="next" value="Next" [disabled]="!form.valid" class="btn btn-outline-primary mx-1">  {{ error }}
+    </form>
+</div>

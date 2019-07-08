@@ -90,7 +90,7 @@ describe('WelcomeComponent', () => {
     expect(document.activeElement).toBe(input);
   });
 
-  it("should depending on response of email existence set data of respective route and redirect to it", () => {
+  it("should redirect to login or registration route", () => {
     let email = 'tester@crypter.com';
 
     let req;

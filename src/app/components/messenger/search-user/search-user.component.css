@@ -1,31 +1,26 @@
-a {
-    cursor: pointer;
-    text-decoration: underline;
-    color: #0000EE;
+form {
+    border-bottom: 1px solid rgba(0,0,0,.05);
 }
 
-a:visited {
-    color: #551A8B;
+ul {
+    margin: 0;
+    padding: 0;
+
+    /* @TODO: Refator this calculation with sass variables; */
+    /* screen size - header size - search form size */
+    height: calc(100vh - (40px + (.5rem * 2)) - (31px + (.5rem * 2) + 1px));
 }
 
-.wrapper {
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    top: 0;
-    left: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+li {
+    list-style-type: none;
 }
 
-.wrapped {
-    padding: 10px;
-    -webkit-box-shadow: -3px 3px 5px 0px rgba(0,0,0,0.75);
-    -moz-box-shadow: -3px 3px 5px 0px rgba(0,0,0,0.75);
-    box-shadow: -3px 3px 5px 0px rgba(0,0,0,0.75);
+li:hover {
+    background-color: rgba(236, 236, 236, .77);
 }
 
-.close > button {
-    float: right;
+li > a {
+    padding: 0;
+    text-decoration: none;
+    /*color: inherit;*/
 }

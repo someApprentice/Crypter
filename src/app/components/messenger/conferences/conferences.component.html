@@ -1,7 +1,17 @@
-<app-search-user (searching)="onSearch($event)"></app-search-user>
+<div class="container-fluid">
+    <div class="dialogs shadow p-xl-2 mb-xl-2">
+        <app-search-user (searching)="onSearch($event)"></app-search-user>
 
-<ul *ngIf="!searching">
-    <li *ngFor="let conference of conferences">
-        <a [routerLink]="['/conference', conference.uuid]">{{ conference.participant.name }} ({{ conference.unread }}):</a>
-    </li>
-</ul>
+        <ul *ngIf="!searching" class="overflow-auto">
+            <li *ngFor="let conference of conferences" class="dialog clearfix">
+                <a [routerLink]="['/conference', conference.uuid]" class="d-block mx-2 p-2">
+                    <div class="title clearfix"><span class="name float-left font-weight-bold font-italic">{{ conference.participant.name }}</span><span class="date float-right">{{ conference.updated * 1000 | date:'short' }}</span></div>
+                    <div class="info d-flex">
+                        <div class="content flex-grow-1"><!-- @TODO: last message --></div>
+                        <span class="badge badge-primary badge-pill mx-2">{{ conference.unread }}</span>
+                    </div>
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>

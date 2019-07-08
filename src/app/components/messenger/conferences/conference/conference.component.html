@@ -1,14 +1,39 @@
-<span *ngIf="conference">{{ conference.participant.name }} ({{ conference.unread }})</span>
+<div class="container-fluid">
+    <div class="conversation">
+        <header class="d-flex justify-content-between align-items-center shadow p-xl-2 bg-white rounded">
+            <a [routerLink]="['/']" class="btn btn-light btn-sm" role="button">< Back</a>
 
-<ul
-    #scroller
-    infiniteScroll
-    [infiniteScrollUpDistance]="3.3"
-    [infiniteScrollThrottle]="666"
-    (scrolledUp)="onScroll(messages[0].date)"
-    [scrollWindow]="false"
->
-    <li *ngFor="let message of messages">[{{ message.date * 1000 | date:'long' }}] {{ message.author.name }}: {{ message.content }}</li>
-</ul>
+            <div class="name d-flex flex-column align-items-center align-self-center"><span>{{ conference?.participant.name }}</span><span class="online">last seen recently</span></div>
 
-<app-message-form *ngIf="conference" [to]="conference.participant.uuid"></app-message-form>
+            <a class="btn btn-light btn-sm" role="button">Profile ></a>
+        </header>
+
+        <div
+            #scroller
+            infiniteScroll
+            [infiniteScrollUpDistance]="3.3"
+            [infiniteScrollThrottle]="666"
+            (scrolledUp)="onScroll(messages[0].date)"
+            [scrollWindow]="false"
+
+            class="wrapper overflow-auto"
+        >
+            <ul class="messages">
+                <li *ngFor="let message of messages" class="message media mx-3 pb-2 mx-xl-5 pb-xl-3">
+                    <div class="media-body">
+                        <div class="title clearfix">
+                            <span class="author float-left font-weight-bold font-italic"><a>{{ message.author.name }}</a></span>
+                            <span class="date float-right"><a>{{ message.date * 1000 | date:'short' }}</a></span>
+                        </div>
+
+                        <div class="content">
+                            {{ message.content }}
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <app-message-form [to]="conference?.participant.uuid" (sent)=onSent($event)></app-message-form>
+</div>

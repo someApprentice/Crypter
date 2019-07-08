@@ -125,6 +125,8 @@ export class ConferenceComponent implements OnInit, OnDestroy {
         }
 
         this.state.set(MESSAGES_STATE_KEY, messages as Message[]);
+
+        this.scrollDown();
       },
       err => {
         if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
@@ -171,8 +173,16 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngAfterViewInit() {         
+  onSent(message: Message) {
+    this.scrollDown();
+  }
+
+  scrollDown() {
     this.scroller.nativeElement.scrollTop = this.scroller.nativeElement.scrollHeight;
+  }
+
+  ngAfterViewInit() {
+    this.scrollDown();
   }  
 
   ngOnDestroy() {

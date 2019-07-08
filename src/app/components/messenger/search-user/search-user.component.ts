@@ -1,6 +1,9 @@
 import { Component, Output, EventEmitter, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
+import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
+
+
 import { Observable, Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
@@ -25,7 +28,7 @@ export class SearchUserComponent implements OnInit {
 
   private searchTerms = new Subject<string>();
 
-  constructor(private messengerService: MessengerService, private router: Router) {}
+  constructor(private messengerService: MessengerService, private router: Router, private modalService: NgbModal) {}
 
   ngOnInit() {
     this.users$ = this.searchTerms.pipe(
@@ -41,7 +44,7 @@ export class SearchUserComponent implements OnInit {
         this.searching.emit(false);
 
         return of([] as User[]);
-      })     
+      })
     );
   }
 
@@ -49,8 +52,10 @@ export class SearchUserComponent implements OnInit {
     this.searchTerms.next(term);
   }
 
-  select(user: User) {
+  select(user: User, content:any) {
     this.selected = user;
+
+    this.modalService.open(content, {ariaLabelledBy: 'modal-basic-title'});
   }
 
   onSent(message: Message) {

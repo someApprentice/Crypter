@@ -1,8 +1,77 @@
-<form [formGroup]="form" (ngSubmit)="registrate($event)">
+<div class="wrapper d-flex flex-column justify-content-center mx-auto px-2">
+    <form [formGroup]="form" (ngSubmit)="registrate($event)">
+        <input
+            formControlName="email"
+            type="email"
+            name="email"
+            placeholder="email"
+            required
+            maxlength="255"
+            [autofocus]="!form.get('email').value"
+            class="form-control my-1"
+            [class.is-valid]="form.controls['email'].valid && form.controls['email'].dirty"
+            [class.is-invalid]="form.controls['email'].invalid && form.controls['email'].dirty"
+        >
+        <div class="invalid-feedback d-none" [class.d-block]="form.controls['email'].invalid && form.controls['email'].dirty">
+            Email must contain name and domain divided by @, and not be longer than 255 characters. And, of course, must be free.
+        </div>
+
+        <input
+            formControlName="name"
+            type="text" name="name"
+            placeholder="name"
+            required
+            minlength="1"
+            maxlength="255"
+            [autofocus]="form.get('email').value"
+            class="form-control my-1"
+            [class.is-valid]="form.controls['name'].valid && form.controls['name'].dirty"
+            [class.is-invalid]="form.controls['name'].invalid && form.controls['name'].dirty"
+        >
+        <div class="invalid-feedback d-none" [class.d-block]="form.controls['name'].invalid && form.controls['name'].dirty">
+            Name must contain at leasat 1 character and not be longer than 255 characters.
+        </div>
+
+        <input
+            formControlName="password"
+            type="password"
+            name="password"
+            placeholder="password"
+            required
+            minlength="6"
+            class="form-control my-1"
+            [class.is-valid]="form.controls['password'].valid && form.controls['password'].dirty"
+            [class.is-invalid]="form.controls['password'].invalid && form.controls['password'].dirty"
+        >
+        <div class="invalid-feedback d-none" [class.d-block]="form.controls['password'].invalid && form.controls['password'].dirty">
+            Password must be at least 6 characters long.
+        </div>
+
+        <input
+            formControlName="retryPassword"
+            type="password"
+            name="retryPassword"
+            placeholder="retry password"
+            required
+            minlength="6"
+            class="form-control my-1"
+            [class.is-valid]="form.controls['retryPassword'].valid && form.controls['retryPassword'].dirty"
+            [class.is-invalid]="form.controls['retryPassword'].invalid && form.controls['retryPassword'].dirty"
+        >
+        <div class="invalid-feedback d-none" [class.d-block]="form.controls['retryPassword'].invalid && form.controls['password'].dirty">
+            Passwords do not match.
+        </div>
+
+        <input type="submit" name="registrate" value="Registrate" [disabled]="!form.valid" class="btn btn-outline-primary btn-block"> {{ error }}
+    </form>
+</div>
+
+
+<!-- <form [formGroup]="form" (ngSubmit)="registrate($event)">
     <label>email: <input formControlName="email"  type="email" name="email" required [autofocus]="!form.get('email').value"></label>    
     <label>name: <input formControlName="name" type="text" name="name" required minlength="1" maxlength="255" [autofocus]="form.get('email').value"></label>
     <label>password: <input formControlName="password" type="password" name="password" required minlength="6"></label>
     <label>retry password: <input formControlName="retryPassword" type="password" name="retryPassword" required minlength="6"></label>
 
     <input type="submit" name="registrate" value="Registrate" [disabled]="!form.valid">  {{ error }}
-</form>
+</form> -->

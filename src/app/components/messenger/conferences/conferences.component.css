@@ -1,0 +1,72 @@
+.container-fluid {
+    padding-right: 0;
+    padding-left: 0;
+}
+
+.dialogs {
+    /* @TODO: Refator this calculation with sass variables; */
+    /* screen size - header size */
+    height: calc(100vh - (40px + (.5rem * 2)));
+}
+
+.dialogs ul {
+    margin: 0;
+    padding: 0;
+
+    /* @TODO: Refator this calculation with sass variables; */
+    /* screen size - header size - search form size */
+    height: calc(100vh - (40px + (.5rem * 2)) - (31px + (.5rem * 2) + 1px));
+}
+
+.dialog {
+    list-style-type: none;
+    height: 66px;
+}
+
+.dialog:hover {
+    background-color: rgba(236, 236, 236, .77);
+}
+
+.dialog > a {
+    padding: 0;
+    text-decoration: none;
+    /*color: inherit;*/
+}
+
+/*.name {
+    font-weight: bold;
+    font-style: italic;
+}*/
+
+.date {
+    font-size: 13px;
+    color: grey;
+}
+
+.content {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    color: grey;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        padding-right: 15px;
+        padding-left: 15px;
+        max-width: 1140px;
+    }
+
+    .dialogs {
+        /* @TODO: Refator this calculation with sass variables; */
+        /* screen size - header size - search form size - dialogs bottom margin */
+        height: calc(100vh - (40px + (.5rem * 2)) - .5rem);
+    }
+
+    .dialogs ul {
+        /* @TODO: Refator this calculation with sass variables; */
+        /* screen size - header size - search form size - dialogs padding - dialogs bottom margin */
+        height: calc(100vh - (40px + (.5rem * 2)) - (38px + (.5rem * 2) + 1px) - (.5rem * 2)  - .5rem);
+    }
+}

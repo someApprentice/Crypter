@@ -1,7 +1,7 @@
-input, textarea {
-  display: block;
+textarea {
+    resize: none;
 }
 
-input[type='submit'] {
-  display: inline;
+textarea, input[type="text"], input[type="submit"].btn-sm {
+    font-size: 13px;
 }
