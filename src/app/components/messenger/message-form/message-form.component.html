@@ -1,5 +1,5 @@
 <form [formGroup]="form" #messageForm="ngForm" (ngSubmit)="onSubmit($event)" class="d-flex flex-row flex-nowrap align-items-center d-xl-block mx-3 my-2 mx-xl-5 clearfix">
-    <input formControlName="to" type="hidden"  name="to" required>
+    <input formControlName="to" type="hidden" name="to" required>
 
     <textarea formControlName="message" name="message" (keydown)="onEnter($event)" required autofocus class="d-none d-xl-block form-control"></textarea>
     <input formControlName="message" type="text" name="message" (keydown)="onEnter($event)" required class="d-xl-none form-control form-control-sm">

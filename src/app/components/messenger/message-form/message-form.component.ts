@@ -1,4 +1,4 @@
-import { Component, Injector, Inject, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Injector, Inject, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 
 import { Subscription, throwError, of } from 'rxjs';
@@ -24,7 +24,7 @@ import { Message }  from '../../../models/Message';
   templateUrl: './message-form.component.html',
   styleUrls: ['./message-form.component.css']
 })
-export class MessageFormComponent implements OnInit {
+export class MessageFormComponent implements OnInit, OnChanges {
   @Input() to: string;
   @Output() sent = new EventEmitter<Message>();
 
@@ -52,6 +52,10 @@ export class MessageFormComponent implements OnInit {
       this.wamp = injector.get(WampService);
       this.databaseService = injector.get(DatabaseService);
     }
+  }
+
+  ngOnChanges() {
+    this.form.get('to').setValue(this.to);
   }
 
   ngOnInit() {
