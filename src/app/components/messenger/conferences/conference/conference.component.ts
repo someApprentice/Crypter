@@ -1,4 +1,4 @@
-import { Component, Injector, Inject, ViewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
+import { Component, Injector, Inject, ViewChild, ElementRef, QueryList, OnInit, AfterViewInit, AfterViewChecked, OnDestroy } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { PLATFORM_ID } from '@angular/core';
@@ -30,8 +30,10 @@ const MESSAGES_STATE_KEY = makeStateKey('messages');
   templateUrl: './conference.component.html',
   styleUrls: ['./conference.component.css']
 })
-export class ConferenceComponent implements OnInit, OnDestroy {
+export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   @ViewChild('scroller') private scroller: ElementRef;
+  previousScrollTop: number;
+  previousScrollHeight: number;
 
   uuid?: string;
 
@@ -103,6 +105,10 @@ export class ConferenceComponent implements OnInit, OnDestroy {
         }
 
         this.messages.sort((a: Message, b: Message) => a.date - b.date);
+
+        // needs to define wheather or not the scroll was at the bottom or not before messages bound into template - ngAfterViewChecked
+        this.previousScrollTop = this.scroller.nativeElement.scrollTop;
+        this.previousScrollHeight = this.scroller.nativeElement.scrollHeight;
       }); 
     }
 
@@ -136,7 +142,7 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     );
   }
 
-  onScroll(timestamp: number) {
+  onScrollUp(timestamp: number) {
     if (this.messages.length === this.conference.count) {
       return;
     }
@@ -173,9 +179,7 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     });
   }
 
-  onSent(message: Message) {
-    this.scrollDown();
-  }
+  onSent(message: Message) {}
 
   scrollDown() {
     this.scroller.nativeElement.scrollTop = this.scroller.nativeElement.scrollHeight;
@@ -183,6 +187,17 @@ export class ConferenceComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     this.scrollDown();
+  }
+
+  ngAfterViewChecked() {
+    // scroll down on new message if the scroll was at the bottom
+    if (this.previousScrollTop + this.scroller.nativeElement.offsetHeight == this.previousScrollHeight) {
+      this.scrollDown();
+
+      // reset
+      this.previousScrollTop = 0;
+      this.previousScrollHeight = 0;
+    }
   }  
 
   ngOnDestroy() {
