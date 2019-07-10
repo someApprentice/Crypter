@@ -106,7 +106,7 @@ export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChec
 
         this.messages.sort((a: Message, b: Message) => a.date - b.date);
 
-        // needs to define wheather or not the scroll was at the bottom or not before messages bound into template - ngAfterViewChecked
+        // needs to define wheather or not the scroll was at the bottom before messages bound into template - ngAfterViewChecked
         this.previousScrollTop = this.scroller.nativeElement.scrollTop;
         this.previousScrollHeight = this.scroller.nativeElement.scrollHeight;
       }); 

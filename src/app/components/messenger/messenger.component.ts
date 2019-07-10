@@ -75,7 +75,7 @@ export class MessengerComponent implements OnInit, OnDestroy {
       participant: e.args[0].participant
     };
 
-    this.databaseService.$.pipe(switchMap(db => from(db.conferences.atomicUpsert(conference)))).subscribe();
+    this.databaseService.upsertConference(conference).subscribe();
   }
 
   onMessage(e: EventMessage) { 
@@ -94,7 +94,7 @@ export class MessengerComponent implements OnInit, OnDestroy {
       edited: e.args[0].edited
     };
 
-    this.databaseService.$.pipe(switchMap(db => from(db.messages.atomicUpsert(message)))).subscribe();
+    this.databaseService.upsertMessage(message).subscribe();
   }
 
   ngOnDestroy() {
