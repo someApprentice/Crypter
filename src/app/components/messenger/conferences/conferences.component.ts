@@ -9,9 +9,9 @@ import { map, switchMap } from 'rxjs/operators';
 
 import { MessengerService } from '../messenger.service';
 
-import { DatabaseService } from '../../../services/Database/database.service';
-import { ConferenceDocument } from '../../../services/Database/documents/conference.document';
-import { MessageDocument } from '../../../services/Database/documents/message.document';
+import { DatabaseService } from '../../../services/database/database.service';
+import { ConferenceDocument } from '../../../services/database/documents/conference.document';
+import { MessageDocument } from '../../../services/database/documents/message.document';
 
 import { Conference } from '../../../models/Conference';
 import { Message } from '../../../models/Message';

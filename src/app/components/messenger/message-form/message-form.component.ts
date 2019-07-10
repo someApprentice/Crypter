@@ -12,8 +12,8 @@ import { EventMessage } from 'thruway.js/src/Messages/EventMessage'
 
 import { AuthService } from '../../auth/auth.service';
 
-import { DatabaseService } from '../../../services/Database/database.service';
-import { MessageDocument } from '../../../services/Database/documents/message.document';
+import { DatabaseService } from '../../../services/database/database.service';
+import { MessageDocument } from '../../../services/database/documents/message.document';
 
 import { Conference } from '../../../models/Conference';
 import { Message }  from '../../../models/Message';

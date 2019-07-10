@@ -13,9 +13,9 @@ import { EventMessage } from 'thruway.js/src/Messages/EventMessage'
 import { MessengerService } from './messenger.service';
 
 import { RxDatabase } from 'rxdb';
-import { DatabaseService } from '../../services/Database/database.service';
-import { ConferenceDocument } from '../../services/Database/documents/conference.document';
-import { MessageDocument } from '../../services/Database/documents/message.document';
+import { DatabaseService } from '../../services/database/database.service';
+import { ConferenceDocument } from '../../services/database/documents/conference.document';
+import { MessageDocument } from '../../services/database/documents/message.document';
 
 import { AuthService } from '../auth/auth.service';
 
