@@ -10,7 +10,7 @@ import { AuthService } from './auth.service';
 import { StorageService } from '../../services/storage/storage.service';
 import { StorageWrapper } from '../../services/storage/StorageWrapper';
 
-import { DatabaseService } from '../../services/Database/database.service';
+import { DatabaseService } from '../../services/database/database.service';
 
 import { User } from '../../models/User';
 
