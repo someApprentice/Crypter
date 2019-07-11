@@ -35,6 +35,8 @@ export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChec
   previousScrollTop: number;
   previousScrollHeight: number;
 
+  @ViewChild('ul') private ul: ElementRef;
+
   uuid?: string;
 
   conference?: Conference;
@@ -59,6 +61,10 @@ export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChec
       this.wamp = injector.get(WampService);
       this.databaseService = injector.get(DatabaseService);
     }
+  }
+
+  ngOnChanges() {
+    
   }
 
   ngOnInit() {
@@ -140,6 +146,8 @@ export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChec
         }
       }
     );
+
+    this.moveToBottom();
   }
 
   onScrollUp(timestamp: number) {
@@ -185,7 +193,23 @@ export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChec
     this.scroller.nativeElement.scrollTop = this.scroller.nativeElement.scrollHeight;
   }
 
+  moveToBottom() {
+    let space = 0;
+
+    let messageContainerHeight = this.scroller.nativeElement.offsetHeight;
+    let messagesHeight = 0;
+
+    messagesHeight = this.ul.nativeElement.offsetHeight;
+
+    if (messagesHeight > 0 && messagesHeight < messageContainerHeight) {
+      space = messageContainerHeight - messagesHeight;
+    }
+
+    this.ul.nativeElement.style.paddingTop = `${space}px`;
+  }
+
   ngAfterViewInit() {
+    this.moveToBottom();
     this.scrollDown();
   }
 
