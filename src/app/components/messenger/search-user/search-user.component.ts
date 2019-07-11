@@ -1,10 +1,10 @@
-import { Component, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 
 
-import { Observable, Subject, of } from 'rxjs';
+import { Observable, Subscription, Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 import { MessengerService } from '../messenger.service';
@@ -17,10 +17,11 @@ import { Message } from '../../../models/Message';
   templateUrl: './search-user.component.html',
   styleUrls: ['./search-user.component.css']
 })
-export class SearchUserComponent implements OnInit {
+export class SearchUserComponent implements OnInit, OnDestroy {
   @Output() searching = new EventEmitter<boolean>();
 
-  users$?: Observable<User[]>;
+  users: User[] = [];
+  users$: Subscription;
 
   selected?: User;
 
@@ -45,7 +46,9 @@ export class SearchUserComponent implements OnInit {
 
         return of([] as User[]);
       })
-    );
+    ).subscribe(users => {
+      this.users = users;
+    });
   }
 
   search(term: string): void {
@@ -64,5 +67,11 @@ export class SearchUserComponent implements OnInit {
 
   close() {
     this.selected = undefined;
+  }
+
+  ngOnDestroy() {
+    if (this.users$) {
+      this.users$.unsubscribe();
+    }
   }
 }

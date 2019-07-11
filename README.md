@@ -1,10 +1,11 @@
 # Crypter
 
 ## Requirements
-- [PHP7.1](https://php.net/)
+- [PHP7.2](https://php.net/)
 - [Python3.7](https://www.python.org/)
 - [Node](https://nodejs.org/)
 - [psql](https://www.postgresql.org/)
+- [node-gyp](https://www.npmjs.com/package/node-gyp)
 
 ## Installation
 1. `git clone https://github.com/someApprentice/Crypter.git`

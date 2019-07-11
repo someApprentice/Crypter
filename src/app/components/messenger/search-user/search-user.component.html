@@ -3,7 +3,7 @@
     <input #searchBoxSm (input)="search(searchBoxSm.value)" type="text" name="search" placeholder="Search for users..." class="d-xl-none form-control form-control-sm">
 </form>
 
-<ul *ngIf="(users$ | async)?.length > 0 && (users$ | async) as users" class="overflow-auto">
+<ul *ngIf="users.length > 0" class="overflow-auto">
     <li *ngFor="let user of users">
         <a (click)="select(user, content)" class="d-block mx-2 p-2">
             <span class="name font-weight-bold font-italic">{{ user.name }}</span>
