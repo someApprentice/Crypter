@@ -113,7 +113,7 @@
                 },
                 {
                     "type": "class",
-                    "classname": "MessangerSession.MessangerSession",
+                    "classname": "MessengerSession.MessengerSession",
                     "realm": "realm1",
                     "role": "server"
                 }
