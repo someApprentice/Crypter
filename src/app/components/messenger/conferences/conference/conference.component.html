@@ -9,16 +9,18 @@
         </header>
 
         <div
-            #scroller
-            infiniteScroll
-            [infiniteScrollUpDistance]="3.3"
-            [infiniteScrollThrottle]="666"
-            (scrolledUp)="onScrollUp(messages[0].date)"
-            [scrollWindow]="false"
-
-            class="wrapper overflow-auto"
+            class="messages"
         >
-            <ul #ul class="messages">
+            <ul 
+                #scroller
+                infiniteScroll
+                [infiniteScrollUpDistance]="3.3"
+                [infiniteScrollThrottle]="666"
+                (scrolledUp)="onScrollUp(messages[0].date)"
+                [scrollWindow]="false"
+
+                class="wrapper overflow-auto"
+            >
                 <li *ngFor="let message of messages" class="message media mx-3 pb-2 mx-xl-5 pb-xl-3">
                     <div class="media-body">
                         <div class="title clearfix">

@@ -32,8 +32,9 @@ const MESSAGES_STATE_KEY = makeStateKey('messages');
 })
 export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   @ViewChild('scroller') private scroller: ElementRef;
-  previousScrollTop: number;
-  previousScrollHeight: number;
+  previousScrollTop: number = 0;
+  previousScrollHeight: number = 0;
+  previoisOffsetHeight: number = 0;
 
   @ViewChild('ul') private ul: ElementRef;
 
@@ -115,6 +116,7 @@ export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChec
         // needs to define wheather or not the scroll was at the bottom before messages bound into template - ngAfterViewChecked
         this.previousScrollTop = this.scroller.nativeElement.scrollTop;
         this.previousScrollHeight = this.scroller.nativeElement.scrollHeight;
+        this.previoisOffsetHeight = this.scroller.nativeElement.offsetHeight;
       }); 
     }
 
@@ -146,8 +148,6 @@ export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChec
         }
       }
     );
-
-    this.moveToBottom();
   }
 
   onScrollUp(timestamp: number) {
@@ -193,29 +193,13 @@ export class ConferenceComponent implements OnInit, AfterViewInit, AfterViewChec
     this.scroller.nativeElement.scrollTop = this.scroller.nativeElement.scrollHeight;
   }
 
-  moveToBottom() {
-    let space = 0;
-
-    let messageContainerHeight = this.scroller.nativeElement.offsetHeight;
-    let messagesHeight = 0;
-
-    messagesHeight = this.ul.nativeElement.offsetHeight;
-
-    if (messagesHeight > 0 && messagesHeight < messageContainerHeight) {
-      space = messageContainerHeight - messagesHeight;
-    }
-
-    this.ul.nativeElement.style.paddingTop = `${space}px`;
-  }
-
   ngAfterViewInit() {
-    this.moveToBottom();
     this.scrollDown();
   }
 
   ngAfterViewChecked() {
     // scroll down on new message if the scroll was at the bottom
-    if (this.previousScrollTop + this.scroller.nativeElement.offsetHeight == this.previousScrollHeight) {
+    if (this.previousScrollTop + this.previoisOffsetHeight == this.previousScrollHeight) {
       this.scrollDown();
 
       // reset
