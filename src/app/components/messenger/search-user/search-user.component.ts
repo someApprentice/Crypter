@@ -1,7 +1,7 @@
 import { Component, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 
-import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 
 
 import { Observable, Subscription, Subject, of } from 'rxjs';
@@ -28,6 +28,8 @@ export class SearchUserComponent implements OnInit, OnDestroy {
   error?:string;
 
   private searchTerms = new Subject<string>();
+
+  modalRef?: NgbModalRef;
 
   constructor(private messengerService: MessengerService, private router: Router, private modalService: NgbModal) {}
 
@@ -58,10 +60,12 @@ export class SearchUserComponent implements OnInit, OnDestroy {
   select(user: User, content:any) {
     this.selected = user;
 
-    this.modalService.open(content, {ariaLabelledBy: 'modal-basic-title'});
+    this.modalRef = this.modalService.open(content, {ariaLabelledBy: 'modal-basic-title'});
   }
 
   onSent(message: Message) {
+    this.modalRef.close();
+
     this.router.navigate(['conference', message.conference]);
   }
 
