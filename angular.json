@@ -24,10 +24,34 @@
                 "input": "src/public",
                 "output": "/"
               },
+              {
+                "glob": "*.css",
+                "input": "src/public",
+                "output": "/"
+              },
+              {
+                "glob": "*.css.map",
+                "input": "src/public",
+                "output": "/"
+              },
+              {
+                "glob": "glyphicons-halflings-regular.*",
+                "input": "src/public/bootstrap/glyphicons/fonts",
+                "output": "glyphicons/fonts/"
+              },
+              {
+                "glob": "glyphicons-halflings-regular.*",
+                "input": "src/public/bootstrap/glyphicons/fonts",
+                "output": "glyphicons/fonts/"
+              },
+              {
+                "glob": "MaterialIcons-Regular.*",
+                "input": "node_modules/material-icons/iconfont",
+                "output": "material-icons/iconfont"
+              },
               "src/public/assets"
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
               "src/public/styles.css"
             ],
             "scripts": []

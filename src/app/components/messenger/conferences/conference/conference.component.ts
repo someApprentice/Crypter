@@ -1,4 +1,4 @@
-import { Component, Injector, Inject, ViewChild, ElementRef, QueryList, OnInit, AfterViewInit, AfterViewChecked, OnDestroy } from '@angular/core';
+import { Component, Injector, Inject, ViewChild, ElementRef, OnInit, AfterViewInit, AfterViewChecked, OnDestroy } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { PLATFORM_ID } from '@angular/core';

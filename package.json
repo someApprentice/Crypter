@@ -7,7 +7,10 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build && ng run Crypter:server && webpack --config webpack.server.config.js",
+    "build": "npm run css-compile && ng build && ng run Crypter:server && webpack --config webpack.server.config.js",
+    "css-compile": "npm run bootstrap-compile && npm run material-icons-compile",
+    "bootstrap-compile": "node-sass --output-style expanded --source-map true --source-map-contents true --precision 6 src/public/bootstrap/bootstrap.scss src/public/bootstrap.css",
+    "material-icons-compile": "node-sass --output-style expanded --source-map true --source-map-contents true --precision 6 src/public/material-icons/material-icons.scss src/public/material-icons.css",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"
@@ -34,6 +37,7 @@
     "bootstrap": "^4.3.1",
     "cookie-parser": "^1.4.4",
     "core-js": "^2.6.5",
+    "material-icons": "^0.3.1",
     "ngx-infinite-scroll": "^7.2.0",
     "pouchdb-adapter-idb": "^7.0.0",
     "pouchdb-adapter-memory": "^7.0.0",

@@ -2,6 +2,6 @@ textarea {
     resize: none;
 }
 
-textarea, input[type="text"], input[type="submit"].btn-sm {
+textarea, input[type="text"], button[type="submit"].btn-sm {
     font-size: 13px;
 }

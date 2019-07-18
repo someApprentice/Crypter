@@ -1,0 +1,9 @@
+$input-btn-focus-width:       .1rem;
+
+@import "../../../node_modules/bootstrap/scss/bootstrap";
+
+$bootstrap-sass-asset-helper: false;
+$icon-font-name: 'glyphicons-halflings-regular';
+$icon-font-svg-id: 'glyphicons_halflingsregular';
+$icon-font-path: 'glyphicons/fonts/';
+@import "glyphicons/glyphicons";
