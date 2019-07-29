@@ -48,6 +48,15 @@ class User implements UserInterface
      */
     private $password;
 
+    /**
+     * @ORM\Column(name="last_seen", type="datetimetz")
+     */
+    private $lastSeen;
+
+    public function __construct()
+    {
+        $this->lastSeen = (new \DateTime());
+    }
 
     public function getUuid(): ?string
     {
@@ -136,5 +145,17 @@ class User implements UserInterface
     {
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
+    }
+
+    public function getLastSeen(): ?\DateTimeInterface
+    {
+        return $this->lastSeen;
+    }
+
+    public function setLastSeen(\DateTimeInterface $date): self
+    {
+        $this->lastSeen = $date;
+
+        return $this;
     }
 }

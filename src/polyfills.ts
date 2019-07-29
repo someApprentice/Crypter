@@ -87,3 +87,4 @@ import 'zone.js/dist/zone';  // Included with Angular CLI.
 
 
 import '@babel/polyfill';
+import 'intersection-observer';

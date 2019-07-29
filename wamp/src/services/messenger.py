@@ -16,7 +16,128 @@ from participant import Participant
 from message import Message
 from message_reference import Message_Reference
 
-class Messanger():
+class Messenger():
+    def read_message(data):
+        result = {
+            'data': data,
+            'message': None,
+            'conference': None,
+            'errors': {}
+        }
+
+        v = cerberus.Validator()
+
+        v.schema = {
+            'by': {
+                'type': 'UUID',
+                'required': True,
+                'coerce': UUID
+            },
+            'message': {
+                'type': 'UUID',
+                'required': True,
+                'coerce': UUID
+            },
+            'Bearer token': {
+                'type': 'string',
+                'required': True
+            }
+        }
+
+        if not v.validate(data):
+            result['errors'] = v.errors
+
+            return result
+
+
+        user = authenticator.authenticate(data['Bearer token'])
+
+        message = database.session.query(Message).filter(Message.uuid == data['message']).one_or_none()
+
+
+        if not message:
+            result['errors'] = { 'message': "Message doesn't exists" }
+
+            return result
+
+        if message.author.uuid == user.uuid:
+            result['errors'] = { 'message': "You're author of this message" }
+
+            return result
+
+        if message.readed:
+            result['errors'] = { 'message': "Message already readed" }
+
+            return result
+
+
+        message_reference = None
+
+        for mr in message.message_references:
+            if mr.user_uuid == user.uuid:
+                message_reference = mr
+
+                break
+
+        if not message_reference:
+            result['errors'] = { 'message': "Message doesn't exists" }
+
+            return result
+
+
+        message.readed = True
+
+        database.session.add(message)
+
+        database.session.flush()
+
+        conference_reference = database.session.query(Conference_Reference).filter(and_(Conference_Reference.conference_uuid == message_reference.conference_uuid, Conference_Reference.user_uuid == user.uuid)).one_or_none()
+
+        if conference_reference:
+            conference_reference.unread -= 1
+
+            database.session.add(conference_reference)
+
+            database.session.flush()
+
+
+        database.session.commit()
+
+
+        result['message'] = {
+            'uuid': str(message.uuid),
+            'author': {
+                'uuid': str(message.author.uuid),
+                'name':  message.author.name
+            },
+            'conference': str(conference_reference.conference.uuid),
+            'readed': message.readed,
+            'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
+            'date': message.date.timestamp(),
+            'type': message.type,
+            'content': message.content,
+            'consumed': message.consumed,
+            'edited': message.edited
+        }
+        result['conference'] = {
+            'uuid': str(conference_reference.conference.uuid),
+            'updated': conference_reference.conference.updated.timestamp(),
+            'participants': []
+        }
+
+        for participant in message_reference.conference.participants:
+            result['conference']['participants'].append(
+                {
+                    'uuid': str(participant.uuid),
+                    'name': participant.name
+                }
+            )
+
+
+        return result;
+
+
+
     def send(data):
         result = {
             'data': data,
@@ -58,9 +179,7 @@ class Messanger():
 
             return result
 
-
         # TODO: check for blacklist
-
 
         conference = database.session.query(Conference).join(Conference_Reference).filter(and_(Conference_Reference.conference_uuid == Conference.uuid, Conference_Reference.user_uuid == sender.uuid, Conference_Reference.participant_uuid == receiver.uuid)).one_or_none()
         
@@ -177,6 +296,7 @@ class Messanger():
             },
             'conference': str(conference.uuid),
             'readed': message.readed,
+            'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
             'date': message.date.timestamp(),
             'type': message.type,
             'content': message.content,

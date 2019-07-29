@@ -23,7 +23,8 @@ export class AuthService {
         uuid: this.storageService.storage.uuid,
         email: this.storageService.storage.email,
         name: this.storageService.storage.name,
-        jwt: this.storageService.storage.jwt
+        jwt: this.storageService.storage.jwt,
+        last_seen: this.storageService.storage.last_seen
       };
     }
   }

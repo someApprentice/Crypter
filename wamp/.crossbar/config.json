@@ -22,10 +22,31 @@
                                     "uri": "authenticate",
                                     "match": "exact",
                                     "allow": {
-                                        "call": false,
-                                        "register": true,
-                                        "publish": false,
-                                        "subscribe": false
+                                        "register": true
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": false
+                                },
+                                {
+                                    "uri": "wamp.session.on_join",
+                                    "match": "exact",
+                                    "allow": {
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": false
+                                },
+                                {
+                                    "uri": "wamp.session.on_leave",
+                                    "match": "exact",
+                                    "allow": {
+                                        "subscribe": true
                                     },
                                     "disclose": {
                                         "caller": false,

@@ -5,6 +5,7 @@ export interface Message {
   author: User,
   conference: string,
   readed: boolean,
+  readedAt?: string
   type: string,
   date: number,
   content: string,

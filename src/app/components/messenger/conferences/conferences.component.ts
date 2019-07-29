@@ -51,8 +51,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
     // get Conferences from api
     // if it's a browser push them into indexeDB
     // if it's a server push them into conferences array
-    this.subscriptions$['messengerService.getConferences'] = this.messengerService.getConferences()
-    .subscribe(
+    this.subscriptions$['this.messengerService.getConferences'] = this.messengerService.getConferences().subscribe(
       (conferences: Conference[]) => {
         for (let conference of conferences) {
           if (isPlatformBrowser(this.platformId)) {
@@ -91,7 +90,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
       // if conference doesn't exists in a conferences array, push it, otherwise update entry
       // and then sort conferences in case if some of conferences have been pushed before query
       // (for example before request from api)
-      this.subscriptions$['databaseService.getConferences']= this.databaseService.getConferences().subscribe(
+      this.subscriptions$['this.databaseService.getConferences'] = this.databaseService.getConferences().subscribe(
         (conferences: Conference[]) => {
           for (let conference of conferences) {
             if (this.conferences.find(c => c.uuid == conference.uuid)) {
@@ -116,13 +115,12 @@ export class ConferencesComponent implements OnInit, OnDestroy {
         // }
       );
 
-
       // // if conference has not been created yet - create it, push
       // // and sort in case if some of conferences have been pushed before query
       // // (for example before request from api)
       //  otherwise push or update message into conference.messages array
       //  sort messages in all conferences
-      this.subscriptions$['databaseService.getMessages'] = this.databaseService.getMessages().subscribe(
+      this.subscriptions$['this.databaseService.getMessages'] = this.databaseService.getMessages().subscribe(
         (messages: Message[]) => {
           for (let message of messages) {
             // if (!this.conferences.find(c => c.uuid == message.conference)) {

@@ -28,6 +28,9 @@ const messagesSchema: RxJsonSchema<Message> = {
     readed: {
       type: 'boolean'
     },
+    readedAt: {
+      type: ['number', 'null'],
+    },
     type: {
       type: 'string'
     },

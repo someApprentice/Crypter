@@ -42,12 +42,16 @@ class AuthController extends AbstractController
         // x-www-urlencoded or json
         $data = empty($request->request->all()) ? json_decode($request->getContent(), $assoc = true) : $request->request->all();
 
-        // @TODO: BAD_REQUSET IF REQUEIRED FILEDS IS EMPTY
+        // @TODO: BAD_REQUSET IF REQUEIRED FIELEDS IS EMPTY
+
+        $email = strtolower($data['email']);
+        $name = $data['name'];
+        $password = $data['password'];
 
         $user = new User();
-        $user->setEmail($data['email']);
-        $user->setName($data['name']);
-        $user->setPassword($data['password']);
+        $user->setEmail(($email));
+        $user->setName($name);
+        $user->setPassword($password);
         
         $errors = $this->validator->validate($user);
 
@@ -55,7 +59,7 @@ class AuthController extends AbstractController
             return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
         }
 
-        $user->setPassword($this->passwordEncoder->encodePassword($user, $data['password']));
+        $user->setPassword($this->passwordEncoder->encodePassword($user, $password));
 
         $this->em->persist($user);
         $this->em->flush();
@@ -64,6 +68,7 @@ class AuthController extends AbstractController
         $email = $user->getEmail();
         $name = $user->getName();
         $hash = $user->getPassword();
+        $lastSeen = (float) $user->getLastSeen()->format('U.u');
 
         $jwt = JWT::encode(['uuid' => $uuid, 'hash' => $hash], $this->getParameter('JWT_SECRET'));
 
@@ -71,14 +76,16 @@ class AuthController extends AbstractController
             'uuid' => $uuid,
             'email' => $email,
             'name' => $name,
-            'jwt' => $jwt
+            'jwt' => $jwt,
+            'last_seen' => $lastSeen 
         ]);
 
-        // set secure flag to true when https will implemented
+        // @TODO set secure flag to true when https will be implemented
         $response->headers->setCookie(new Cookie('uuid', $uuid, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('email', $email, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('name', $name, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('jwt', $jwt, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+        $response->headers->setCookie(new Cookie('last_seen', $lastSeen, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
 
         return $response;
     }
@@ -91,11 +98,14 @@ class AuthController extends AbstractController
         // x-www-urlencoded or json
         $data = empty($request->request->all()) ? json_decode($request->getContent(), $assoc = true) : $request->request->all();
 
-        // @TODO: BAD_REQUSET IF REQUEIRED FILEDS IS EMPTY
+        // @TODO: BAD_REQUSET IF REQUEIRED FIELDS IS EMPTY
+
+        $email = strtolower($data['email']);
+        $password = $data['password'];
 
         $user = new User();
-        $user->setEmail($data['email']);
-        $user->setPassword($data['password']);
+        $user->setEmail($email);
+        $user->setPassword($password);
 
 
         $errors = new ConstraintViolationList();
@@ -113,9 +123,9 @@ class AuthController extends AbstractController
         }
 
 
-        $user = $this->em->getRepository(User::class)->findOneBy(['email' => $data['email']]);
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
 
-        if (!$user or !$this->passwordEncoder->isPasswordValid($user, $data['password'])) {
+        if (!$user or !$this->passwordEncoder->isPasswordValid($user, $password)) {
             return new Response('Not Found', Response::HTTP_NOT_FOUND);
         }
 
@@ -123,6 +133,7 @@ class AuthController extends AbstractController
         $email = $user->getEmail();
         $name = $user->getName();
         $hash = $user->getPassword();
+        $lastSeen = (float) $user->getLastSeen()->format('U.u');
 
         $jwt = JWT::encode(['uuid' => $uuid, 'hash' => $hash], $this->getParameter('JWT_SECRET'));
 
@@ -130,14 +141,16 @@ class AuthController extends AbstractController
             'uuid' => $uuid,
             'email' => $email,
             'name' => $name,
-            'jwt' => $jwt
+            'jwt' => $jwt,
+            'last_seen' => $lastSeen
         ]);
 
-        // set secure flag to true when https will implemented
+        // @TODO set secure flag to true when https will be implemented
         $response->headers->setCookie(new Cookie('uuid', $uuid, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('email', $email, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('name', $name, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('jwt', $jwt, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+        $response->headers->setCookie(new Cookie('last_seen', $lastSeen, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
 
         return $response;
     }
@@ -158,6 +171,8 @@ class AuthController extends AbstractController
      */
     public function isEmailExists(string $email): Response
     {
+        $email = strtolower($email);
+
         $user = new User();
         $user->setEmail($email);
 

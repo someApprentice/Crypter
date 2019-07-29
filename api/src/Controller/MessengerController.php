@@ -105,6 +105,7 @@ class MessengerController extends AbstractController
                     ],
                     'conference' => $message['conference'],
                     'readed' => $message[0]->getReaded(),
+                    'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                     'date' => (float) $message[0]->getDate()->format('U.u'),
                     'type' => $message[0]->getType(),
                     'content' => $message[0]->getContent(),
@@ -168,6 +169,7 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => $message['conference'],
                 'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' => (float) $message[0]->getDate()->format('U.u'),
                 'type' => $message[0]->getType(),
                 'content' => $message[0]->getContent(),
@@ -190,7 +192,7 @@ class MessengerController extends AbstractController
     {
         $user = $this->getUser();
 
-        $messages = $this->em->getRepository(User::class)->getMessages($user, $date);
+        $messages = $this->em->getRepository(User::class)->getMessages($user);
 
         $json = [];
 
@@ -205,6 +207,46 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => $message['conference'],
                 'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
+                'date' => (float) $message[0]->getDate()->format('U.u'),
+                'type' => $message[0]->getType(),
+                'content' => $message[0]->getContent(),
+                'consumed' => $message[0]->getConsumed(),
+                'edited' => $message[0]->getEdited()
+            ];
+        }
+
+        return new JsonResponse($json);
+    }
+
+    /**
+     * @Route("/api/messenger/readed_messages/", name="get_readed_messages")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getReadedMessages(Request $request): Response
+    {
+        // somewhy DateTime round milliseconds from unix timestamp
+        $date = Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000);
+
+        $user = $this->getUser();
+
+        $messages = $this->em->getRepository(User::class)->getReadedMessages($user, $date);
+
+        $json = [];
+
+        foreach ($messages as $message) {
+            $author = $message[0]->getAuthor();
+
+            $json[] = [
+                'uuid' => $message[0]->getUuid(),
+                'author' => [
+                    'uuid' => $author->getUuid(),
+                    'name' => $author->getName()
+                ],
+                'conference' => $message['conference'],
+                'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' => (float) $message[0]->getDate()->format('U.u'),
                 'type' => $message[0]->getType(),
                 'content' => $message[0]->getContent(),
@@ -244,6 +286,51 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => $message['conference'],
                 'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
+                'date' => (float) $message[0]->getDate()->format('U.u'),
+                'type' => $message[0]->getType(),
+                'content' => $message[0]->getContent(),
+                'consumed' => $message[0]->getConsumed(),
+                'edited' => $message[0]->getEdited()
+            ];
+        }
+
+        return new JsonResponse($json);
+    }
+
+    /**
+     * @Route("/api/messenger/unread_messages/{conference}", name="get_unread_conference_messages")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getUnreadConferenceMessages(Request $request, $conference): Response
+    {
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+
+        $user = $this->getUser();
+
+        $conference = $this->em->getRepository(User::class)->getConference($conference, $user);
+
+        if (!$conference) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $messages = $this->em->getRepository(Conference::class)->getUnreadMessages($conference[0], $user, $limit);
+
+        $json = [];
+
+        foreach ($messages as $message) {
+            $author = $message[0]->getAuthor();
+
+            $json[] = [
+                'uuid' => $message[0]->getUuid(),
+                'author' => [
+                    'uuid' => $author->getUuid(),
+                    'name' => $author->getName()
+                ],
+                'conference' => $message['conference'],
+                'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' => (float) $message[0]->getDate()->format('U.u'),
                 'type' => $message[0]->getType(),
                 'content' => $message[0]->getContent(),
@@ -287,6 +374,51 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => $message['conference'],
                 'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
+                'date' =>  (float) $message[0]->getDate()->format('U.u'),
+                'type' => $message[0]->getType(),
+                'content' => $message[0]->getContent(),
+                'consumed' => $message[0]->getConsumed(),
+                'edited' => $message[0]->getEdited()
+            ];
+        }
+
+        return new JsonResponse($json);
+    }
+
+    /**
+     * @Route("/api/messenger/new_messages/{conference}", name="get_new_conference_messages")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getNewConferenceMessages(Request $request, $conference): Response
+    {
+        // somewhy DateTime round milliseconds from unix timestamp
+        $date = Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000);
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+
+        $user = $this->getUser();
+
+        $conference = $this->em->getRepository(User::class)->getConference($conference, $user);
+
+        if (!$conference) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $messages = $this->em->getRepository(Conference::class)->getNewMessages($conference[0], $user, $date, $limit);
+
+        $json = [];
+
+        foreach ($messages as $message) {
+            $json[] = [
+                'uuid' => $message[0]->getUuid(),
+                'author' => [
+                    'uuid' => $message[0]->getAuthor()->getUuid(),
+                    'name' => $message[0]->getAuthor()->getName()
+                ],
+                'conference' => $message['conference'],
+                'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' =>  (float) $message[0]->getDate()->format('U.u'),
                 'type' => $message[0]->getType(),
                 'content' => $message[0]->getContent(),
@@ -441,6 +573,7 @@ class MessengerController extends AbstractController
                     'name' => $message->getAuthor()->getName()
                 ],
                 'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
                 'date' => $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),

@@ -5,7 +5,7 @@ import pytz
 
 import database
 
-from messanger import Messanger
+from messenger import Messenger
 
 from models.errors.authentication import UserNotFoundError
 

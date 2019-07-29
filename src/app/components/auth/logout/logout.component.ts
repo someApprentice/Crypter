@@ -29,6 +29,7 @@ export class LogoutComponent implements OnInit, OnDestroy {
         localStorage.removeItem('email');
         localStorage.removeItem('name');
         localStorage.removeItem('jwt');
+        localStorage.removeItem('last_seen');
 
         this.router.navigate([''])
       },

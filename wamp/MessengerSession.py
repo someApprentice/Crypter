@@ -8,16 +8,17 @@ import src
 from autobahn.twisted.wamp import ApplicationSession
 from twisted.internet.defer import inlineCallbacks
 
-from messanger import Messanger
+from messenger import Messenger
 
 class MessengerSession(ApplicationSession):
 
     @inlineCallbacks
     def onJoin(self, details):
         yield self.register(self.send, 'send')
+        yield self.register(self.read_message, 'read')
 
     def send(self, data):
-        result = Messanger.send(data)
+        result = Messenger.send(data)
 
         response = {
             'data': data,
@@ -28,7 +29,6 @@ class MessengerSession(ApplicationSession):
 
         if response['errors']:
             return response
-
 
         for conference_reference in result['conference_references']:
             conference = {
@@ -41,20 +41,28 @@ class MessengerSession(ApplicationSession):
 
             self.publish(f"conference.updated.for.{conference_reference['user']}", conference)
 
+        self.publish(f"private.message.to.{result['data']['to']}", result['message'])
 
-        message = {
-            'uuid': result['message']['uuid'],
-            'author': result['message']['author'],
-            'conference': result['message']['conference'],
-            'readed': result['message']['readed'],
-            'date': result['message']['date'],
-            'type': result['message']['type'],
-            'content': result['message']['content'],
-            'consumed': result['message']['consumed'],
-            'edited': result['message']['edited']
+        return response
+
+
+    def read_message(self, data):
+        result = Messenger.read_message(data)
+
+        response = {
+            'data': data,
+            'message': result['message'],
+            'conference': result['conference'],
+            'errors': result['errors']
         }
 
-        self.publish(f"private.message.to.{result['data']['to']}", message)
+        if response['errors']:
+            return response
 
+        for participant in result['conference']['participants']:
+            # self.publish(f"private.message.readed.for.{participant['uuid']}", result['message'])
+            self.publish(f"private.message.updated.for.{participant['uuid']}", result['message'])
+
+        self.publish(f"conference.updated.for{result['data']['by']}", result['conference'])
 
         return response

@@ -68,11 +68,10 @@ export class RegistrationComponent implements OnInit, OnDestroy {
   error?: string;
 
   subscriptions$: { [key: string]: Subscription } = { };
-
   constructor(private authService: AuthService, private router: Router, private route: ActivatedRoute) { }
 
   ngOnInit() {
-    this.subscriptions$['routeData$'] = this.route.data.subscribe(d => {
+    this.subscriptions$['this.route.data'] = this.route.data.subscribe(d => {
       this.form.get('email').setValue(d.email);
     });
   }
@@ -84,12 +83,13 @@ export class RegistrationComponent implements OnInit, OnDestroy {
     let name = this.form.get('name').value;
     let password = this.form.get('password').value;
 
-    this.subscriptions$['registrate$'] = this.authService.registrate(email, name, password).subscribe(
+    this.subscriptions$['this.authService.registrate'] = this.authService.registrate(email, name, password).subscribe(
       d => {
         localStorage.setItem('uuid', d.uuid);
         localStorage.setItem('email', d.email);
         localStorage.setItem('name', d.name);
         localStorage.setItem('jwt', d.jwt);
+        localStorage.setItem('last_seen', d.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 
         this.router.navigate(['']);
       },
@@ -102,16 +102,7 @@ export class RegistrationComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.subscriptions$['routeUrl$'] = this.route.url.subscribe(u => {
-      // // u.pop() -> undefined???
-      // //let route = this.router.config.find(r => r.path === u.pop().path);
-      
-      // let segment = u.pop();
-
-      // let route = this.router.config.find(r => r.path === segment.path);
-
-      // console.log(u, u[u.length - 1]);
-
+    this.subscriptions$['this.route.url'] = this.route.url.subscribe(u => {
       let route = this.router.config.find(r => r.path === u[u.length - 1].path);
 
       delete route.data.email;

@@ -59,6 +59,19 @@ class ConferenceRepository extends ServiceEntityRepository
         return $messages;
     }
 
+    public function getUnreadMessages(Conference $conference, User $user, int $limit = self::BATCH_SIZE): array
+    {
+        $dql = 'SELECT m, IDENTITY(mr.conference) AS conference FROM Crypter\Entity\Message m JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message WHERE mr.conference = :conference AND mr.user = :user and m.readed = FALSE ORDER BY m.date ASC';
+
+        $query = $this->getEntityManager()->createQuery($dql);
+        $query->setParameters(['conference' => $conference->getUuid(), 'user' => $user->getUuid()]);
+        $query->setMaxResults($limit);
+
+        $messages = $query->getResult();
+
+        return $messages;
+    }
+
     public function getOldMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE)
     {
         $dql = '
@@ -70,6 +83,28 @@ class ConferenceRepository extends ServiceEntityRepository
                     AND mr.user = :user
                     AND m.date < :date
                 ORDER BY m.date DESC
+        ';
+
+        $query = $this->getEntityManager()->createQuery($dql);
+        $query->setParameters(['conference' => $conference->getUuid(), 'user' => $user->getUuid(), 'date' => $date->format('Y-m-d H:i:s.uP')]);
+        $query->setMaxResults($limit);
+
+        $messages = $query->getResult();
+
+        return $messages;
+    }
+
+    public function getNewMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE)
+    {
+        $dql = '
+            SELECT m, IDENTITY(mr.conference) AS conference
+                FROM Crypter\Entity\Message m
+                    JOIN Crypter\Entity\MessageReference mr
+                    WITH m.uuid = mr.message
+                WHERE mr.conference = :conference
+                    AND mr.user = :user
+                    AND m.date > :date
+                ORDER BY m.date ASC
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);

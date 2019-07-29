@@ -4,8 +4,9 @@ import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 
 import { Subscription, from, throwError } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { tap, map, switchMap } from 'rxjs/operators';
 
+import { SessionData } from 'thruway.js';
 
 import { WampService } from '../../services/wamp.service'
 import { EventMessage } from 'thruway.js/src/Messages/EventMessage'
@@ -51,19 +52,29 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      this.subscriptions$['onOpen'] = this.wamp.onOpen.subscribe(
-        session => {
-          this.subscriptions$['onConference'] = this.wamp.topic(`conference.updated.for.${this.authService.user.uuid}`).subscribe(this.onConference.bind(this));
-
-          this.subscriptions$['onMessage'] = this.wamp.topic(`private.message.to.${this.authService.user.uuid}`).subscribe(this.onMessage.bind(this));
-        },
-        err => {
-          // if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
-          //   this.error = err.message;
-          // }
+      this.subscriptions$['this.wamp.onOpen'] = this.wamp.onOpen.pipe(
+        tap(this.onOpen.bind(this)),
+        switchMap((session: SessionData) => this.messengerService.getReadedMessages(session.welcomeMsg.details.authextra.user.last_seen)) // update messages readed while client was offline
+      ).subscribe(messages => {
+        for (let message of messages) {
+          this.databaseService.upsertMessage(message).subscribe();
         }
-      );
+      });
     }
+  }
+
+  onOpen(session: SessionData) {
+    let last_seen = session.welcomeMsg.details.authextra.user.last_seen;
+
+    localStorage.setItem('last_seen', last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+
+    this.authService.user.last_seen = last_seen;
+
+    this.subscriptions$[`this.wamp.topic(conference.updated.for.${this.authService.user.uuid})`] = this.wamp.topic(`conference.updated.for.${this.authService.user.uuid}`).subscribe(this.onConference.bind(this));
+    this.subscriptions$[`this.wamp.topic(private.message.to.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.to.${this.authService.user.uuid}`).subscribe(this.onMessage.bind(this));
+    this.subscriptions$[`this.wamp.topic(private.message.updated.for.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.updated.for.${this.authService.user.uuid}`).subscribe(this.onMessage.bind(this));
+
+    return session;
   }
 
   onConference(e: EventMessage) {
@@ -87,12 +98,15 @@ export class MessengerComponent implements OnInit, OnDestroy {
       },
       conference: e.args[0].conference,
       readed: e.args[0].readed,
+      readedAt: e.args[0].readedAt,
       type: e.args[0].type,
       date: e.args[0].date,
       content: e.args[0].content,
       consumed: e.args[0].consumed,
       edited: e.args[0].edited
     };
+
+    console.log("wamp message updated: ", message);
 
     this.databaseService.upsertMessage(message).subscribe();
   }

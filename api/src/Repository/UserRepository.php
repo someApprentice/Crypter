@@ -61,6 +61,18 @@ class UserRepository extends ServiceEntityRepository
         return $messages;
     }
 
+    public function getReadedMessages(User $user, \DateTime $date): array
+    {
+        $dql = 'SELECT m, IDENTITY(mr.conference) AS conference FROM Crypter\Entity\Message m JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message WHERE mr.user = :user AND m.readedAt > :date ORDER BY m.date DESC';
+
+        $query = $this->getEntityManager()->createQuery($dql);
+        $query->setParameters(['user' => $user->getUuid(), 'date' => $date->format('Y-m-d H:i:s.uP')]);
+
+        $messages = $query->getResult();
+
+        return $messages;
+    }
+
     public function search(string $name): array
     {
         $dql = 'SELECT u FROM Crypter\Entity\User u WHERE u.name LIKE :name';

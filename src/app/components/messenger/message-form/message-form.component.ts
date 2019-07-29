@@ -69,10 +69,10 @@ export class MessageFormComponent implements OnInit, OnChanges {
       'Bearer token': this.authService.user.jwt
     };
 
-    // handle response errors
-    // then upsert conference
-    // then upsert message
-    // and only after that reset a form and emit event
+    // Handle response errors
+    // Then upsert conference
+    // Then upsert message
+    // And only after that reset form and emit event
     this.wamp.call('send', [data])
     .pipe(
       switchMap(res => (Object.keys(res.args[0].errors).length > 0) ? throwError(JSON.stringify(res.args[0].errors)) : of(res)),

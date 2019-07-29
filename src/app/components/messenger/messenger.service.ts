@@ -38,7 +38,19 @@ export class MessengerService {
     return this.http.get<Message[]>(`/api/messenger/messages/${uuid}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) });
   }
 
-  getOldMessageByConference(uuid: string, timestamp: number, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+  getUnreadMessagesByConference(uuid: string, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+    return this.http.get<Message[]>(`/api/messenger/unread_messages/${uuid}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) });
+  }
+
+  getOldMessagesByConference(uuid: string, timestamp: number, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
     return this.http.get<Message[]>(`/api/messenger/old_messages/${uuid}?timestamp=${timestamp}&limit=${limit}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) });
+  }
+
+  getNewMessagesByConference(uuid: string, timestamp: number, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+    return this.http.get<Message[]>(`/api/messenger/new_messages/${uuid}?timestamp=${timestamp}&limit=${limit}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) });
+  }
+
+  getReadedMessages(timestamp: number): Observable<Message[]> {
+    return this.http.get<Message[]>(`/api/messenger/readed_messages/?timestamp=${timestamp}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) });
   }
 }

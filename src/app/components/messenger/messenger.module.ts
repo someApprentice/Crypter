@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { InfiniteScrollModule } from 'ngx-infinite-scroll';
+import { InViewportModule } from 'ng-in-viewport';
 import { AutofocusModule } from '../../modules/autofocus/autofocus.module';
 
 import { MessengerRoutingModule } from './messenger-routing.module';
@@ -28,6 +29,7 @@ import { MessageFormComponent } from './message-form/message-form.component';
     ReactiveFormsModule,
     NgbModalModule,
     InfiniteScrollModule,
+    InViewportModule,
     AutofocusModule,
     MessengerRoutingModule
   ],

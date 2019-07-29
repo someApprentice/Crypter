@@ -33,6 +33,11 @@ class Message
     private $readed = false;
 
     /**
+     * @ORM\Column(name="readed_at", type="datetimetz", nullable=true)
+     */
+    private $readedAt;
+
+    /**
      * @ORM\Column(type="datetimetz")
      */
     private $date;
@@ -93,6 +98,18 @@ class Message
     public function setReaded(bool $readed): self
     {
         $this->readed = $readed;
+
+        return $this;
+    }
+
+    public function getReadedAt(): ?\DateTimeInterface
+    {
+        return $this->readedAt;
+    }
+
+    public function setReadedAt(\DateTimeInterface $date): self
+    {
+        $this->readedAt = $readedAt;
 
         return $this;
     }

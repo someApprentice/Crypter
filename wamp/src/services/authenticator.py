@@ -1,4 +1,5 @@
 import os
+import datetime
 
 import jwt
 from jwt.exceptions import InvalidSignatureError
@@ -13,14 +14,26 @@ from user import User
 JWT_SECRET = os.getenv('JWT_SECRET');
 
 def authenticate(token):
-   payload = jwt.decode(token, JWT_SECRET, algorithms='HS256')
+    payload = jwt.decode(token, JWT_SECRET, algorithms='HS256')
 
-   user = database.session.query(User).get(payload['uuid'])
+    user = database.session.query(User).get(payload['uuid'])
 
-   if not user:
+    if not user:
       raise UserNotFoundError()
 
-   if payload['hash'] != user.hash:
+    if payload['hash'] != user.hash:
       raise WrongTokenError()
 
-   return user
+    return user
+
+
+def seen(token):
+    payload = jwt.decode(token, JWT_SECRET, algorithms='HS256')
+
+    user = database.session.query(User).get(payload['uuid'])
+
+    user.last_seen = datetime.datetime.utcnow()
+
+    database.session.add(user)
+
+    database.session.commit()

@@ -125,6 +125,7 @@ export class DatabaseService implements OnDestroy {
             },
             conference: document.conference,
             readed: document.readed,
+            readedAt: document.readedAt,
             type: document.type,
             date: document.date,
             content: document.content,
@@ -160,6 +161,7 @@ export class DatabaseService implements OnDestroy {
             },
             conference: document.conference,
             readed: document.readed,
+            readedAt: document.readedAt,
             type: document.type,
             date: document.date,
             content: document.content,
@@ -183,7 +185,7 @@ export class DatabaseService implements OnDestroy {
           db.messages.find({ $and: [{ conference: { $eq: uuid } }, { date: { $lt: timestamp } }] })
           .sort({ date: -1 })
           .limit(limit)
-          .exec()
+          .$
         )
       ),
       map((documents: MessageDocument[]) => {
@@ -198,6 +200,45 @@ export class DatabaseService implements OnDestroy {
             },
             conference: document.conference,
             readed: document.readed,
+            readedAt: document.readedAt,
+            type: document.type,
+            date: document.date,
+            content: document.content,
+            consumed: document.consumed,
+            edited: document.edited
+          };
+
+          messages.push(message);
+        }
+
+        return messages;
+      })
+    );
+  }
+
+  getNewMessagesByConference(uuid: string, timestamp: number, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+    return this.$.pipe(
+      switchMap(
+        db => from(
+          db.messages.find({ $and: [{ conference: { $eq: uuid } }, { date: { $gt: timestamp } }] })
+          .sort({ date: 1 })
+          .limit(limit)
+          .$
+        )
+      ),
+      map((documents: MessageDocument[]) => {
+        let messages: Message[] = [];
+
+        for (let document of documents) {
+          let message: Message = {
+            uuid: document.uuid,
+            author: {
+              uuid: document.author.uuid,
+              name: document.author.name
+            },
+            conference: document.conference,
+            readed: document.readed,
+            readedAt: document.readedAt,
             type: document.type,
             date: document.date,
             content: document.content,

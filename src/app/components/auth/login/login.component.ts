@@ -32,7 +32,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   constructor(private authService: AuthService, private router: Router, private route: ActivatedRoute) { }
 
   ngOnInit() {
-    this.subscriptions$['routeData$'] = this.route.data.subscribe(d => {
+    this.subscriptions$['this.route.data'] = this.route.data.subscribe(d => {
       this.form.get('email').setValue(d.email);
     });
   }
@@ -43,12 +43,13 @@ export class LoginComponent implements OnInit, OnDestroy {
     let email = this.form.get('email').value;
     let password = this.form.get('password').value;
 
-    this.subscriptions$['login$'] = this.authService.login(email, password).subscribe(
+    this.subscriptions$['this.authService.login'] = this.authService.login(email, password).subscribe(
       d => {
         localStorage.setItem('uuid', d.uuid);
         localStorage.setItem('email', d.email);
         localStorage.setItem('name', d.name);
         localStorage.setItem('jwt', d.jwt);
+        localStorage.setItem('last_seen', d.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 
         this.router.navigate(['']);
       },
@@ -61,7 +62,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.subscriptions$['routeUrl$'] = this.route.url.subscribe(u => {
+    this.subscriptions$['this.route.url.subscribe'] = this.route.url.subscribe(u => {
       let route = this.router.config.find(r => r.path === u[u.length - 1].path);
 
       delete route.data.email;

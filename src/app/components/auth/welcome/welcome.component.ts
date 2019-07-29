@@ -37,7 +37,7 @@ export class WelcomeComponent implements OnInit, OnDestroy {
 
     let redirect = 'registration';
 
-    this.subscriptions$['isEmailExist$'] = this.authService.isEmailExist(email).subscribe(
+    this.subscriptions$['this.authService.isEmailExist'] = this.authService.isEmailExist(email).subscribe(
       d => {
         if (d) {
           redirect = 'login';
