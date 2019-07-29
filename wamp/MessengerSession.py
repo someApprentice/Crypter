@@ -16,6 +16,7 @@ class MessengerSession(ApplicationSession):
     def onJoin(self, details):
         yield self.register(self.send, 'send')
         yield self.register(self.read_message, 'read')
+        yield self.register(self.write, 'write')
 
     def send(self, data):
         result = Messenger.send(data)
@@ -63,6 +64,25 @@ class MessengerSession(ApplicationSession):
             # self.publish(f"private.message.readed.for.{participant['uuid']}", result['message'])
             self.publish(f"private.message.updated.for.{participant['uuid']}", result['message'])
 
-        self.publish(f"conference.updated.for{result['data']['by']}", result['conference'])
+        self.publish(f"conference.updated.for.{result['data']['by']}", result['conference'])
+
+        return response
+
+    def write(self, data):
+        result = Messenger.write(data)
+
+        response = {
+            'data': data,
+            'user': result['user'],
+            'conference': result['conference'],
+            'errors':  result['errors']
+        }
+
+        if response['errors']:
+            return response
+
+        for participant in result['conference']['participants']:
+            if participant['uuid'] != result['user']['uuid']:
+                self.publish(f"writing.for.{participant['uuid']}", { 'conference': result['conference']['uuid'], 'user': result['user'] })
 
         return response

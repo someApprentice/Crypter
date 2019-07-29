@@ -6,7 +6,7 @@ import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 import { TransferState, makeStateKey, DOCUMENT } from '@angular/platform-browser';
 
 import { Subscription, of, throwError, from } from 'rxjs';
-import { switchMap, map, tap, first } from 'rxjs/operators';
+import { switchMap, map, tap, first, delay } from 'rxjs/operators';
 
 import { WampService } from '../../../../services/wamp.service'
 import { EventMessage } from 'thruway.js/src/Messages/EventMessage'
@@ -19,6 +19,7 @@ import { DatabaseService } from '../../../../services/database/database.service'
 import { ConferenceDocument } from '../../../../services/database/documents/conference.document';
 import { MessageDocument } from '../../../../services/database/documents/message.document';
 
+import { User } from '../../../../models/User';
 import { Conference } from '../../../../models/Conference';
 import { Message }  from '../../../../models/Message';
 
@@ -40,6 +41,8 @@ export class ConferenceComponent implements OnInit, AfterViewInit, OnDestroy {
 
   conference?: Conference;
   messages: Message[] = [];
+
+  writing: User|null = null;
   
   error?: string;
 
@@ -68,7 +71,9 @@ export class ConferenceComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Get uuid from route params
     // Then get Conference from API
-    //   If it's a browser push it into indexeDB
+    //   If it's a browser
+    //     Push it into indexeDB
+    //     And subscribe to writing event
     // Then get Messages from API
     //   And if count of unread messages > BATCH_SIZE get batch of new messages
     //   Else get last batch of messages
@@ -97,6 +102,22 @@ export class ConferenceComponent implements OnInit, AfterViewInit, OnDestroy {
         this.conference = conference;
 
         this.state.set(CONFERENCE_STATE_KEY, conference as Conference);
+
+        if (isPlatformBrowser(this.platformId)) {
+          this.subscriptions$[`this.wamp.topic(writing.for.${this.authService.user.uuid})`] = this.wamp.topic(`writing.for.${this.authService.user.uuid}`).pipe(
+            tap((e: EventMessage) => {
+              if (e.args[0].conference == this.conference.uuid) {
+                this.writing = <User> {
+                  uuid: e.args[0].user.uuid,
+                  name: e.args[0].user.name
+                }
+              }
+            }),
+            delay(2300)
+          ).subscribe(() => {
+            this.writing = null;
+          });
+        }
 
         if (conference.unread > MessengerService.BATCH_SIZE) {
           return this.messengerService.getUnreadMessagesByConference(conference.uuid);

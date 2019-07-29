@@ -17,6 +17,76 @@ from message import Message
 from message_reference import Message_Reference
 
 class Messenger():
+    def write(data):
+        result = {
+            'data': data,
+            'user': {},
+            'conference': {},
+            'errors': {}
+        }
+
+        v = cerberus.Validator()
+
+        v.schema = {
+            'user': {
+                'type': 'UUID',
+                'required': True,
+                'coerce': UUID
+            },
+            'to': {
+                'type': 'UUID',
+                'required': True,
+                'coerce': UUID
+            },
+            'Bearer token': {
+                'type': 'string',
+                'required': True
+            }
+        }
+
+        if not v.validate(data):
+            result['errors'] = v.errors
+
+            return result
+
+        user = authenticator.authenticate(data['Bearer token'])
+
+        conference = conference = database.session.query(Conference).join(Conference_Reference).filter(and_(Conference_Reference.conference_uuid == Conference.uuid, Conference_Reference.user_uuid == user.uuid, Conference_Reference.participant_uuid == data['to'])).one_or_none()
+
+        if not conference:
+            result['errors'] = { 'conference': 'Conference does not exist' }
+
+            return result
+
+        conference_reference = database.session.query(Conference_Reference).filter(and_(Conference_Reference.participant_uuid == data['to'], Conference_Reference.user_uuid == user.uuid)).one_or_none()
+
+        if not conference_reference:
+            result['errors'] = { 'conference': 'You do not have this conference' }
+
+            return result
+
+
+
+        result['user'] = {
+            'uuid': str(user.uuid),
+            'name': user.name
+        }
+        result['conference'] = {
+            'uuid': str(conference.uuid),
+            'updated': conference.updated.timestamp(),
+            'participants': []
+        }
+
+        for participant in conference.participants:
+            result['conference']['participants'].append(
+                {
+                    'uuid': str(participant.uuid),
+                    'name': participant.name
+                }
+            )
+
+        return result;
+
     def read_message(data):
         result = {
             'data': data,

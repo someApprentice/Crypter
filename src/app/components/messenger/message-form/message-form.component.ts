@@ -1,8 +1,8 @@
-import { Component, Injector, Inject, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
+import { Component, Injector, Inject, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 
-import { Subscription, throwError, of } from 'rxjs';
-import { switchMap, delayWhen } from 'rxjs/operators';
+import { Subscription, Subject, throwError, of } from 'rxjs';
+import { switchMap, delayWhen, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
@@ -24,7 +24,7 @@ import { Message }  from '../../../models/Message';
   templateUrl: './message-form.component.html',
   styleUrls: ['./message-form.component.css']
 })
-export class MessageFormComponent implements OnInit, OnChanges {
+export class MessageFormComponent implements OnInit, OnChanges, OnDestroy {
   @Input() to: string;
   @Output() sent = new EventEmitter<Message>();
 
@@ -39,6 +39,8 @@ export class MessageFormComponent implements OnInit, OnChanges {
 
   error?: string;
 
+  writing = new Subject<string>()
+  writing$?: Subscription;
 
   private wamp: WampService;
   private databaseService: DatabaseService;
@@ -60,6 +62,22 @@ export class MessageFormComponent implements OnInit, OnChanges {
 
   ngOnInit() {
     this.form.get('to').setValue(this.to);
+
+    if (isPlatformBrowser(this.platformId)) {
+      this.writing$ = this.writing.pipe(
+        debounceTime(333),
+        distinctUntilChanged(),
+        switchMap(() => {
+          let data = {
+            'user': this.authService.user.uuid,
+            'to': this.to,
+            'Bearer token': this.authService.user.jwt
+          }
+
+          return this.wamp.call('write', [data]);
+        })
+      ).subscribe();
+    }
   }
 
   send(to: string, text: string) {
@@ -126,6 +144,16 @@ export class MessageFormComponent implements OnInit, OnChanges {
       let text = this.form.get('message').value
 
       this.send(to, text);
+    }
+  }
+
+  onWriting(value: string) {
+    this.writing.next(value);
+  }
+
+  ngOnDestroy() {
+    if (this.writing$) {
+      this.writing$.unsubscribe();
     }
   }
 }

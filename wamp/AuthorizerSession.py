@@ -28,6 +28,12 @@ class AuthorizerSession(ApplicationSession):
             if uri == 'send' and session['authrole'] == 'server':
                 return True
 
+            if uri == 'read' and session['authrole'] == 'server':
+                return True
+
+            if uri == 'send' and session['authrole'] == 'server':
+                return True
+
 
         if action == 'call':
             if uri == 'send' and session['authrole'] == 'user':
@@ -36,12 +42,25 @@ class AuthorizerSession(ApplicationSession):
             if uri == 'read' and session['authrole'] == 'user':
                 return True
 
+            if uri == 'write' and session['authrole'] == 'user':
+                return True
+
 
         if action == 'publish':
             # not necessarily because server authorization occurs via config.json and all its actions are trusted
             # just for the record
             if 'private.message.to.' in uri and session['authrole'] == 'server':
                 return True
+
+            if 'conference.updated.for.' in uri and session['authrole'] == 'server':
+                return True
+
+            if 'private.message.updated.for.' in uri and session['authrole'] == 'server':
+                return True
+
+            if 'writing.for.' in uri and session['authrole'] == 'server':
+                return True
+
 
 
         if action == 'subscribe':
@@ -106,7 +125,31 @@ class AuthorizerSession(ApplicationSession):
                 uuid = m.group(1) if m else None
 
                 authextra = session.get('authextra')
-                
+ 
+                if not authextra or 'Bearer token' not in authextra:
+                    return False
+
+                token = session['authextra']['Bearer token']
+
+                try:
+                    user = authenticator.authenticate(token)
+                except Exception as e:
+                    # todo: Log in case of system error
+
+                    return False
+
+                if uuid == str(user.uuid):
+                    return True
+
+            if 'writing.for.' in uri:
+                regex = re.compile('^writing\.for\.([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12})$')
+
+                m = regex.match(uri)
+
+                uuid = m.group(1) if m else None
+
+                authextra = session.get('authextra')
+
                 if not authextra or 'Bearer token' not in authextra:
                     return False
 
