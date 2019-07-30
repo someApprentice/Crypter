@@ -192,6 +192,12 @@ class Messenger():
         result['conference'] = {
             'uuid': str(conference_reference.conference.uuid),
             'updated': conference_reference.conference.updated.timestamp(),
+            'count': conference_reference.count,
+            'unread': conference_reference.unread,
+            'participant': {
+                'uuid': str(conference_reference.participant.uuid),
+                'name': conference_reference.participant.name
+            },
             'participants': []
         }
 
