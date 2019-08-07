@@ -106,8 +106,6 @@ export class MessengerComponent implements OnInit, OnDestroy {
       edited: e.args[0].edited
     };
 
-    console.log("wamp message updated: ", message);
-
     this.databaseService.upsertMessage(message).subscribe();
   }
 

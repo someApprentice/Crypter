@@ -1,9 +1,6 @@
 import { Component, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
-
-
 import { Observable, Subscription, Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
@@ -29,9 +26,7 @@ export class SearchUserComponent implements OnInit, OnDestroy {
 
   private searchTerms = new Subject<string>();
 
-  modalRef?: NgbModalRef;
-
-  constructor(private messengerService: MessengerService, private router: Router, private modalService: NgbModal) {}
+  constructor(private messengerService: MessengerService, private router: Router) {}
 
   ngOnInit() {
     this.users$ = this.searchTerms.pipe(
@@ -55,22 +50,6 @@ export class SearchUserComponent implements OnInit, OnDestroy {
 
   search(term: string): void {
     this.searchTerms.next(term);
-  }
-
-  select(user: User, content:any) {
-    this.selected = user;
-
-    this.modalRef = this.modalService.open(content, {ariaLabelledBy: 'modal-basic-title'});
-  }
-
-  onSent(message: Message) {
-    this.modalRef.close();
-
-    this.router.navigate(['conference', message.conference]);
-  }
-
-  close() {
-    this.selected = undefined;
   }
 
   ngOnDestroy() {

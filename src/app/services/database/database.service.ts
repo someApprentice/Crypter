@@ -102,6 +102,24 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
+  getConferenceByParticipant(uuid: string): Observable<Conference> {
+    return this.$.pipe(
+      switchMap(db => db.conferences.findOne().where('participant.uuid').eq(uuid).$),
+      filter(document => !!document),
+      map((document: ConferenceDocument) => {
+        let conference: Conference = {
+          uuid: document.uuid,
+          updated: document.updated,
+          count: document.count,
+          unread: document.unread,
+          participant: document.participant
+        };
+
+        return conference;
+      })
+    );
+  }
+
   upsertConference(conference: Conference): Observable<ConferenceDocument> {
     return this.$.pipe(switchMap(db => from(db.conferences.atomicUpsert(conference))));
   }
@@ -113,6 +131,125 @@ export class DatabaseService implements OnDestroy {
     // then transfrom every MessageDocument into Message instance
     return this.$.pipe(
       switchMap(db => db.messages.find().sort({ date: -1 }).$),
+      map((documents: MessageDocument[]) => {
+        let messages: Message[] = [];
+
+        for (let document of documents) {
+          let message: Message = {
+            uuid: document.uuid,
+            author: {
+              uuid: document.author.uuid,
+              name: document.author.name
+            },
+            conference: {
+              uuid: document.conference.uuid
+            },
+            readed: document.readed,
+            readedAt: document.readedAt,
+            type: document.type,
+            date: document.date,
+            content: document.content,
+            consumed: document.consumed,
+            edited: document.edited
+          };
+
+          if ('participant' in document.conference) {
+            message['conference']['participant'] = document.conference.participant;
+          }
+
+          messages.push(message);
+        }
+
+        return messages;
+      })
+    );
+  }
+
+  getMessagesByParticipant(uuid: string, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+    return this.$.pipe(
+      switchMap(
+        db => db.messages.find({ 'conference.participant': uuid })
+        .sort({ date: -1 })
+        .limit(limit)
+        .$
+      ),
+      map((documents: MessageDocument[]) => {
+        let messages: Message[] = [];
+
+        for (let document of documents) {
+          let message: Message = {
+            uuid: document.uuid,
+            author: {
+              uuid: document.author.uuid,
+              name: document.author.name
+            },
+            conference: document.conference,
+            readed: document.readed,
+            readedAt: document.readedAt,
+            type: document.type,
+            date: document.date,
+            content: document.content,
+            consumed: document.consumed,
+            edited: document.edited
+          };
+
+          messages.push(message);
+        }
+
+        return messages;
+      })
+    );
+  }
+
+
+  getOldMessagesByParticipant(uuid: string, timestamp: number, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+    return this.$.pipe(
+      switchMap(
+        db => from(
+          db.messages.find({ $and: [{ 'conference.participant': { $eq: uuid } }, { date: { $lt: timestamp } }] })
+          .sort({ date: -1 })
+          .limit(limit)
+          .$
+        )
+      ),
+      map((documents: MessageDocument[]) => {
+        let messages: Message[] = [];
+
+        for (let document of documents) {
+          let message: Message = {
+            uuid: document.uuid,
+            author: {
+              uuid: document.author.uuid,
+              name: document.author.name
+            },
+            conference: document.conference,
+            readed: document.readed,
+            readedAt: document.readedAt,
+            type: document.type,
+            date: document.date,
+            content: document.content,
+            consumed: document.consumed,
+            edited: document.edited
+          };
+
+          messages.push(message);
+        }
+
+        return messages;
+      })
+    );
+  }
+
+  getNewMessagesByParticipant(uuid: string, timestamp: number, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+    return this.$.pipe(
+      switchMap(
+        db => from(
+          db.messages.find({ $and: [{ 'conference.participant': { $eq: uuid } }, { date: { $gt: timestamp } }] })
+          .sort({ date: 1 })
+          .limit(limit)
+          .$
+        )
+      ),
       map((documents: MessageDocument[]) => {
         let messages: Message[] = [];
 

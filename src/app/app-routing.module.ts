@@ -3,7 +3,8 @@ import { Routes, RouterModule } from '@angular/router';
 
 import { MainComponent } from './components/main/main.component';
 import { ConferencesComponent } from './components/messenger/conferences/conferences.component';
-import { ConferenceComponent } from './components/messenger/conferences/conference/conference.component';
+import { PrivateConferenceComponent } from './components/messenger/conferences/conference/private/private-conference.component';
+// import { PublicConferenceComponent } from './components/messenger/conferences/conference/public/public-conference.component';
 
 import { NotFoundComponent } from './components/not-found/not-found.component';
 
@@ -13,7 +14,8 @@ const routes: Routes = [
     component: MainComponent,
     children: [
       { path: '', component: ConferencesComponent },
-      { path: 'conference/:uuid', component: ConferenceComponent }
+      { path: 'conference/u/:uuid', component: PrivateConferenceComponent }
+      // { path: 'conference/p/:uuid', component: PublicConferenceComponent }
     ]
   },
   { path: '**', component: NotFoundComponent},

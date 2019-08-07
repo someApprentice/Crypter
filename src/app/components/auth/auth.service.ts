@@ -66,6 +66,10 @@ export class AuthService {
     );
   }
 
+  getUser(uuid:string):Observable<User> {
+    return this.http.get<User>(`/api/auth/user/${uuid}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.jwt}` }) });
+  }
+
   handleErrors(err: HttpErrorResponse) {
     if (err.status === 404) {
       return throwError(new AuthenticationFailedError());

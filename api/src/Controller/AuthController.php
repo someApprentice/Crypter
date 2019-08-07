@@ -167,6 +167,28 @@ class AuthController extends AbstractController
      }
 
     /**
+      * @Route("/api/auth/user/{uuid}", name="get_user")
+      *
+      * @IsGranted("ROLE_USER")
+      */
+    public function getUserInfo(Request $request, $uuid): Response
+    {
+        $user = $this->em->getRepository(User::class)->find($uuid);
+
+        if (!$user) {
+            return new Response('Not Found', Response::HTTP_NOT_FOUND);
+        }
+
+        $json = [
+            'uuid' => $user->getUuid(),
+            'name' => $user->getName()
+            // @TODO 'last_seen' => (float) $user->getLastSeen()->format('U.u')
+        ];
+
+        return new JsonResponse($json);
+    }
+
+    /**
      * @Route("/api/auth/email/{email}", name="email_exists")
      */
     public function isEmailExists(string $email): Response

@@ -61,7 +61,7 @@ class ConferenceRepository extends ServiceEntityRepository
 
     public function getUnreadMessages(Conference $conference, User $user, int $limit = self::BATCH_SIZE): array
     {
-        $dql = 'SELECT m, IDENTITY(mr.conference) AS conference FROM Crypter\Entity\Message m JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message WHERE mr.conference = :conference AND mr.user = :user and m.readed = FALSE ORDER BY m.date ASC';
+        $dql = 'SELECT m, IDENTITY(mr.conference) AS conference FROM Crypter\Entity\Message m JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message WHERE mr.conference = :conference AND mr.user = :user and m.readed = FALSE AND m.author != :user ORDER BY m.date ASC';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['conference' => $conference->getUuid(), 'user' => $user->getUuid()]);

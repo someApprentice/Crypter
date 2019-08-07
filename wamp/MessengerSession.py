@@ -1,4 +1,5 @@
 import sys, os
+import copy
 
 # Each component executes this line and adds 'src' path again and again
 sys.path.append(os.path.abspath((os.path.join(os.path.split(__file__)[0], 'src'))))
@@ -28,10 +29,19 @@ class MessengerSession(ApplicationSession):
             'errors': result['errors']
         }
 
+        response['message']['conference']['participant'] = result['conference']['participant']['uuid']
+
         if response['errors']:
             return response
 
         for conference_reference in result['conference_references']:
+            if conference_reference['user'] == result['data']['to']:
+                m = copy.deepcopy(result['message'])
+
+                m['conference']['participant'] = conference_reference['participant']['uuid']
+
+                self.publish(f"private.message.to.{result['data']['to']}", m)
+
             conference = {
                 'uuid': result['conference']['uuid'],
                 'updated': result['conference']['updated'],
@@ -41,8 +51,6 @@ class MessengerSession(ApplicationSession):
             }
 
             self.publish(f"conference.updated.for.{conference_reference['user']}", conference)
-
-        self.publish(f"private.message.to.{result['data']['to']}", result['message'])
 
         return response
 
@@ -60,9 +68,13 @@ class MessengerSession(ApplicationSession):
         if response['errors']:
             return response
 
-        for participant in result['conference']['participants']:
-            # self.publish(f"private.message.readed.for.{participant['uuid']}", result['message'])
-            self.publish(f"private.message.updated.for.{participant['uuid']}", result['message'])
+        for conference_reference in result['conference_references']:
+            m = result['message']
+
+            m['conference']['participant'] = conference_reference['participant']['uuid']
+
+            # self.publish(f"private.message.readed.for.{conference_reference['user']}", m)
+            self.publish(f"private.message.updated.for.{conference_reference['user']}", m)
 
         self.publish(f"conference.updated.for.{result['data']['by']}", result['conference'])
 

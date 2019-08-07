@@ -92,6 +92,7 @@ class Messenger():
             'data': data,
             'message': None,
             'conference': None,
+            'conference_references': [],
             'errors': {}
         }
 
@@ -180,7 +181,9 @@ class Messenger():
                 'uuid': str(message.author.uuid),
                 'name':  message.author.name
             },
-            'conference': str(conference_reference.conference.uuid),
+            'conference': {
+                'uuid': str(conference_reference.conference.uuid)
+            },
             'readed': message.readed,
             'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
             'date': message.date.timestamp(),
@@ -209,6 +212,21 @@ class Messenger():
                 }
             )
 
+        conference_references = database.session.query(Conference_Reference).filter(Conference_Reference.conference_uuid == conference_reference.conference.uuid).all()
+
+        for conference_reference in conference_references:
+            result['conference_references'].append(
+                {
+                    'user': str(conference_reference.user_uuid),
+                    'conference': str(conference_reference.conference_uuid),
+                    'count': conference_reference.count,
+                    'unread': conference_reference.unread,
+                    'participant': {
+                        'uuid': str(conference_reference.participant.uuid),
+                        'name': conference_reference.participant.name
+                    }
+                },
+            )
 
         return result;
 
@@ -370,7 +388,9 @@ class Messenger():
                 'uuid': str(sender.uuid),
                 'name':  sender.name
             },
-            'conference': str(conference.uuid),
+            'conference': {
+                'uuid': str(conference.uuid)
+            },
             'readed': message.readed,
             'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
             'date': message.date.timestamp(),

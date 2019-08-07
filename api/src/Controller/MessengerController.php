@@ -103,7 +103,9 @@ class MessengerController extends AbstractController
                         'uuid' => $message[0]->getAuthor()->getUuid(),
                         'name' => $message[0]->getAuthor()->getName()
                     ],
-                    'conference' => $message['conference'],
+                    'conference' => [
+                        'uuid' => $message['conference']
+                    ],
                     'readed' => $message[0]->getReaded(),
                     'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                     'date' => (float) $message[0]->getDate()->format('U.u'),
@@ -132,7 +134,6 @@ class MessengerController extends AbstractController
         if (!$conference) {
             return new Response('Not Found', Response::HTTP_NOT_FOUND);
         }
-
 
         $participant = $this->em->getRepository(User::class)->find($conference['participant']);
 
@@ -167,7 +168,77 @@ class MessengerController extends AbstractController
                     'uuid' => $message[0]->getAuthor()->getUuid(),
                     'name' => $message[0]->getAuthor()->getName()
                 ],
-                'conference' => $message['conference'],
+                'conference' => [
+                    'uuid' => $message['conference']
+                ],
+                'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
+                'date' => (float) $message[0]->getDate()->format('U.u'),
+                'type' => $message[0]->getType(),
+                'content' => $message[0]->getContent(),
+                'consumed' => $message[0]->getConsumed(),
+                'edited' => $message[0]->getEdited()
+            ];
+        }
+
+        return new JsonResponse($json);
+    }
+
+    /**
+     * @Route("/api/messenger/conference_by_participant/{participant}", name="get_conference_by_participant")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getConferenceByParticipant(Request $request, $participant): Response
+    {
+        $user = $this->getUser();
+
+        $participant = $this->em->getRepository(User::class)->find($participant);
+
+        if (!$participant) {
+           return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $conference = $this->em->getRepository(User::class)->getConferenceByParticipant($participant->getUuid(), $user);
+
+        if (!$conference) {
+            return new Response('Not Found', Response::HTTP_NOT_FOUND);
+        }
+
+        $json = [
+            'uuid' => $conference[0]->getUuid(),
+            'updated' => (float) $conference[0]->getUpdated()->format('U.u'),
+            'count' => $conference['count'],
+            'unread' => $conference['unread'],
+            'participant' => [
+                'uuid' => $participant->getUuid(),
+                'name' => $participant->getName()
+            ],
+            'participants' => [],
+            'messages' => []
+        ];
+
+        $participants = $this->em->getRepository(Conference::class)->getParticipants($conference[0]);
+
+        foreach ($participants as $participant) {
+            $json['participants'][] = [
+                'uuid' => $participant->getUuid(),
+                'name' => $participant->getName()
+            ];
+        }
+
+        $messages = $this->em->getRepository(Conference::class)->getMessages($conference[0], $user);
+
+        foreach ($messages as $message) {
+            $json['messages'][] = [
+                'uuid' => $message[0]->getUuid(),
+                'author' => [
+                    'uuid' => $message[0]->getAuthor()->getUuid(),
+                    'name' => $message[0]->getAuthor()->getName()
+                ],
+                'conference' => [
+                    'uuid' => $message['conference']
+                ],
                 'readed' => $message[0]->getReaded(),
                 'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' => (float) $message[0]->getDate()->format('U.u'),
@@ -205,7 +276,9 @@ class MessengerController extends AbstractController
                     'uuid' => $author->getUuid(),
                     'name' => $author->getName()
                 ],
-                'conference' => $message['conference'],
+                'conference' => [
+                    'uuid' => $message['conference']
+                ],
                 'readed' => $message[0]->getReaded(),
                 'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' => (float) $message[0]->getDate()->format('U.u'),
@@ -244,7 +317,9 @@ class MessengerController extends AbstractController
                     'uuid' => $author->getUuid(),
                     'name' => $author->getName()
                 ],
-                'conference' => $message['conference'],
+                'conference' => [
+                    'uuid' => $message['conference']
+                ],
                 'readed' => $message[0]->getReaded(),
                 'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' => (float) $message[0]->getDate()->format('U.u'),
@@ -284,7 +359,9 @@ class MessengerController extends AbstractController
                     'uuid' => $message[0]->getAuthor()->getUuid(),
                     'name' => $message[0]->getAuthor()->getName()
                 ],
-                'conference' => $message['conference'],
+                'conference' => [
+                    'uuid' => $message['conference']
+                ],
                 'readed' => $message[0]->getReaded(),
                 'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' => (float) $message[0]->getDate()->format('U.u'),
@@ -328,7 +405,9 @@ class MessengerController extends AbstractController
                     'uuid' => $author->getUuid(),
                     'name' => $author->getName()
                 ],
-                'conference' => $message['conference'],
+                'conference' => [
+                    'uuid' => $message['conference']
+                ],
                 'readed' => $message[0]->getReaded(),
                 'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' => (float) $message[0]->getDate()->format('U.u'),
@@ -372,7 +451,9 @@ class MessengerController extends AbstractController
                     'uuid' => $message[0]->getAuthor()->getUuid(),
                     'name' => $message[0]->getAuthor()->getName()
                 ],
-                'conference' => $message['conference'],
+                'conference' => [
+                    'uuid' => $message['conference']
+                ],
                 'readed' => $message[0]->getReaded(),
                 'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' =>  (float) $message[0]->getDate()->format('U.u'),
@@ -416,7 +497,9 @@ class MessengerController extends AbstractController
                     'uuid' => $message[0]->getAuthor()->getUuid(),
                     'name' => $message[0]->getAuthor()->getName()
                 ],
-                'conference' => $message['conference'],
+                'conference' => [
+                    'uuid' => $message['conference']
+                ],
                 'readed' => $message[0]->getReaded(),
                 'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
                 'date' =>  (float) $message[0]->getDate()->format('U.u'),
@@ -429,6 +512,216 @@ class MessengerController extends AbstractController
 
         return new JsonResponse($json);
     }
+
+
+    /**
+     * @Route("/api/messenger/messages_by_participant/{participant}", name="get_conference_messages_by_participant")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getConferenceMessagesByParticipant(Request $request, $participant): Response
+    {
+        $user = $this->getUser();
+
+        $participant = $this->em->getRepository(User::class)->find($participant);
+
+        if (!$participant) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $conference = $this->em->getRepository(User::class)->getConferenceByParticipant($participant->getUuid(), $user);
+
+        if (!$conference) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $messages = $this->em->getRepository(Conference::class)->getMessages($conference[0], $user);
+
+        $json = [];
+
+        foreach ($messages as $message) {
+            $json[] = [
+                'uuid' => $message[0]->getUuid(),
+                'author' => [
+                    'uuid' => $message[0]->getAuthor()->getUuid(),
+                    'name' => $message[0]->getAuthor()->getName()
+                ],
+                'conference' => [
+                    'uuid' => $message['conference'],
+                    'participant' => $participant->getUuid()
+                ],
+                'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
+                'date' => (float) $message[0]->getDate()->format('U.u'),
+                'type' => $message[0]->getType(),
+                'content' => $message[0]->getContent(),
+                'consumed' => $message[0]->getConsumed(),
+                'edited' => $message[0]->getEdited()
+            ];
+        }
+
+        return new JsonResponse($json);
+    }
+
+    /**
+     * @Route("/api/messenger/unread_messages_by_participant/{participant}", name="get_unread_conference_messages_by_participant")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getUnreadConferenceMessagesByParticipant(Request $request, $participant): Response
+    {
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+
+        $user = $this->getUser();
+
+        $participant = $this->em->getRepository(User::class)->find($participant);
+
+        if (!$participant) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $conference = $this->em->getRepository(User::class)->getConferenceByParticipant($participant->getUuid(), $user);
+
+        if (!$conference) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $messages = $this->em->getRepository(Conference::class)->getUnreadMessages($conference[0], $user, $limit);
+
+        $json = [];
+
+        foreach ($messages as $message) {
+            $author = $message[0]->getAuthor();
+
+            $json[] = [
+                'uuid' => $message[0]->getUuid(),
+                'author' => [
+                    'uuid' => $author->getUuid(),
+                    'name' => $author->getName()
+                ],
+                'conference' => [
+                    'uuid' => $message['conference'],
+                    'participant' => $participant->getUuid()
+                ],
+                'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
+                'date' => (float) $message[0]->getDate()->format('U.u'),
+                'type' => $message[0]->getType(),
+                'content' => $message[0]->getContent(),
+                'consumed' => $message[0]->getConsumed(),
+                'edited' => $message[0]->getEdited()
+            ];
+        }
+
+        return new JsonResponse($json);
+    }
+
+    /**
+     * @Route("/api/messenger/old_messages_by_participant/{participant}", name="get_old_conference_messages_by_participant")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getOldConferenceMessagesByParticipant(Request $request, $participant): Response
+    {
+        // somewhy DateTime round milliseconds from unix timestamp
+        $date = Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000);
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+
+        $user = $this->getUser();
+
+        $participant = $this->em->getRepository(User::class)->find($participant);
+
+        if (!$participant) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $conference = $this->em->getRepository(User::class)->getConferenceByParticipant($participant->getUuid(), $user);
+
+        if (!$conference) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $messages = $this->em->getRepository(Conference::class)->getOldMessages($conference[0], $user, $date, $limit);
+
+        $json = [];
+
+        foreach ($messages as $message) {
+            $json[] = [
+                'uuid' => $message[0]->getUuid(),
+                'author' => [
+                    'uuid' => $message[0]->getAuthor()->getUuid(),
+                    'name' => $message[0]->getAuthor()->getName()
+                ],
+                'conference' => [
+                    'uuid' => $message['conference'],
+                    'participant' => $participant->getUuid()
+                ],
+                'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
+                'date' =>  (float) $message[0]->getDate()->format('U.u'),
+                'type' => $message[0]->getType(),
+                'content' => $message[0]->getContent(),
+                'consumed' => $message[0]->getConsumed(),
+                'edited' => $message[0]->getEdited()
+            ];
+        }
+
+        return new JsonResponse($json);
+    }
+
+    /**
+     * @Route("/api/messenger/new_messages_by_participant/{participant}", name="get_new_conference_messages_by_participant")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getNewConferenceMessagesByParticipant(Request $request, $participant): Response
+    {
+        // somewhy DateTime round milliseconds from unix timestamp
+        $date = Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000);
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+
+        $user = $this->getUser();
+
+        $participant = $this->em->getRepository(User::class)->find($participant);
+
+        if (!$participant) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $conference = $this->em->getRepository(User::class)->getConferenceByParticipant($participant->getUuid(), $user);
+
+        if (!$conference) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $messages = $this->em->getRepository(Conference::class)->getNewMessages($conference[0], $user, $date, $limit);
+
+        $json = [];
+
+        foreach ($messages as $message) {
+            $json[] = [
+                'uuid' => $message[0]->getUuid(),
+                'author' => [
+                    'uuid' => $message[0]->getAuthor()->getUuid(),
+                    'name' => $message[0]->getAuthor()->getName()
+                ],
+                'conference' => [
+                    'uuid' => $message['conference'],
+                    'participant' => $participant->getUuid()
+                ],
+                'readed' => $message[0]->getReaded(),
+                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
+                'date' =>  (float) $message[0]->getDate()->format('U.u'),
+                'type' => $message[0]->getType(),
+                'content' => $message[0]->getContent(),
+                'consumed' => $message[0]->getConsumed(),
+                'edited' => $message[0]->getEdited()
+            ];
+        }
+
+        return new JsonResponse($json);
+    }
+
 
     /**
      * @Route("/api/messenger/message/{user}", methods={"POST"}, name="send_message")

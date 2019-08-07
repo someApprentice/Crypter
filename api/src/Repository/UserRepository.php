@@ -46,6 +46,18 @@ class UserRepository extends ServiceEntityRepository
         return $conference;
     }
 
+    public function getConferenceByParticipant(string $uuid, User $user)
+    {
+        $dql = 'SELECT c, cr.count, cr.unread, IDENTITY(cr.participant) as participant FROM Crypter\Entity\Conference c JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference WHERE cr.user = :user and cr.participant = :uuid';
+
+        $query = $this->getEntityManager()->createQuery($dql);
+        $query->setParameters(['uuid' => $uuid, 'user' => $user->getUuid()]);
+
+        $conference = $query->getOneOrNullResult();
+
+        return $conference;
+    }
+
     /**
      * @TODO: Delete this unnecessary method
      */

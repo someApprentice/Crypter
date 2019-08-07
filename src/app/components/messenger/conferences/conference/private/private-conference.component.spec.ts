@@ -7,7 +7,7 @@ import { Subscriber, Subject, of } from 'rxjs';
 import { hot, cold, getTestScheduler } from 'jasmine-marbles';
 
 import { ReactiveFormsModule } from '@angular/forms';
-import { AutofocusModule } from '../../../../modules/autofocus/autofocus.module';
+import { AutofocusModule } from '../../../../../modules/autofocus/autofocus.module';
 
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
@@ -16,22 +16,22 @@ import { BrowserTransferStateModule } from '@angular/platform-browser';
 import { RouterTestingModule } from '@angular/router/testing'
 import { Router, ActivatedRoute, Data, UrlSegment } from '@angular/router';
 
-import { AuthService } from '../../../auth/auth.service';
+import { AuthService } from '../../../../auth/auth.service';
 
 import { Client } from 'thruway.js';
 import { ResultMessage } from 'thruway.js/src/Messages/ResultMessage';
 import { WelcomeMessage } from 'thruway.js/src/Messages/WelcomeMessage';
 
-import { DatabaseService } from '../../../../services/database/database.service';
+import { DatabaseService } from '../../../../../services/database/database.service';
 
 
-import { ConferenceComponent } from './conference.component';
+import { PrivateConferenceComponent } from './private-conference.component';
 
-import { User } from '../../../../models/User';
-import { Conference } from '../../../../models/Conference';
-import { Message } from '../../../../models/Message';
+import { User } from '../../../../../models/User';
+import { Conference } from '../../../../../models/Conference';
+import { Message } from '../../../../../models/Message';
 
-describe('ConferenceComponent', () => {
+describe('PrivateConferenceComponent', () => {
   let activatedRoute: ActivatedRoute;
   let httpTestingController: HttpTestingController;
 
@@ -44,8 +44,8 @@ describe('ConferenceComponent', () => {
   let conference: Conference;
   let message: Message;
 
-  let component: ConferenceComponent;
-  let fixture: ComponentFixture<ConferenceComponent>;
+  let component: PrivateConferenceComponent;
+  let fixture: ComponentFixture<PrivateConferenceComponent>;
 
   beforeEach(async(() => {
     authServiceStub = {
@@ -74,7 +74,9 @@ describe('ConferenceComponent', () => {
         "uuid":"ea155bbf-726a-4f11-a2b6-f8bf04331d4d",
         "name":"Alice"
       },
-      "conference": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
+      "conference": {
+        "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87"
+      },
       "readed":false,
       "date":1559016403,
       "type":"text\/plain",
@@ -109,7 +111,7 @@ describe('ConferenceComponent', () => {
     }
 
     TestBed.configureTestingModule({
-      declarations: [ ConferenceComponent ],
+      declarations: [ PrivateConferenceComponent ],
       imports: [
         ReactiveFormsModule,
         AutofocusModule,
@@ -117,7 +119,7 @@ describe('ConferenceComponent', () => {
         BrowserTransferStateModule,
         RouterTestingModule.withRoutes(
           [
-            { path: 'login', component: ConferenceComponent, data: {} }
+            { path: 'login', component: PrivateConferenceComponent, data: {} }
           ]
         ),
       ],
@@ -130,7 +132,7 @@ describe('ConferenceComponent', () => {
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(ConferenceComponent);
+    fixture = TestBed.createComponent(PrivateConferenceComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   }));
@@ -175,7 +177,9 @@ describe('ConferenceComponent', () => {
           "uuid":"ea155bbf-726a-4f11-a2b6-f8bf04331d4d",
           "name":"Alice"
         },
-        "conference": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
+        "conference": {
+          "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87"
+        },
         "readed":false,
         "date":1559016403,
         "type":"text\/plain",
@@ -189,7 +193,9 @@ describe('ConferenceComponent', () => {
           "uuid":"3ddfeb6e-ce7a-4e1e-808c-85a2a0d3d5e9",
           "name":"Bob"
         },
-        "conference": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
+        "conference": {
+          "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87"
+        },
         "readed":false,
         "date":1559016403,
         "type":"audio\/ogg",

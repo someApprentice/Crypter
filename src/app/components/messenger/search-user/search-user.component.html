@@ -5,27 +5,8 @@
 
 <ul *ngIf="users.length > 0" class="overflow-auto">
     <li *ngFor="let user of users">
-        <a (click)="select(user, content)" class="d-block mx-2 p-2">
+        <a [routerLink]="['/conference/u', user.uuid]" class="d-block mx-2 p-2">
             <span class="name font-weight-bold font-italic">{{ user.name }}</span>
         </a>
     </li>
 </ul>
-
-
-<ng-template #content let-modal>
-  <div class="modal-header">
-    <h4 class="modal-title" id="modal-basic-title">New message to @{{ selected?.name }}</h4>
-
-    <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
-
-  <div class="modal-body">
-    <app-message-form [to]="selected?.uuid" (sent)=onSent($event)></app-message-form>
-  </div>
-
-  <div class="modal-footer">
-    Stupid form which <b class="px-1">MUST</b> and will be fixed soon
-  </div>
-</ng-template>

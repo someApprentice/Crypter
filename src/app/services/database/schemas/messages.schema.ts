@@ -23,7 +23,16 @@ const messagesSchema: RxJsonSchema<Message> = {
       required: ['uuid', 'name']
     },
     conference: {
-      type: 'string'
+      type: 'object',
+      properties: {
+        uuid: {
+          type: 'string'
+        },
+        participant: {
+          type: 'string'
+        }
+      },
+      required: ['uuid']
     },
     readed: {
       type: 'boolean'

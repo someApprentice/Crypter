@@ -70,7 +70,9 @@ describe('MessengerComponent', () => {
         "uuid":"3ddfeb6e-ce7a-4e1e-808c-85a2a0d3d5e9",
         "name":"Bob"
       },
-      "conference": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
+      "conference": {
+        "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87"
+      },
       "readed":false,
       "date":1559016403,
       "type":"text\/plain",

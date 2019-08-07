@@ -3,7 +3,10 @@ import { User } from './User';
 export interface Message {
   uuid: string,
   author: User,
-  conference: string,
+  conference: {
+    uuid: string,
+    participant?: string
+  },
   readed: boolean,
   readedAt?: string
   type: string,

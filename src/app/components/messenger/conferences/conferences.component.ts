@@ -137,8 +137,8 @@ export class ConferencesComponent implements OnInit, OnDestroy {
             //   this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
             // }
             
-            if (this.conferences.find(c => c.uuid == message.conference)) {
-              let ms = this.conferences[this.conferences.findIndex(c => c.uuid == message.conference)].messages;
+            if (this.conferences.find(c => c.uuid == message.conference.uuid)) {
+              let ms = this.conferences[this.conferences.findIndex(c => c.uuid == message.conference.uuid)].messages;
 
               ms.find(m => m.uuid == message.uuid) ? ms[ms.findIndex(m => m.uuid == message.uuid)] = message : ms.push(message);
             }
