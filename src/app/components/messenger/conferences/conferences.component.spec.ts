@@ -87,8 +87,7 @@ describe('ConferencesComponent', () => {
             "uuid":"ea155bbf-726a-4f11-a2b6-f8bf04331d4d",
             "name":"Alice"
           }
-        ],
-        "messages":[]
+        ]
       },
       {
         "uuid":"62212a71-acb8-4dc5-b1fe-63cf538182f2",
@@ -108,8 +107,7 @@ describe('ConferencesComponent', () => {
             "uuid":"3ddfeb6e-ce7a-4e1e-808c-85a2a0d3d5e9",
             "name":"Bob"
           }
-        ],
-        "messages":[]
+        ]
       }
     ];
 

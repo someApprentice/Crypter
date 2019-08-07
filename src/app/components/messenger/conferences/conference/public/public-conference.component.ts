@@ -148,20 +148,43 @@ export class PublicConferenceComponent implements OnInit, AfterViewInit, OnDestr
             }
           );
 
-          this.messagesList.changes.pipe(
-            first()
-          ).subscribe((ql: QueryList<ElementRef>) => {
-            if (this.scroller.nativeElement.clientHeight === this.scroller.nativeElement.scrollHeight) {
-              this.subscriptions$['this.databaseService.getMessagesByConference'] = this.databaseService.getMessagesByConference(this.conference.uuid).subscribe((messages: Message[]) => {
+          if (this.messages.length === 0) {
+            this.subscriptions$['this.databaseService.getMessagesByConference'] = this.databaseService.getMessagesByConference(this.conference.uuid).subscribe((messages: Message[]) => {
+              this.messages = messages.reduce((acc, cur) => {
+                if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+                  acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
 
-                for (let message of messages) {
-                  this.messages.find(m => m.uuid == message.uuid) ? this.messages[this.messages.findIndex(m => m.uuid == message.uuid)] = message : this.messages.push(message);
+                  return acc;
                 }
 
-                this.messages.sort((a: Message, b: Message) => a.date - b.date);
-              });
-            }
-          });
+                return [ ...acc, cur ];
+              }, this.messages);
+
+              this.messages.sort((a: Message, b: Message) => a.date - b.date);
+            });
+          }
+
+          if (this.messages.length > 0) {
+            this.messagesList.changes.pipe(
+              first()
+            ).subscribe((ql: QueryList<ElementRef>) => {
+              if (this.scroller.nativeElement.clientHeight === this.scroller.nativeElement.scrollHeight) {
+                this.subscriptions$['this.databaseService.getMessagesByConference'] = this.databaseService.getMessagesByConference(this.conference.uuid).subscribe((messages: Message[]) => {
+                  this.messages = messages.reduce((acc, cur) => {
+                    if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+                      acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+                      return acc;
+                    }
+
+                    return [ ...acc, cur ];
+                  }, this.messages);
+
+                  this.messages.sort((a: Message, b: Message) => a.date - b.date);
+                });
+              }
+            });
+          }
         }
       }
     );
@@ -199,9 +222,15 @@ export class PublicConferenceComponent implements OnInit, AfterViewInit, OnDestr
           });
         }
 
-        for (let message of messages) {
-          this.messages.find(m => m.uuid == message.uuid) ? this.messages[this.messages.findIndex(m => m.uuid == message.uuid)] = message : this.messages.unshift(message);
-        }
+        this.messages = messages.reduce((acc, cur) => {
+          if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+            acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+            return acc;
+          }
+
+          return [ ...acc, cur ];
+        }, this.messages);
 
         this.messages.sort((a: Message, b: Message) => a.date - b.date);
     });
@@ -217,9 +246,15 @@ export class PublicConferenceComponent implements OnInit, AfterViewInit, OnDestr
     if (this.conference.unread === 0) {
       if (!('this.databaseService.getMessagesByConference' in this.subscriptions$)) {
         this.subscriptions$['this.databaseService.getMessagesByConference'] = this.databaseService.getMessagesByConference(this.conference.uuid).subscribe((messages: Message[]) => {
-          for (let message of messages) {
-            this.messages.find(m => m.uuid == message.uuid) ? this.messages[this.messages.findIndex(m => m.uuid == message.uuid)] = message : this.messages.push(message);
-          }
+          this.messages = messages.reduce((acc, cur) => {
+            if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+              acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+              return acc;
+            }
+
+            return [ ...acc, cur ];
+          }, this.messages);
 
           this.messages.sort((a: Message, b: Message) => a.date - b.date);
         });
@@ -237,9 +272,15 @@ export class PublicConferenceComponent implements OnInit, AfterViewInit, OnDestr
           return this.databaseService.getNewMessagesByConference(this.conference.uuid, timestamp)
         })
       ).subscribe((messages: Message[]) => {
-        for (let message of messages) {
-          this.messages.find(m => m.uuid == message.uuid) ? this.messages[this.messages.findIndex(m => m.uuid == message.uuid)] = message : this.messages.push(message);
-        }
+        this.messages = messages.reduce((acc, cur) => {
+          if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+            acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+            return acc;
+          }
+
+          return [ ...acc, cur ];
+        }, this.messages);
 
         this.messages.sort((a: Message, b: Message) => a.date - b.date);
       });

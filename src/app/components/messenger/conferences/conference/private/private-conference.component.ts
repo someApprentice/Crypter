@@ -118,7 +118,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           if (isPlatformBrowser(this.platformId)) {
             this.subscriptions$[`this.wamp.topic(writing.for.${this.authService.user.uuid})`] = this.wamp.topic(`writing.for.${this.authService.user.uuid}`).pipe(
               tap((e: EventMessage) => {
-                if (e.args[0].user.uuid == this.participant.uuid) {
+                if (e.args[0].user.uuid === this.participant.uuid) {
                   this.writing = <User> {
                     uuid: e.args[0].user.uuid,
                     name: e.args[0].user.name
@@ -165,9 +165,15 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
           if (this.messages.length === 0) {
             this.subscriptions$['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
-              for (let message of messages) {
-                this.messages.find(m => m.uuid == message.uuid) ? this.messages[this.messages.findIndex(m => m.uuid == message.uuid)] = message : this.messages.push(message);
-              }
+              this.messages = messages.reduce((acc, cur) => {
+                if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+                  acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+                  return acc;
+                }
+
+                return [ ...acc, cur ];
+              }, this.messages);
 
               this.messages.sort((a: Message, b: Message) => a.date - b.date);
             });
@@ -179,9 +185,15 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             ).subscribe((ql: QueryList<ElementRef>) => {
               if (this.scroller.nativeElement.clientHeight === this.scroller.nativeElement.scrollHeight) {
                 this.subscriptions$['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
-                  for (let message of messages) {
-                    this.messages.find(m => m.uuid == message.uuid) ? this.messages[this.messages.findIndex(m => m.uuid == message.uuid)] = message : this.messages.push(message);
-                  }
+                  this.messages = messages.reduce((acc, cur) => {
+                    if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+                      acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+                      return acc;
+                    }
+
+                    return [ ...acc, cur ];
+                  }, this.messages);
 
                   this.messages.sort((a: Message, b: Message) => a.date - b.date);
                 });
@@ -225,9 +237,15 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           });
         }
 
-        for (let message of messages) {
-          this.messages.find(m => m.uuid == message.uuid) ? this.messages[this.messages.findIndex(m => m.uuid == message.uuid)] = message : this.messages.unshift(message);
-        }
+        this.messages = messages.reduce((acc, cur) => {
+          if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+            acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+            return acc;
+          }
+
+          return [ ...acc, cur ];
+        }, this.messages);
 
         this.messages.sort((a: Message, b: Message) => a.date - b.date);
     });
@@ -263,9 +281,15 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           return this.databaseService.getNewMessagesByParticipant(this.participant.uuid, timestamp)
         })
       ).subscribe((messages: Message[]) => {
-        for (let message of messages) {
-          this.messages.find(m => m.uuid == message.uuid) ? this.messages[this.messages.findIndex(m => m.uuid == message.uuid)] = message : this.messages.push(message);
-        }
+        this.messages = messages.reduce((acc, cur) => {
+          if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+            acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+            return acc;
+          }
+
+          return [ ...acc, cur ];
+        }, this.messages);
 
         this.messages.sort((a: Message, b: Message) => a.date - b.date);
       });

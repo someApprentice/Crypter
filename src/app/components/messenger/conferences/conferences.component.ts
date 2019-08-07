@@ -64,10 +64,6 @@ export class ConferencesComponent implements OnInit, OnDestroy {
             };
 
             this.databaseService.upsertConference(c).subscribe();
-
-            for (let message of conference.messages) {
-              this.databaseService.upsertMessage(message).subscribe();
-            }
           }
         }
 
@@ -92,61 +88,17 @@ export class ConferencesComponent implements OnInit, OnDestroy {
       // (for example before request from api)
       this.subscriptions$['this.databaseService.getConferences'] = this.databaseService.getConferences().subscribe(
         (conferences: Conference[]) => {
-          for (let conference of conferences) {
-            if (this.conferences.find(c => c.uuid == conference.uuid)) {
-              let i = this.conferences.findIndex(c => c.uuid == conference.uuid);
+          this.conferences = conferences.reduce((acc, cur) => {
+            if (acc.find((c: Conference) => c.uuid === cur.uuid)) {
+              acc[acc.findIndex((c: Conference) => c.uuid === cur.uuid)] = cur;
               
-              this.conferences[i].updated = conference.updated;
-              this.conferences[i].unread = conference.unread;
-            } else {
-              conference['participants'] = [];
-              conference['messages'] = [];
-
-              this.conferences.push(conference);
+              return acc;
             }
-          }
+            
+            return [ ...acc, cur ];
+          }, this.conferences);
 
           this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
-        },
-        // err => {
-        //   if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
-        //     this.error = err.message;
-        //   }
-        // }
-      );
-
-      // // if conference has not been created yet - create it, push
-      // // and sort in case if some of conferences have been pushed before query
-      // // (for example before request from api)
-      //  otherwise push or update message into conference.messages array
-      //  sort messages in all conferences
-      this.subscriptions$['this.databaseService.getMessages'] = this.databaseService.getMessages().subscribe(
-        (messages: Message[]) => {
-          for (let message of messages) {
-            // if (!this.conferences.find(c => c.uuid == message.conference)) {
-            //   let conference: Conference = {
-            //     uuid: message.conference,
-            //     updated: Math.round((new Date()).getTime() / 1000),
-            //     unread: 0, 
-            //     participants: [],
-            //     messages: []
-            //   };
-
-            //   this.conferences.push(conference);
-
-            //   this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
-            // }
-            
-            if (this.conferences.find(c => c.uuid == message.conference.uuid)) {
-              let ms = this.conferences[this.conferences.findIndex(c => c.uuid == message.conference.uuid)].messages;
-
-              ms.find(m => m.uuid == message.uuid) ? ms[ms.findIndex(m => m.uuid == message.uuid)] = message : ms.push(message);
-            }
-          }
-
-          for (let conference of this.conferences) {
-            conference.messages.sort((a: Message, b: Message) => a.date - b.date);
-          }
         },
         // err => {
         //   if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
