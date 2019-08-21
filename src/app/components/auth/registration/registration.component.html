@@ -9,11 +9,14 @@
             maxlength="255"
             [autofocus]="!form.get('email').value"
             class="form-control my-1"
-            [class.is-valid]="form.controls['email'].valid && form.controls['email'].dirty"
+            [class.is-valid]="form.controls['email'].valid"
             [class.is-invalid]="form.controls['email'].invalid && form.controls['email'].dirty"
         >
         <div class="invalid-feedback d-none" [class.d-block]="form.controls['email'].invalid && form.controls['email'].dirty">
             Email must contain name and domain divided by @, and not be longer than 255 characters. And, of course, must be free.
+        </div>
+        <div class="invalid-feedback d-none" [class.d-block]="error">
+            {{ error }}
         </div>
 
         <input
@@ -25,7 +28,7 @@
             maxlength="255"
             [autofocus]="form.get('email').value"
             class="form-control my-1"
-            [class.is-valid]="form.controls['name'].valid && form.controls['name'].dirty"
+            [class.is-valid]="form.controls['name'].valid"
             [class.is-invalid]="form.controls['name'].invalid && form.controls['name'].dirty"
         >
         <div class="invalid-feedback d-none" [class.d-block]="form.controls['name'].invalid && form.controls['name'].dirty">
@@ -40,7 +43,7 @@
             required
             minlength="6"
             class="form-control my-1"
-            [class.is-valid]="form.controls['password'].valid && form.controls['password'].dirty"
+            [class.is-valid]="form.controls['password'].valid"
             [class.is-invalid]="form.controls['password'].invalid && form.controls['password'].dirty"
         >
         <div class="invalid-feedback d-none" [class.d-block]="form.controls['password'].invalid && form.controls['password'].dirty">
@@ -65,16 +68,6 @@
         <button type="submit" name="registrate" [disabled]="!form.valid" class="btn btn-outline-primary btn-block">
             <span>Registrate</span>
             <span *ngIf="pending" class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>
-        </button> {{ error }}
+        </button>
     </form>
 </div>
-
-
-<!-- <form [formGroup]="form" (ngSubmit)="registrate($event)">
-    <label>email: <input formControlName="email"  type="email" name="email" required [autofocus]="!form.get('email').value"></label>    
-    <label>name: <input formControlName="name" type="text" name="name" required minlength="1" maxlength="255" [autofocus]="form.get('email').value"></label>
-    <label>password: <input formControlName="password" type="password" name="password" required minlength="6"></label>
-    <label>retry password: <input formControlName="retryPassword" type="password" name="retryPassword" required minlength="6"></label>
-
-    <input type="submit" name="registrate" value="Registrate" [disabled]="!form.valid">  {{ error }}
-</form> -->

@@ -37,6 +37,7 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   next(e: Event) {
     e.preventDefault();
 
+    this.error = '';
     this.pending = true;
 
     let email = this.form.get('email').value;
@@ -59,6 +60,8 @@ export class WelcomeComponent implements OnInit, OnDestroy {
         this.router.navigate([redirect]);
       },
       err => {
+        this.pending = false;
+
         if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
           this.error = err.message;
         }

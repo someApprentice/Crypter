@@ -8,14 +8,17 @@
             required
             maxlength="255"
             autofocus
-            class="form-control"
-            [class.is-valid]="form.controls['email'].valid && form.controls['email'].dirty"
+            class="form-control flex-fill"
+            [class.is-valid]="form.controls['email'].valid"
             [class.is-invalid]="form.controls['email'].invalid && form.controls['email'].dirty"
         >
 
         <button type="submit" name="next" [disabled]="!form.valid" class="btn btn-outline-primary mx-1">
             <span>Next</span>
             <span *ngIf="pending" class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>
-        </button>  {{ error }}
+        </button>
     </form>
+    <div class="invalid-feedback d-none" [class.d-block]="error">
+        {{ error }}
+    </div>
 </div>

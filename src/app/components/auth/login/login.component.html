@@ -7,11 +7,14 @@
             required maxlength="255"
             [autofocus]="!form.get('email').value"
             class="form-control my-1"
-            [class.is-valid]="form.controls['email'].valid && form.controls['email'].dirty"
+            [class.is-valid]="form.controls['email'].valid"
             [class.is-invalid]="form.controls['email'].invalid && form.controls['email'].dirty"
         >
         <div class="invalid-feedback d-none" [class.d-block]="form.controls['email'].invalid && form.controls['email'].dirty">
             Email must contain name and domain divided by @, and not be longer than 255 characters.
+        </div>
+        <div class="invalid-feedback d-none" [class.d-block]="error">
+            {{ error }}
         </div>
 
         <input
@@ -22,7 +25,7 @@
             required
             [autofocus]="form.get('email').value"
             class="form-control my-1"
-            [class.is-valid]="form.controls['password'].valid && form.controls['password'].dirty"
+            [class.is-valid]="form.controls['password'].valid"
             [class.is-invalid]="form.controls['password'].invalid && form.controls['password'].dirty"
         >
         <div class="invalid-feedback d-none" [class.d-block]="form.controls['password'].invalid && form.controls['password'].dirty">
@@ -32,6 +35,6 @@
         <button type="submit" name="login" [disabled]="!form.valid" class="btn btn-outline-primary btn-block">
             <span>Log In</span>
             <span *ngIf="pending" class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>
-        </button> {{ error }}
+        </button> 
     </form>
 </div>

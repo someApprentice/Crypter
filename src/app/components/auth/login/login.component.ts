@@ -7,6 +7,7 @@ import { tap } from 'rxjs/operators'
 
 import { AuthService } from '../auth.service';
 
+import { AuthenticationFailedError } from '../../../models/errors/AuthenticationFailedError';
 
 @Component({
   selector: 'app-login',
@@ -43,6 +44,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   login(e: Event) {
     e.preventDefault();
 
+    this.error = '';
     this.pending = true;
 
     let email = this.form.get('email').value;
@@ -61,6 +63,14 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.router.navigate(['']);
       },
       err => {
+        this.pending = false;
+
+        if (err instanceof AuthenticationFailedError || 'message' in err) { // TypeScript instance of interface check
+          this.error = "No matches found"
+
+          return;
+        }
+
         if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
           this.error = err.message;
         }

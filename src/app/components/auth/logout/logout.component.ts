@@ -41,6 +41,8 @@ export class LogoutComponent implements OnInit, OnDestroy {
         this.router.navigate([''])
       },
       err => {
+        this.pending = false;
+
         if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check 
           this.error = err.message;
         }

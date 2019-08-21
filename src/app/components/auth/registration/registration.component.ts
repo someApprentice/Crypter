@@ -81,6 +81,7 @@ export class RegistrationComponent implements OnInit, OnDestroy {
   registrate(e: Event) {
     e.preventDefault();
 
+    this.error = '';
     this.pending = true;
 
     let email = this.form.get('email').value;
