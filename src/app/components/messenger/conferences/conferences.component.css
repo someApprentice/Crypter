@@ -27,6 +27,15 @@
     background-color: rgba(236, 236, 236, .77);
 }
 
+.spinner {
+    font-size: 13px;
+}
+
+.spinner > .spinner-border {
+    width: 1.7rem;
+    height: 1.7rem;
+}
+
 .dialog > a {
     padding: 0;
     text-decoration: none;

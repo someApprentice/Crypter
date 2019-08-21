@@ -44,10 +44,24 @@
     height: calc(100vh - (40px + (.5rem * 2)) - (39px) - (29.500px + (.5rem * 2)));
 }
 
+.isMessagesLoading {
+    justify-content: center;
+    align-items: center;
+}
+
 .wrapper {
     min-height: 0;
     margin: 0;
     padding: 0;
+}
+
+.spinner {
+    font-size: 13px;
+}
+
+.spinner > .spinner-border {
+    width: 1.7rem;
+    height: 1.7rem;
 }
 
 .message {

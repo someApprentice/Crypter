@@ -38,6 +38,12 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   previousScrollHeight: number = 0;
   previousOffsetHeight: number = 0;
 
+  isParticipantLoading: boolean = false;
+
+  isOldMessagesLoading: boolean = false;
+  isMessagesLoading: boolean = false;
+  isNewMessagesLoading: boolean = false;
+
   @ViewChildren('messagesList') private messagesList: QueryList<ElementRef>;
 
   participant? : User;
@@ -90,8 +96,14 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     //     and if it isn't so subscribe to the last messages
     this.subscriptions$['this.messengerService.getMessagesBy'] = this.route.params.pipe(
       map(params => params['uuid']),
-      switchMap((uuid: string) => this.authService.getUser(uuid)),
+      switchMap((uuid: string) => {
+        this.isParticipantLoading = true;
+
+        return this.authService.getUser(uuid);
+      }),
       tap((participant: User) => {
+        this.isParticipantLoading = false;
+
         this.participant = participant;
 
         this.state.set(PARTICIPANT_STATE_KEY, participant as User);
@@ -131,6 +143,10 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             });
           }
 
+          if (this.messages.length === 0) {
+            this.isMessagesLoading = true;
+          }
+
           if (conference.unread > MessengerService.BATCH_SIZE) {
             return this.messengerService.getUnreadMessagesByParticipant(conference.participant.uuid);
           }
@@ -139,7 +155,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         }
 
         return of([] as Message[]);
-      })
+      }),
+      tap(() => this.isMessagesLoading = false)
     )
     .subscribe(
       (messages: Message[]) => {
@@ -210,6 +227,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       return;
     }
 
+    this.isOldMessagesLoading = true;
+
     this.subscriptions$[`this.databaseService.getOldMessagesByParticipant-${timestamp}`] = this.messengerService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
       tap((messages: Message[]) => {
         for (let message of messages) {
@@ -220,7 +239,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       }),
       switchMap(() => {
         return this.databaseService.getOldMessagesByParticipant(this.participant.uuid, timestamp)
-      })
+      }),
+      tap(() => this.isOldMessagesLoading = false)
     ).subscribe((messages: Message[]) => {
         messages.sort((a: Message, b: Message) => b.date - a.date);
 
@@ -261,9 +281,15 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     if (this.conference.unread === 0) {
       if (!('this.databaseService.getMessagesByParticipant' in this.subscriptions$)) {
         this.subscriptions$['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
-          for (let message of messages) {
-            this.messages.find(m => m.uuid == message.uuid) ? this.messages[this.messages.findIndex(m => m.uuid == message.uuid)] = message : this.messages.push(message);
-          }
+          this.messages = messages.reduce((acc, cur) => {
+            if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+              acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+              return acc;
+            }
+
+            return [ ...acc, cur ];
+          }, this.messages);
 
           this.messages.sort((a: Message, b: Message) => a.date - b.date);
         });
@@ -271,6 +297,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     }
 
     if (this.conference.unread > 0) {
+      this.isNewMessagesLoading = true;
+
       this.subscriptions$[`this.databaseService.getNewMessagesByParticipant-${timestamp}`] = this.messengerService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
         tap((messages: Message[]) => {
           for (let message of messages) {
@@ -279,7 +307,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         }),
         switchMap((messages: Message[]) => {
           return this.databaseService.getNewMessagesByParticipant(this.participant.uuid, timestamp)
-        })
+        }),
+        tap(() => this.isNewMessagesLoading = false)
       ).subscribe((messages: Message[]) => {
         this.messages = messages.reduce((acc, cur) => {
           if (acc.find((m: Message) => m.uuid === cur.uuid)) {

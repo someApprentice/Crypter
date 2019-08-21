@@ -62,7 +62,10 @@
             Passwords do not match.
         </div>
 
-        <input type="submit" name="registrate" value="Registrate" [disabled]="!form.valid" class="btn btn-outline-primary btn-block"> {{ error }}
+        <button type="submit" name="registrate" [disabled]="!form.valid" class="btn btn-outline-primary btn-block">
+            <span>Registrate</span>
+            <span *ngIf="pending" class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>
+        </button> {{ error }}
     </form>
 </div>
 

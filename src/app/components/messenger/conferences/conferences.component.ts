@@ -27,10 +27,12 @@ const CONFERENCES_STATE_KEY = makeStateKey('conferences');
 export class ConferencesComponent implements OnInit, OnDestroy {
   searching: boolean = false;
 
+  isConferencesLoading: boolean = false;
+
   conferences: Conference[] = [];
 
   subscriptions$: { [key: string]: Subscription } = { };
-
+  
 
   private databaseService: DatabaseService;
 
@@ -47,6 +49,10 @@ export class ConferencesComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.conferences = this.state.get(CONFERENCES_STATE_KEY, [] as Conference[]);
+
+    if (this.conferences.length === 0) {
+      this.isConferencesLoading = true;
+    }
 
     // get Conferences from api
     // if it's a browser push them into indexeDB
@@ -74,6 +80,8 @@ export class ConferencesComponent implements OnInit, OnDestroy {
         }
 
         this.state.set(CONFERENCES_STATE_KEY, conferences as Conference[]);
+
+        this.isConferencesLoading = false;
       },
       // err => {
       //   if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
@@ -99,6 +107,8 @@ export class ConferencesComponent implements OnInit, OnDestroy {
           }, this.conferences);
 
           this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
+
+          this.isConferencesLoading = false;
         },
         // err => {
         //   if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check

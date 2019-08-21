@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { Subscription } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 import { AuthService } from '../auth.service';
 
@@ -13,6 +14,8 @@ import { AuthService } from '../auth.service';
 export class LogoutComponent implements OnInit, OnDestroy {
   logout$: Subscription;
 
+  pending: boolean = false;
+
   error?: string;
 
   constructor(private authService: AuthService, private router: Router) { }
@@ -23,7 +26,11 @@ export class LogoutComponent implements OnInit, OnDestroy {
   logout(e: Event) {
     e.preventDefault();
 
-    this.logout$ = this.authService.logout().subscribe(
+    this.pending = true;
+
+    this.logout$ = this.authService.logout().pipe(
+      tap(() => this.pending = false)
+    ).subscribe(
       d => {
         localStorage.removeItem('uuid');
         localStorage.removeItem('email');

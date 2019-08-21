@@ -1,3 +1,6 @@
 <form (ngSubmit)="logout($event)">
-    <button type="submit" name="logout" class="btn btn-sm btn-danger"><span class="glyphicon glyphicon-off"></span></button> {{ error }}
+    <button type="submit" name="logout" class="btn btn-sm btn-danger">
+        <span *ngIf="!pending" class="glyphicon glyphicon-off"></span>
+        <span *ngIf="pending" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+    </button> {{ error }}
 </form>

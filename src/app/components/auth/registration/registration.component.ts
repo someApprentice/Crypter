@@ -3,7 +3,7 @@ import { FormGroup, FormControl, Validators, AbstractControl } from '@angular/fo
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { Subscription } from 'rxjs';
-import { debounceTime, take, map } from 'rxjs/operators';
+import { debounceTime, take, map, tap } from 'rxjs/operators';
 
 import { AuthService } from '../auth.service';
 
@@ -65,6 +65,8 @@ export class RegistrationComponent implements OnInit, OnDestroy {
     ]
   );
 
+  pending: boolean = false;
+
   error?: string;
 
   subscriptions$: { [key: string]: Subscription } = { };
@@ -79,11 +81,15 @@ export class RegistrationComponent implements OnInit, OnDestroy {
   registrate(e: Event) {
     e.preventDefault();
 
+    this.pending = true;
+
     let email = this.form.get('email').value;
     let name = this.form.get('name').value;
     let password = this.form.get('password').value;
 
-    this.subscriptions$['this.authService.registrate'] = this.authService.registrate(email, name, password).subscribe(
+    this.subscriptions$['this.authService.registrate'] = this.authService.registrate(email, name, password).pipe(
+      tap(() => this.pending = false)
+    ).subscribe(
       d => {
         localStorage.setItem('uuid', d.uuid);
         localStorage.setItem('email', d.email);

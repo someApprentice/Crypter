@@ -3,6 +3,11 @@
     <input #searchBoxSm (input)="search(searchBoxSm.value)" type="text" name="search" placeholder="Search for users..." class="d-xl-none form-control form-control-sm">
 </form>
 
+
+<div *ngIf="isUsersLoading && users.length === 0" class="spinner text-center pt-2">
+  <div class="spinner-border text-primary" role="status"></div>
+</div>
+
 <ul *ngIf="users.length > 0" class="overflow-auto">
     <li *ngFor="let user of users">
         <a [routerLink]="['/conference/u', user.uuid]" class="d-block mx-2 p-2">

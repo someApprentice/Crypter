@@ -2,7 +2,7 @@ import { Component, Output, EventEmitter, OnInit, OnDestroy } from '@angular/cor
 import { Router } from '@angular/router';
 
 import { Observable, Subscription, Subject, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs/operators';
 
 import { MessengerService } from '../messenger.service';
 
@@ -16,6 +16,8 @@ import { Message } from '../../../models/Message';
 })
 export class SearchUserComponent implements OnInit, OnDestroy {
   @Output() searching = new EventEmitter<boolean>();
+
+  isUsersLoading: boolean = false;
 
   users: User[] = [];
   users$: Subscription;
@@ -32,6 +34,10 @@ export class SearchUserComponent implements OnInit, OnDestroy {
     this.users$ = this.searchTerms.pipe(
       debounceTime(300),
       distinctUntilChanged(),
+      tap(() => {
+        this.isUsersLoading = true
+        this.users = [];
+      }),
       switchMap((term: string) => {
         if (term) {
           this.searching.emit(true);
@@ -42,7 +48,8 @@ export class SearchUserComponent implements OnInit, OnDestroy {
         this.searching.emit(false);
 
         return of([] as User[]);
-      })
+      }),
+      tap(() => this.isUsersLoading = false)
     ).subscribe(users => {
       this.users = users;
     });

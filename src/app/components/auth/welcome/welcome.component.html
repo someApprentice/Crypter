@@ -13,6 +13,9 @@
             [class.is-invalid]="form.controls['email'].invalid && form.controls['email'].dirty"
         >
 
-        <input type="submit" name="next" value="Next" [disabled]="!form.valid" class="btn btn-outline-primary mx-1">  {{ error }}
+        <button type="submit" name="next" [disabled]="!form.valid" class="btn btn-outline-primary mx-1">
+            <span>Next</span>
+            <span *ngIf="pending" class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>
+        </button>  {{ error }}
     </form>
 </div>

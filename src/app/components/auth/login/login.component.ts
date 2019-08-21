@@ -3,6 +3,7 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { Subscription } from 'rxjs';
+import { tap } from 'rxjs/operators'
 
 import { AuthService } from '../auth.service';
 
@@ -25,6 +26,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     ])
   });
 
+  pending: boolean = false
+
   error?: string;
 
   subscriptions$: { [key: string]: Subscription } = { };
@@ -40,10 +43,14 @@ export class LoginComponent implements OnInit, OnDestroy {
   login(e: Event) {
     e.preventDefault();
 
+    this.pending = true;
+
     let email = this.form.get('email').value;
     let password = this.form.get('password').value;
 
-    this.subscriptions$['this.authService.login'] = this.authService.login(email, password).subscribe(
+    this.subscriptions$['this.authService.login'] = this.authService.login(email, password).pipe(
+      tap(() => this.pending = false)
+    ).subscribe(
       d => {
         localStorage.setItem('uuid', d.uuid);
         localStorage.setItem('email', d.email);

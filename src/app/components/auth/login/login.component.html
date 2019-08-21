@@ -29,6 +29,9 @@
             Password required.
         </div>
 
-        <input type="submit" name="login" value="Log In" [disabled]="!form.valid" class="btn btn-outline-primary btn-block"> {{ error }}
+        <button type="submit" name="login" [disabled]="!form.valid" class="btn btn-outline-primary btn-block">
+            <span>Log In</span>
+            <span *ngIf="pending" class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>
+        </button> {{ error }}
     </form>
 </div>

@@ -3,6 +3,8 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { Subscription } from 'rxjs';
+import { tap } from 'rxjs/operators'
+
 
 import { AuthService } from '../auth.service';
 
@@ -21,6 +23,8 @@ export class WelcomeComponent implements OnInit, OnDestroy {
      ])
   });
 
+  pending: boolean = false;
+
   error?: string;
 
   subscriptions$: { [key: string]: Subscription } = { };
@@ -33,11 +37,15 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   next(e: Event) {
     e.preventDefault();
 
+    this.pending = true;
+
     let email = this.form.get('email').value;
 
     let redirect = 'registration';
 
-    this.subscriptions$['this.authService.isEmailExist'] = this.authService.isEmailExist(email).subscribe(
+    this.subscriptions$['this.authService.isEmailExist'] = this.authService.isEmailExist(email).pipe(
+      tap(() => this.pending = false)
+    ).subscribe(
       d => {
         if (d) {
           redirect = 'login';
