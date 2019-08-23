@@ -12,9 +12,10 @@ const routes: Routes = [
   {
     path: '',
     component: MainComponent,
+    data: { animation: 'WelcomePage' },
     children: [
-      { path: '', component: ConferencesComponent },
-      { path: 'conference/u/:uuid', component: PrivateConferenceComponent }
+      { path: '', component: ConferencesComponent, data: { animation: 'ConferencesPage' } },
+      { path: 'conference/u/:uuid', component: PrivateConferenceComponent, data: { animation: 'ConferencePage' } }
       // { path: 'conference/p/:uuid', component: PublicConferenceComponent }
     ]
   },

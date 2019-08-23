@@ -1,6 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { Router, NavigationEnd, ActivatedRoute, RouterOutlet } from '@angular/router';
 import { Title } from '@angular/platform-browser';
+import {
+  animation, trigger, animateChild, group,
+  transition, animate, style, query
+} from '@angular/animations';
+
 
 import { Subscription } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
@@ -10,7 +15,35 @@ import { AuthService } from './components/auth/auth.service';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrls: ['./app.component.css'],
+  animations: [
+    trigger('routeAnimations', [
+      transition('WelcomePage => SignPage', [
+        style({ position: 'relative' }),
+        query(':enter, :leave', [
+          style({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%'
+          })
+        ]),
+        query(':enter', [
+          style({ left: '100%'})
+        ]),
+        query(':leave', animateChild()),
+        group([
+          query(':leave', [
+            animate('333ms ease-out', style({ left: '-100%'}))
+          ]),
+          query(':enter', [
+            animate('333ms ease-out', style({ left: '0%'}))
+          ])
+        ]),
+        query(':enter', animateChild()),
+      ])
+    ])
+  ]
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'Crypter';
@@ -39,6 +72,10 @@ export class AppComponent implements OnInit, OnDestroy {
     ).subscribe((event) => {
       (event['title']) ? this.titleService.setTitle(`${this.title} | ${event['title']}`) : this.titleService.setTitle(this.title);
     });
+  }
+
+  prepareRoute(outlet: RouterOutlet) {
+    return outlet && outlet.activatedRouteData && outlet.activatedRouteData['animation'];
   }
 
   ngOnDestroy() {

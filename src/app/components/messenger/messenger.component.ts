@@ -3,6 +3,14 @@ import { Component, Injector, Inject, OnInit, OnDestroy } from '@angular/core';
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 
+import { RouterOutlet } from '@angular/router';
+
+import {
+  animation, trigger, animateChild, group,
+  transition, animate, style, query
+} from '@angular/animations';
+
+
 import { Subscription, from, throwError } from 'rxjs';
 import { tap, map, switchMap } from 'rxjs/operators';
 
@@ -28,6 +36,52 @@ import { Message } from '../../models/Message';
   selector: 'app-messenger',
   templateUrl: './messenger.component.html',
   styleUrls: ['./messenger.component.css'],
+  animations: [
+    trigger('routeAnimations', [
+      transition('ConferencesPage => ConferencePage', [
+        style({ position: 'relative' }),
+        query(':enter, :leave', [
+          style({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%'
+          })
+        ]),
+        query(':enter', [
+          style({ left: '100%', zIndex: 999 })
+        ]),
+        query(':leave', animateChild()),
+        group([
+          query(':enter', [
+            animate('333ms ease-out', style({ left: '0%' }))
+          ])
+        ]),
+        query(':enter', animateChild()),
+      ]),
+      transition('ConferencePage => ConferencesPage', [
+        style({ position: 'relative' }),
+        query(':enter, :leave', [
+          style({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%'
+          })
+        ]),
+        query(':leave', [
+          style({ zIndex: 999 })
+        ]),
+        query(':leave', animateChild()),
+        group([
+          query(':leave', [
+            animate('333ms ease-out', style({ left: '100%' }))
+          ])
+        ]),
+        query(':enter', animateChild()),
+      ])
+    ])
+  ],
   providers: [WampService, DatabaseService]
 })
 export class MessengerComponent implements OnInit, OnDestroy {
@@ -107,6 +161,10 @@ export class MessengerComponent implements OnInit, OnDestroy {
     };
 
     this.databaseService.upsertMessage(message).subscribe();
+  }
+
+  prepareRoute(outlet: RouterOutlet) {
+    return outlet && outlet.activatedRouteData && outlet.activatedRouteData['animation'];
   }
 
   ngOnDestroy() {

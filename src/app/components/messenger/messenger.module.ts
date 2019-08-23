@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { InfiniteScrollModule } from 'ngx-infinite-scroll';
 import { InViewportModule } from 'ng-in-viewport';
@@ -26,6 +27,7 @@ import { MessageFormComponent } from './message-form/message-form.component';
   ],
   imports: [
     CommonModule,
+    BrowserAnimationsModule,
     FormsModule,
     ReactiveFormsModule,
     InfiniteScrollModule,

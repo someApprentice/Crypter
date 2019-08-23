@@ -9,8 +9,8 @@ import { LoginComponent } from './login/login.component';
 import { RegistrationComponent } from './registration/registration.component';
 
 const authRoutes: Routes = [
-  { path: 'login', component: LoginComponent, data: { title: 'Login' }, canActivate: [AuthGuard] },
-  { path: 'registration', component: RegistrationComponent, data: { title: 'Registration' }, canActivate: [AuthGuard] }
+  { path: 'login', component: LoginComponent, data: { title: 'Login', animation: 'SignPage' }, canActivate: [AuthGuard] },
+  { path: 'registration', component: RegistrationComponent, data: { title: 'Registration', animation: 'SignPage' }, canActivate: [AuthGuard] }
 ];
 
 @NgModule({

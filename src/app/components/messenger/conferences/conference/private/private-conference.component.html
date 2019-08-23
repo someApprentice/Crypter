@@ -1,77 +1,75 @@
-<div class="container-fluid">
-    <div class="conversation">
-        <header class="d-flex justify-content-between align-items-center shadow p-xl-2 bg-white rounded">
-            <a [routerLink]="['/']" class="btn btn-light btn-sm" role="button"><span class="glyphicon glyphicon-chevron-left"></span> Back</a>
+<div class="conversation">
+    <header class="d-flex justify-content-between align-items-center shadow p-xl-2 bg-white rounded">
+        <a [routerLink]="['/']" class="btn btn-light btn-sm" role="button"><span class="glyphicon glyphicon-chevron-left"></span> Back</a>
 
-            <div class="name d-flex flex-column align-items-center align-self-center">
-                <span *ngIf="!isParticipantLoading">{{ participant?.name }}</span>
-                <span *ngIf="isParticipantLoading"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></span>
-                <span *ngIf="!writing" class="status text-secondary">last seen recently</span>
-                <span *ngIf="writing" class="status writing text-primary">writing</span>
-            </div>
+        <div class="name d-flex flex-column align-items-center align-self-center">
+            <span *ngIf="!isParticipantLoading">{{ participant?.name }}</span>
+            <span *ngIf="isParticipantLoading"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></span>
+            <span *ngIf="!writing" class="status text-secondary">last seen recently</span>
+            <span *ngIf="writing" class="status writing text-primary">writing</span>
+        </div>
 
-            <a class="btn btn-light btn-sm" role="button"><span class="glyphicon glyphicon-option-vertical"></span></a>
-        </header>
+        <a class="btn btn-light btn-sm" role="button"><span class="glyphicon glyphicon-option-vertical"></span></a>
+    </header>
 
-        <div
-            class="messages"
+    <div
+        class="messages"
 
-            [class.isMessagesLoading]="isMessagesLoading"
+        [class.isMessagesLoading]="isMessagesLoading"
+    >
+        <div *ngIf="isMessagesLoading" class="spinner">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+
+        <ul
+            #scroller
+            infiniteScroll
+            [infiniteScrollThrottle]="1000 / 3 * 2"
+            [infiniteScrollUpDistance]="3.3"
+            (scrolledUp)="onScrollUp(this.messages[0].date)"
+            [infiniteScrollDistance]="3.3"
+            (scrolled)="onScrollDown(this.messages[this.messages.length - 1].date)"
+            [scrollWindow]="false"
+
+            class="wrapper overflow-auto"
         >
-            <div *ngIf="isMessagesLoading" class="spinner">
+            <div *ngIf="isOldMessagesLoading" class="spinner text-center pt-2">
               <div class="spinner-border text-primary" role="status"></div>
             </div>
 
-            <ul 
-                #scroller
-                infiniteScroll
-                [infiniteScrollThrottle]="1000 / 3 * 2"
-                [infiniteScrollUpDistance]="3.3"
-                (scrolledUp)="onScrollUp(this.messages[0].date)"
-                [infiniteScrollDistance]="3.3"
-                (scrolled)="onScrollDown(this.messages[this.messages.length - 1].date)"
-                [scrollWindow]="false"
+            <li
+                *ngFor="let message of messages"
 
-                class="wrapper overflow-auto"
+                #messagesList
+
+                [id]="message.uuid"
+
+                inViewport
+                [inViewportOptions]="{ threshold: [0] }"
+                (inViewportAction)="onIntersection($event)"
+
+                class="message media mx-3 pb-2 mx-xl-5 pb-xl-3"
             >
-                <div *ngIf="isOldMessagesLoading" class="spinner text-center pt-2">
-                  <div class="spinner-border text-primary" role="status"></div>
-                </div>
-
-                <li
-                    *ngFor="let message of messages"
-
-                    #messagesList
-
-                    [id]="message.uuid"
-
-                    inViewport
-                    [inViewportOptions]="{ threshold: [0] }"
-                    (inViewportAction)="onIntersection($event)"
-
-                    class="message media mx-3 pb-2 mx-xl-5 pb-xl-3"
-                >
-                    <div class="media-body">
-                        <div class="title clearfix">
-                            <span class="author float-left font-weight-bold font-italic"><a>{{ message.author.name }}</a></span>
-                            <span class="date float-right">
-                                <i *ngIf="message.author.uuid == authService.user.uuid && !message.readed" class="material-icons px-1">done</i>
-                                <i *ngIf="message.author.uuid == authService.user.uuid && message.readed" class="material-icons px-1">done_all</i>
-                                <a>{{ message.date * 1000 | date:'short' }}</a>
-                            </span>
-                        </div>
-
-                        <div class="content">
-                            {{ message.content }}
-                        </div>
+                <div class="media-body">
+                    <div class="title clearfix">
+                        <span class="author float-left font-weight-bold font-italic"><a>{{ message.author.name }}</a></span>
+                        <span class="date float-right">
+                            <i *ngIf="message.author.uuid == authService.user.uuid && !message.readed" class="material-icons px-1">done</i>
+                            <i *ngIf="message.author.uuid == authService.user.uuid && message.readed" class="material-icons px-1">done_all</i>
+                            <a>{{ message.date * 1000 | date:'short' }}</a>
+                        </span>
                     </div>
-                </li>
 
-                <div *ngIf="isNewMessagesLoading" class="spinner text-center">
-                  <div class="spinner-border text-primary" role="status"></div>
+                    <div class="content">
+                        {{ message.content }}
+                    </div>
                 </div>
-            </ul>
-        </div>
+            </li>
+
+            <div *ngIf="isNewMessagesLoading" class="spinner text-center">
+              <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        </ul>
     </div>
 
     <app-message-form [to]="participant?.uuid" (sent)=onSent($event)></app-message-form>

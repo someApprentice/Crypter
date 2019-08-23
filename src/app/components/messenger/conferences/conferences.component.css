@@ -1,8 +1,3 @@
-.container-fluid {
-    padding-right: 0;
-    padding-left: 0;
-}
-
 .dialogs {
     /* @TODO: Refator this calculation with sass variables; */
     /* screen size - header size */
@@ -61,12 +56,6 @@
 }
 
 @media (min-width: 1200px) {
-    .container-fluid {
-        padding-right: 15px;
-        padding-left: 15px;
-        max-width: 1140px;
-    }
-
     .dialogs {
         /* @TODO: Refator this calculation with sass variables; */
         /* screen size - header size - search form size - dialogs bottom margin */

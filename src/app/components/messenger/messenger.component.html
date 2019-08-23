@@ -1,1 +1,5 @@
-<router-outlet></router-outlet>
+<div class="container-fluid">
+    <div [@routeAnimations]="prepareRoute(outlet)" >
+      <router-outlet #outlet="outlet"></router-outlet>
+    </div>
+</div>
