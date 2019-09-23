@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 11.2
--- Dumped by pg_dump version 11.2
+-- Dumped from database version 11.5
+-- Dumped by pg_dump version 11.5
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -12,6 +12,7 @@ SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
+SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
@@ -73,7 +74,8 @@ CREATE TABLE public.message (
     type character varying NOT NULL,
     content character varying NOT NULL,
     consumed boolean,
-    edited boolean
+    edited boolean,
+    readed_at timestamp with time zone
 );
 
 
@@ -170,7 +172,8 @@ CREATE TABLE public."user" (
     uuid uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     email character varying(255) NOT NULL,
     name character varying(255) NOT NULL,
-    hash character varying(60) NOT NULL
+    hash character varying(60) NOT NULL,
+    last_seen timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
