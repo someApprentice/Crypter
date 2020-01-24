@@ -24,7 +24,11 @@ class ConferenceRepository extends ServiceEntityRepository
 
     public function getConferenceByParticipant(User $sender, User $participant)
     {
-        $dql = 'SELECT c FROM Crypter\Entity\Conference c JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference WHERE cr.user = :sender AND cr.participant = :participant';
+        $dql = '
+            SELECT c FROM Crypter\Entity\Conference c
+            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
+            WHERE cr.user = :sender AND cr.participant = :participant
+        ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['sender' => $sender->getUuid(), 'participant' => $participant->getUuid()]);
@@ -36,7 +40,11 @@ class ConferenceRepository extends ServiceEntityRepository
 
     public function getParticipants(Conference $conference): array
     {
-        $dql = 'SELECT u FROM Crypter\Entity\User u JOIN Crypter\Entity\Participant p WITH u.uuid = p.user WHERE p.conference = :conference';
+        $dql = '
+            SELECT u FROM Crypter\Entity\User u
+            JOIN Crypter\Entity\Participant p WITH u.uuid = p.user
+            WHERE p.conference = :conference
+        ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameter('conference', $conference->getUuid());
@@ -48,7 +56,15 @@ class ConferenceRepository extends ServiceEntityRepository
 
     public function getMessages(Conference $conference, User $user, int $limit = self::BATCH_SIZE): array
     {
-        $dql = 'SELECT m, IDENTITY(mr.conference) AS conference FROM Crypter\Entity\Message m JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message WHERE mr.conference = :conference AND mr.user = :user ORDER BY m.date DESC';
+        $dql = '
+            SELECT
+                m,
+                IDENTITY(mr.conference) AS conference
+            FROM Crypter\Entity\Message m
+            JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
+            WHERE mr.conference = :conference AND mr.user = :user
+            ORDER BY m.date DESC
+        ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['conference' => $conference->getUuid(), 'user' => $user->getUuid()]);
@@ -61,7 +77,19 @@ class ConferenceRepository extends ServiceEntityRepository
 
     public function getUnreadMessages(Conference $conference, User $user, int $limit = self::BATCH_SIZE): array
     {
-        $dql = 'SELECT m, IDENTITY(mr.conference) AS conference FROM Crypter\Entity\Message m JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message WHERE mr.conference = :conference AND mr.user = :user and m.readed = FALSE AND m.author != :user ORDER BY m.date ASC';
+        $dql = '
+            SELECT
+                m,
+                IDENTITY(mr.conference) AS conference
+            FROM Crypter\Entity\Message m
+            JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
+            WHERE
+                mr.conference = :conference
+                AND mr.user = :user
+                AND m.readed = FALSE
+                AND m.author != :user
+            ORDER BY m.date ASC
+        ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['conference' => $conference->getUuid(), 'user' => $user->getUuid()]);
@@ -75,14 +103,16 @@ class ConferenceRepository extends ServiceEntityRepository
     public function getOldMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE)
     {
         $dql = '
-            SELECT m, IDENTITY(mr.conference) AS conference
-                FROM Crypter\Entity\Message m
-                    JOIN Crypter\Entity\MessageReference mr 
-                    WITH m.uuid = mr.message
-                WHERE mr.conference = :conference
-                    AND mr.user = :user
-                    AND m.date < :date
-                ORDER BY m.date DESC
+            SELECT
+                m,
+                IDENTITY(mr.conference) AS conference
+            FROM Crypter\Entity\Message m
+            JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
+            WHERE
+                mr.conference = :conference
+                AND mr.user = :user
+                AND m.date < :date
+            ORDER BY m.date DESC
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
@@ -97,14 +127,16 @@ class ConferenceRepository extends ServiceEntityRepository
     public function getNewMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE)
     {
         $dql = '
-            SELECT m, IDENTITY(mr.conference) AS conference
-                FROM Crypter\Entity\Message m
-                    JOIN Crypter\Entity\MessageReference mr
-                    WITH m.uuid = mr.message
-                WHERE mr.conference = :conference
-                    AND mr.user = :user
-                    AND m.date > :date
-                ORDER BY m.date ASC
+            SELECT
+                m,
+                IDENTITY(mr.conference) AS conference
+            FROM Crypter\Entity\Message m
+            JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
+            WHERE
+                mr.conference = :conference
+                AND mr.user = :user
+                AND m.date > :date
+            ORDER BY m.date ASC
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);

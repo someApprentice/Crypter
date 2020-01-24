@@ -23,7 +23,16 @@ class UserRepository extends ServiceEntityRepository
 
     public function getConferences(User $user, int $limit = self::BATCH_SIZE): array
     {
-        $dql = 'SELECT c, cr.count, cr.unread, IDENTITY(cr.participant) as participant FROM Crypter\Entity\Conference c JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference WHERE cr.user = :user ORDER BY c.updated DESC';
+        $dql = '
+            SELECT
+                c,
+                cr.count,
+                cr.unread,
+                IDENTITY(cr.participant) as participant
+            FROM Crypter\Entity\Conference c
+            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
+            WHERE cr.user = :user ORDER BY c.updated DESC
+        ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['user' => $user->getUuid()]);
@@ -36,7 +45,16 @@ class UserRepository extends ServiceEntityRepository
 
     public function getConference(string $uuid, User $user)
     {
-        $dql = 'SELECT c, cr.count, cr.unread, IDENTITY(cr.participant) as participant FROM Crypter\Entity\Conference c JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference WHERE c.uuid = :uuid AND cr.user = :user';
+        $dql = '
+            SELECT
+                c,
+                cr.count,
+                cr.unread,
+                IDENTITY(cr.participant) as participant
+            FROM Crypter\Entity\Conference c
+            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
+            WHERE c.uuid = :uuid AND cr.user = :user
+        ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['uuid' => $uuid, 'user' => $user->getUuid()]);
@@ -48,7 +66,16 @@ class UserRepository extends ServiceEntityRepository
 
     public function getConferenceByParticipant(string $uuid, User $user)
     {
-        $dql = 'SELECT c, cr.count, cr.unread, IDENTITY(cr.participant) as participant FROM Crypter\Entity\Conference c JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference WHERE cr.user = :user and cr.participant = :uuid';
+        $dql = '
+            SELECT
+                c,
+                cr.count,
+                cr.unread,
+                IDENTITY(cr.participant) as participant
+            FROM Crypter\Entity\Conference c
+            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
+            WHERE cr.user = :user AND cr.participant = :uuid
+        ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['uuid' => $uuid, 'user' => $user->getUuid()]);
@@ -63,7 +90,15 @@ class UserRepository extends ServiceEntityRepository
      */
     public function getMessages(User $user): array
     {
-        $dql = 'SELECT m, IDENTITY(mr.conference) AS conference FROM Crypter\Entity\Message m JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message WHERE mr.user = :user ORDER BY m.date DESC';
+        $dql = '
+            SELECT
+                m,
+                IDENTITY(mr.conference) AS conference
+            FROM Crypter\Entity\Message m
+            JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
+            WHERE mr.user = :user
+            ORDER BY m.date DESC
+        ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['user' => $user->getUuid()]);
@@ -75,7 +110,14 @@ class UserRepository extends ServiceEntityRepository
 
     public function getReadedMessages(User $user, \DateTime $date): array
     {
-        $dql = 'SELECT m, IDENTITY(mr.conference) AS conference FROM Crypter\Entity\Message m JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message WHERE mr.user = :user AND m.readedAt > :date ORDER BY m.date DESC';
+        $dql = '
+            SELECT m,
+            IDENTITY(mr.conference) AS conference
+            FROM Crypter\Entity\Message m
+            JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
+            WHERE mr.user = :user AND m.readedAt > :date
+            ORDER BY m.date DESC
+        ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['user' => $user->getUuid(), 'date' => $date->format('Y-m-d H:i:s.uP')]);
