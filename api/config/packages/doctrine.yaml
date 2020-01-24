@@ -17,12 +17,26 @@ doctrine:
 
         url: '%env(resolve:DATABASE_URL)%'
         types:
-            'datetime': 'Doctrine\DBAL\Types\VarDateTimeType'
-            'datetimetz': 'Doctrine\DBAL\Types\VarDateTimeType'
-            'time': 'Doctrine\DBAL\Types\VarDateTimeType'
-            'datetime_immutable': 'Doctrine\DBAL\Types\VarDateTimeImmutableType'
-            'datetimetz_immutable': 'Doctrine\DBAL\Types\VarDateTimeImmutableType'
-            'time_immutable': 'Doctrine\DBAL\Types\VarDateTimeImmutableType'
+            'datetime':
+              class: 'Doctrine\DBAL\Types\VarDateTimeType'
+              commented: false
+
+            'datetimetz':
+              class: 'Doctrine\DBAL\Types\VarDateTimeType'
+              commented: false
+
+            'time':
+              class: 'Doctrine\DBAL\Types\VarDateTimeType'
+              commented: false
+
+            'datetime_immutable':
+              class: 'Doctrine\DBAL\Types\VarDateTimeImmutableType'
+
+            'datetimetz_immutable':
+              class: 'Doctrine\DBAL\Types\VarDateTimeImmutableType'
+
+            'time_immutable':
+              class: 'Doctrine\DBAL\Types\VarDateTimeImmutableType'
     orm:
         auto_generate_proxy_classes: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
