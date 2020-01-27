@@ -42,7 +42,13 @@ class AuthController extends AbstractController
         // x-www-urlencoded or json
         $data = empty($request->request->all()) ? json_decode($request->getContent(), $assoc = true) : $request->request->all();
 
-        // @TODO: BAD_REQUSET IF REQUEIRED FIELEDS IS EMPTY
+        if (
+            !(array_key_exists('email', $data) && !empty($data['email'])) ||
+            !(array_key_exists('name', $data) && !empty($data['name'])) ||
+            !(array_key_exists('password', $data) && !empty($data['password']))
+        ) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
 
         $email = strtolower($data['email']);
         $name = $data['name'];
@@ -98,7 +104,12 @@ class AuthController extends AbstractController
         // x-www-urlencoded or json
         $data = empty($request->request->all()) ? json_decode($request->getContent(), $assoc = true) : $request->request->all();
 
-        // @TODO: BAD_REQUSET IF REQUEIRED FIELDS IS EMPTY
+        if (
+            !(array_key_exists('email', $data) && !empty($data['email'])) ||
+            !(array_key_exists('password', $data) && !empty($data['password']))
+        ) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
 
         $email = strtolower($data['email']);
         $password = $data['password'];

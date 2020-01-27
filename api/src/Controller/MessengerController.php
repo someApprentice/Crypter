@@ -7,6 +7,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
+use Symfony\Component\Validator\Validation;
+use Symfony\Component\Validator\Constraints\Uuid as UuidConstraint;
+
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 
 use Carbon\Carbon;
@@ -106,6 +109,14 @@ class MessengerController extends AbstractController
     {
         $user = $this->getUser();
 
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($conference, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
+
         $conference = $this->em->getRepository(User::class)->getConference($conference, $user);
 
         if (!$conference) {
@@ -146,6 +157,14 @@ class MessengerController extends AbstractController
     public function getConferenceByParticipant(Request $request, $participant): Response
     {
         $user = $this->getUser();
+
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($participant, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
 
         $participant = $this->em->getRepository(User::class)->find($participant);
 
@@ -273,6 +292,14 @@ class MessengerController extends AbstractController
     {
         $user = $this->getUser();
 
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($conference, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
+
         $conference = $this->em->getRepository(User::class)->getConference($conference, $user);
 
         if (!$conference) {
@@ -316,6 +343,14 @@ class MessengerController extends AbstractController
         $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
 
         $user = $this->getUser();
+
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($conference, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
 
         $conference = $this->em->getRepository(User::class)->getConference($conference, $user);
 
@@ -365,6 +400,14 @@ class MessengerController extends AbstractController
 
         $user = $this->getUser();
 
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($conference, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
+
         $conference = $this->em->getRepository(User::class)->getConference($conference, $user);
 
         if (!$conference) {
@@ -411,6 +454,14 @@ class MessengerController extends AbstractController
 
         $user = $this->getUser();
 
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($conference, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
+
         $conference = $this->em->getRepository(User::class)->getConference($conference, $user);
 
         if (!$conference) {
@@ -453,6 +504,14 @@ class MessengerController extends AbstractController
     public function getConferenceMessagesByParticipant(Request $request, $participant): Response
     {
         $user = $this->getUser();
+
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($participant, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
 
         $participant = $this->em->getRepository(User::class)->find($participant);
 
@@ -504,6 +563,14 @@ class MessengerController extends AbstractController
         $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
 
         $user = $this->getUser();
+
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($participant, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
 
         $participant = $this->em->getRepository(User::class)->find($participant);
 
@@ -560,6 +627,14 @@ class MessengerController extends AbstractController
 
         $user = $this->getUser();
 
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($participant, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
+
         $participant = $this->em->getRepository(User::class)->find($participant);
 
         if (!$participant) {
@@ -613,6 +688,14 @@ class MessengerController extends AbstractController
 
         $user = $this->getUser();
 
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($participant, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
+
         $participant = $this->em->getRepository(User::class)->find($participant);
 
         if (!$participant) {
@@ -665,6 +748,14 @@ class MessengerController extends AbstractController
         $data = empty($request->request->all()) ? json_decode($request->getContent(), $assoc = true) : $request->request->all();
 
         $sender = $this->getUser();
+
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($user, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
 
         $reciever = $this->em->find(User::class, $user);
 
