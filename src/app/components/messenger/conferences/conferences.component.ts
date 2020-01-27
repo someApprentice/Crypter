@@ -31,7 +31,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
 
   conferences: Conference[] = [];
 
-  subscriptions$: { [key: string]: Subscription } = { };
+  subscriptions: { [key: string]: Subscription } = { };
   
 
   private databaseService: DatabaseService;
@@ -57,7 +57,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
     // get Conferences from api
     // if it's a browser push them into indexeDB
     // if it's a server push them into conferences array
-    this.subscriptions$['this.messengerService.getConferences'] = this.messengerService.getConferences().subscribe(
+    this.subscriptions['this.messengerService.getConferences'] = this.messengerService.getConferences().subscribe(
       (conferences: Conference[]) => {
         for (let conference of conferences) {
           if (isPlatformBrowser(this.platformId)) {
@@ -94,7 +94,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
       // if conference doesn't exists in a conferences array, push it, otherwise update entry
       // and then sort conferences in case if some of conferences have been pushed before query
       // (for example before request from api)
-      this.subscriptions$['this.databaseService.getConferences'] = this.databaseService.getConferences().subscribe(
+      this.subscriptions['this.databaseService.getConferences'] = this.databaseService.getConferences().subscribe(
         (conferences: Conference[]) => {
           this.conferences = conferences.reduce((acc, cur) => {
             if (acc.find((c: Conference) => c.uuid === cur.uuid)) {
@@ -126,8 +126,8 @@ export class ConferencesComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.state.remove(CONFERENCES_STATE_KEY);
 
-    for (let key in this.subscriptions$) {
-      this.subscriptions$[key].unsubscribe();
+    for (let key in this.subscriptions) {
+      this.subscriptions[key].unsubscribe();
     }
   }
 }

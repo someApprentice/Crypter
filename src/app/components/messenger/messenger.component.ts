@@ -86,7 +86,7 @@ import { Message } from '../../models/Message';
 })
 export class MessengerComponent implements OnInit, OnDestroy {
 
-  subscriptions$: { [key: string]: Subscription } = { };
+  subscriptions: { [key: string]: Subscription } = { };
   
   private wamp: WampService;
   private databaseService: DatabaseService;
@@ -106,7 +106,7 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      this.subscriptions$['this.wamp.onOpen'] = this.wamp.onOpen.pipe(
+      this.subscriptions['this.wamp.onOpen'] = this.wamp.onOpen.pipe(
         tap(this.onOpen.bind(this)),
         switchMap((session: SessionData) => this.messengerService.getReadedMessages(session.welcomeMsg.details.authextra.user.last_seen)) // update messages readed while client was offline
       ).subscribe(messages => {
@@ -124,9 +124,9 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
     this.authService.user.last_seen = last_seen;
 
-    this.subscriptions$[`this.wamp.topic(conference.updated.for.${this.authService.user.uuid})`] = this.wamp.topic(`conference.updated.for.${this.authService.user.uuid}`).subscribe(this.onConference.bind(this));
-    this.subscriptions$[`this.wamp.topic(private.message.to.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.to.${this.authService.user.uuid}`).subscribe(this.onMessage.bind(this));
-    this.subscriptions$[`this.wamp.topic(private.message.updated.for.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.updated.for.${this.authService.user.uuid}`).subscribe(this.onMessage.bind(this));
+    this.subscriptions[`this.wamp.topic(conference.updated.for.${this.authService.user.uuid})`] = this.wamp.topic(`conference.updated.for.${this.authService.user.uuid}`).subscribe(this.onConference.bind(this));
+    this.subscriptions[`this.wamp.topic(private.message.to.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.to.${this.authService.user.uuid}`).subscribe(this.onMessage.bind(this));
+    this.subscriptions[`this.wamp.topic(private.message.updated.for.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.updated.for.${this.authService.user.uuid}`).subscribe(this.onMessage.bind(this));
 
     return session;
   }
@@ -168,8 +168,8 @@ export class MessengerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    for (let key in this.subscriptions$) {
-      this.subscriptions$[key].unsubscribe();
+    for (let key in this.subscriptions) {
+      this.subscriptions[key].unsubscribe();
     }
   }
 }

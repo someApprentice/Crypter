@@ -27,7 +27,7 @@ export class WelcomeComponent implements OnInit, OnDestroy {
 
   error?: string;
 
-  subscriptions$: { [key: string]: Subscription } = { };
+  subscriptions: { [key: string]: Subscription } = { };
 
   constructor(private authService: AuthService, private router: Router) { }
 
@@ -44,7 +44,7 @@ export class WelcomeComponent implements OnInit, OnDestroy {
 
     let redirect = 'registration';
 
-    this.subscriptions$['this.authService.isEmailExist'] = this.authService.isEmailExist(email).pipe(
+    this.subscriptions['this.authService.isEmailExist'] = this.authService.isEmailExist(email).pipe(
       tap(() => this.pending = false)
     ).subscribe(
       d => {
@@ -70,8 +70,8 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    for (let key in this.subscriptions$) {
-      this.subscriptions$[key].unsubscribe();
+    for (let key in this.subscriptions) {
+      this.subscriptions[key].unsubscribe();
     }
   }
 }

@@ -51,7 +51,7 @@ class Messenger():
 
         user = authenticator.authenticate(data['Bearer token'])
 
-        conference = conference = database.session.query(Conference).join(Conference_Reference).filter(and_(Conference_Reference.conference_uuid == Conference.uuid, Conference_Reference.user_uuid == user.uuid, Conference_Reference.participant_uuid == data['to'])).one_or_none()
+        conference = database.session.query(Conference).join(Conference_Reference).filter(and_(Conference_Reference.conference_uuid == Conference.uuid, Conference_Reference.user_uuid == user.uuid, Conference_Reference.participant_uuid == data['to'])).one_or_none()
 
         if not conference:
             result['errors'] = { 'conference': 'Conference does not exist' }

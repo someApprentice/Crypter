@@ -54,7 +54,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   
   error?: string;
 
-  subscriptions$: { [key: string]: Subscription } = { };
+  subscriptions: { [key: string]: Subscription } = { };
 
   private wamp: WampService;
   private databaseService: DatabaseService;
@@ -94,7 +94,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     //   Else subscribe to the initial messagesList changes
     //     to detect whether or not scroller has a overflow
     //     and if it isn't so subscribe to the last messages
-    this.subscriptions$['this.messengerService.getMessagesBy'] = this.route.params.pipe(
+    this.subscriptions['this.messengerService.getMessagesBy'] = this.route.params.pipe(
       map(params => params['uuid']),
       switchMap((uuid: string) => {
         this.isParticipantLoading = true;
@@ -107,6 +107,22 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         this.participant = participant;
 
         this.state.set(PARTICIPANT_STATE_KEY, participant as User);
+
+        if (isPlatformBrowser(this.platformId)) {
+          this.subscriptions[`this.wamp.topic(writing.for.${this.authService.user.uuid})`] = this.wamp.topic(`writing.for.${this.authService.user.uuid}`).pipe(
+            tap((e: EventMessage) => {
+              if (e.args[0].user.uuid === this.participant.uuid) {
+                this.writing = <User> {
+                  uuid: e.args[0].user.uuid,
+                  name: e.args[0].user.name
+                }
+              }
+            }),
+            delay(2300)
+          ).subscribe(() => {
+            this.writing = null;
+          });
+        }
       }),
       switchMap((participant: User) => this.messengerService.getConferenceByParticipant(participant.uuid)),
       switchMap((conference: Conference|null) => {
@@ -127,21 +143,6 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
           this.state.set(CONFERENCE_STATE_KEY, conference as Conference);
 
-          if (isPlatformBrowser(this.platformId)) {
-            this.subscriptions$[`this.wamp.topic(writing.for.${this.authService.user.uuid})`] = this.wamp.topic(`writing.for.${this.authService.user.uuid}`).pipe(
-              tap((e: EventMessage) => {
-                if (e.args[0].user.uuid === this.participant.uuid) {
-                  this.writing = <User> {
-                    uuid: e.args[0].user.uuid,
-                    name: e.args[0].user.name
-                  }
-                }
-              }),
-              delay(2300)
-            ).subscribe(() => {
-              this.writing = null;
-            });
-          }
 
           if (this.messages.length === 0) {
             this.isMessagesLoading = true;
@@ -174,14 +175,14 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
         // How to properly switch to this observables on browser condition?
         if (isPlatformBrowser(this.platformId)) {
-          this.subscriptions$['this.databaseService.getConferenceByParticipant'] = this.databaseService.getConferenceByParticipant(this.participant.uuid).subscribe(
+          this.subscriptions['this.databaseService.getConferenceByParticipant'] = this.databaseService.getConferenceByParticipant(this.participant.uuid).subscribe(
             (conference: Conference) => {
               this.conference = conference;
             }
           );
 
           if (this.messages.length === 0) {
-            this.subscriptions$['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
+            this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
               this.messages = messages.reduce((acc, cur) => {
                 if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                   acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -201,7 +202,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
               first()
             ).subscribe((ql: QueryList<ElementRef>) => {
               if (this.scroller.nativeElement.clientHeight === this.scroller.nativeElement.scrollHeight) {
-                this.subscriptions$['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
+                this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
                   this.messages = messages.reduce((acc, cur) => {
                     if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                       acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -229,7 +230,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
     this.isOldMessagesLoading = true;
 
-    this.subscriptions$[`this.databaseService.getOldMessagesByParticipant-${timestamp}`] = this.messengerService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+    this.subscriptions[`this.databaseService.getOldMessagesByParticipant-${timestamp}`] = this.messengerService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
       tap((messages: Message[]) => {
         for (let message of messages) {
           this.databaseService.upsertMessage(message).subscribe();
@@ -245,8 +246,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         messages.sort((a: Message, b: Message) => b.date - a.date);
 
         // scroll to the last obtained message in case if a scroll was at the very top
-        if (!(`this.messagesList.changes-${timestamp}` in this.subscriptions$) && messages.length > 0) {
-          this.subscriptions$[`this.messagesList.changes-${timestamp}`] = this.messagesList.changes.pipe(
+        if (!(`this.messagesList.changes-${timestamp}` in this.subscriptions) && messages.length > 0) {
+          this.subscriptions[`this.messagesList.changes-${timestamp}`] = this.messagesList.changes.pipe(
             first()
           ).subscribe((ql: QueryList<ElementRef>) => {
             if (this.scroller.nativeElement.scrollTop === 0 && messages.length > 0) {
@@ -279,8 +280,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   onScrollDown(timestamp: number) {
     if (this.conference.unread === 0) {
-      if (!('this.databaseService.getMessagesByParticipant' in this.subscriptions$)) {
-        this.subscriptions$['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
+      if (!('this.databaseService.getMessagesByParticipant' in this.subscriptions)) {
+        this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
           this.messages = messages.reduce((acc, cur) => {
             if (acc.find((m: Message) => m.uuid === cur.uuid)) {
               acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -299,7 +300,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     if (this.conference.unread > 0) {
       this.isNewMessagesLoading = true;
 
-      this.subscriptions$[`this.databaseService.getNewMessagesByParticipant-${timestamp}`] = this.messengerService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+      this.subscriptions[`this.databaseService.getNewMessagesByParticipant-${timestamp}`] = this.messengerService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
         tap((messages: Message[]) => {
           for (let message of messages) {
             this.databaseService.upsertMessage(message).subscribe();
@@ -381,7 +382,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       }
 
       // autoscroll on new message
-      this.subscriptions$['this.messagesList.changes'] = this.messagesList.changes.subscribe((ql: QueryList<ElementRef>) => {
+      this.subscriptions['this.messagesList.changes'] = this.messagesList.changes.subscribe((ql: QueryList<ElementRef>) => {
         let scrollerEl: HTMLElement = this.scroller.nativeElement;
 
         if (this.previousScrollTop + this.previousOffsetHeight == this.previousScrollHeight) {
@@ -400,8 +401,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     this.state.remove(CONFERENCE_STATE_KEY);
     this.state.remove(MESSAGES_STATE_KEY);
 
-    for (let key in this.subscriptions$) {
-      this.subscriptions$[key].unsubscribe();
+    for (let key in this.subscriptions) {
+      this.subscriptions[key].unsubscribe();
     }
   }
 }
