@@ -33,3 +33,11 @@ li > a {
     text-decoration: none;
     /*color: inherit;*/
 }
+
+@media (min-width: 1200px) {
+    ul {
+        /* @TODO: Refator this calculation with sass variables; */
+        /* screen size - header size - search form size - dialogs padding - dialogs bottom margin */
+        height: calc(100vh - (40px + (.5rem * 2)) - (38px + (.5rem * 2) + 1px) - (.5rem * 2)  - .5rem);
+    }
+}
