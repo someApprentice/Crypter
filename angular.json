@@ -20,6 +20,16 @@
             "tsConfig": "src/tsconfig.app.json",
             "assets": [
               {
+                "glob": "openpgp.min.js",
+                "input": "src/public",
+                "output": "/"
+              },
+              {
+                "glob": "openpgp.worker.min.js",
+                "input": "src/public",
+                "output": "/"
+              },
+              {
                 "glob": "favicon.ico",
                 "input": "src/public",
                 "output": "/"

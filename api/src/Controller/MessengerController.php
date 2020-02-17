@@ -52,7 +52,8 @@ class MessengerController extends AbstractController
         foreach ($users as $user) {
             $json[] = [
                 'uuid' => $user->getUuid(),
-                'name' => $user->getName()
+                'name' => $user->getName(),
+                'public_key' => $user->getPublicKey()
             ];
         }
 
@@ -82,7 +83,8 @@ class MessengerController extends AbstractController
                 'unread' => $conference['unread'],
                 'participant' => [
                     'uuid' => $participant->getUuid(),
-                    'name' => $participant->getName()
+                    'name' => $participant->getName(),
+                    'public_key' => $participant->getPublicKey()
                 ],
                 'participants' => []
             ];
@@ -92,7 +94,8 @@ class MessengerController extends AbstractController
             foreach ($participants as $participant) {
                 $json[$key]['participants'][] = [
                     'uuid' => $participant->getUuid(),
-                    'name' => $participant->getName()
+                    'name' => $participant->getName(),
+                    'public_key' => $participant->getPublicKey()
                 ];
             }
         }
@@ -132,7 +135,8 @@ class MessengerController extends AbstractController
             'unread' => $conference['unread'],
             'participant' => [
                 'uuid' => $participant->getUuid(),
-                'name' => $participant->getName()
+                'name' => $participant->getName(),
+                'private_key' => $participant->getPublicKey()
             ],
             'participants' => []
         ];
@@ -142,7 +146,8 @@ class MessengerController extends AbstractController
         foreach ($participants as $participant) {
             $json['participants'][] = [
                 'uuid' => $participant->getUuid(),
-                'name' => $participant->getName()
+                'name' => $participant->getName(),
+                'public_key' => $participant->getPublicKey()
             ];
         }
 
@@ -185,7 +190,8 @@ class MessengerController extends AbstractController
             'unread' => $conference['unread'],
             'participant' => [
                 'uuid' => $participant->getUuid(),
-                'name' => $participant->getName()
+                'name' => $participant->getName(),
+                'public_key' => $participant->getPublicKey()
             ],
             'participants' => []
         ];
@@ -195,7 +201,8 @@ class MessengerController extends AbstractController
         foreach ($participants as $participant) {
             $json['participants'][] = [
                 'uuid' => $participant->getUuid(),
-                'name' => $participant->getName()
+                'name' => $participant->getName(),
+                'public_key' => $participant->getPublicKey()
             ];
         }
 
@@ -224,7 +231,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $author->getUuid(),
-                    'name' => $author->getName()
+                    'name' => $author->getName(),
+                    'public_key' => $author->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference']
@@ -265,7 +273,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $author->getUuid(),
-                    'name' => $author->getName()
+                    'name' => $author->getName(),
+                    'public_key' => $author->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference']
@@ -315,7 +324,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName()
+                    'name' => $message[0]->getAuthor()->getName(),
+                    'public_key' => $message[0]->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference']
@@ -369,7 +379,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $author->getUuid(),
-                    'name' => $author->getName()
+                    'name' => $author->getName(),
+                    'public_key' => $author->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference']
@@ -423,7 +434,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName()
+                    'name' => $message[0]->getAuthor()->getName(),
+                    'public_key' => $message[0]->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference']
@@ -477,7 +489,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName()
+                    'name' => $message[0]->getAuthor()->getName(),
+                    'public_key' => $message[0]->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference']
@@ -534,7 +547,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName()
+                    'name' => $message[0]->getAuthor()->getName(),
+                    'public_key' => $message[0]->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference'],
@@ -595,7 +609,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $author->getUuid(),
-                    'name' => $author->getName()
+                    'name' => $author->getName(),
+                    'public_key' => $author->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference'],
@@ -656,7 +671,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName()
+                    'name' => $message[0]->getAuthor()->getName(),
+                    'public_key' => $message[0]->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference'],
@@ -717,7 +733,8 @@ class MessengerController extends AbstractController
                 'uuid' => $message[0]->getUuid(),
                 'author' => [
                     'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName()
+                    'name' => $message[0]->getAuthor()->getName(),
+                    'public_key' => $message[0]->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
                     'uuid' => $message['conference'],

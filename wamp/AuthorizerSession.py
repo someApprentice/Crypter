@@ -75,7 +75,7 @@ class AuthorizerSession(ApplicationSession):
                 uuid = m.group(1) if m else None
 
                 authextra = session.get('authextra')
-                
+
                 if not authextra or 'Bearer token' not in authextra:
                     return False
 
@@ -125,7 +125,7 @@ class AuthorizerSession(ApplicationSession):
                 uuid = m.group(1) if m else None
 
                 authextra = session.get('authextra')
- 
+
                 if not authextra or 'Bearer token' not in authextra:
                     return False
 

@@ -45,7 +45,10 @@ class AuthController extends AbstractController
         if (
             !(array_key_exists('email', $data) && !empty($data['email'])) ||
             !(array_key_exists('name', $data) && !empty($data['name'])) ||
-            !(array_key_exists('password', $data) && !empty($data['password']))
+            !(array_key_exists('password', $data) && !empty($data['password'])) ||
+            !(array_key_exists('public_key', $data) && !empty($data['public_key'])) ||
+            !(array_key_exists('private_key', $data) && !empty($data['private_key'])) ||
+            !(array_key_exists('revocation_certificate', $data) && !empty($data['revocation_certificate']))
         ) {
             return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
         }
@@ -53,11 +56,17 @@ class AuthController extends AbstractController
         $email = strtolower($data['email']);
         $name = $data['name'];
         $password = $data['password'];
+        $publicKey = $data['public_key'];
+        $privateKey = $data['private_key'];
+        $revocationCertificate = $data['revocation_certificate'];
 
         $user = new User();
         $user->setEmail(($email));
         $user->setName($name);
         $user->setPassword($password);
+        $user->setPublicKey($publicKey);
+        $user->setPrivateKey($privateKey);
+        $user->setRevocationCertificate($revocationCertificate);
         
         $errors = $this->validator->validate($user);
 
@@ -71,8 +80,6 @@ class AuthController extends AbstractController
         $this->em->flush();
 
         $uuid = $user->getUuid();
-        $email = $user->getEmail();
-        $name = $user->getName();
         $hash = $user->getPassword();
         $lastSeen = (float) $user->getLastSeen()->format('U.u');
 
@@ -83,7 +90,10 @@ class AuthController extends AbstractController
             'email' => $email,
             'name' => $name,
             'jwt' => $jwt,
-            'last_seen' => $lastSeen 
+            'last_seen' => $lastSeen,
+            'public_key' => $publicKey,
+            'private_key' => $privateKey,
+            'revocation_certificate' => $revocationCertificate
         ]);
 
         // @TODO set secure flag to true when https will be implemented
@@ -145,6 +155,9 @@ class AuthController extends AbstractController
         $name = $user->getName();
         $hash = $user->getPassword();
         $lastSeen = (float) $user->getLastSeen()->format('U.u');
+        $publicKey = $user->getPublicKey();
+        $privateKey = $user->getPrivateKey();
+        $revocationCertificate = $user->getRevocationCertificate();
 
         $jwt = JWT::encode(['uuid' => $uuid, 'hash' => $hash], $this->getParameter('JWT_SECRET'));
 
@@ -153,7 +166,10 @@ class AuthController extends AbstractController
             'email' => $email,
             'name' => $name,
             'jwt' => $jwt,
-            'last_seen' => $lastSeen
+            'last_seen' => $lastSeen,
+            'public_key' => $publicKey,
+            'private_key' => $privateKey,
+            'revocation_certificate' => $revocationCertificate
         ]);
 
         // @TODO set secure flag to true when https will be implemented
@@ -192,7 +208,8 @@ class AuthController extends AbstractController
 
         $json = [
             'uuid' => $user->getUuid(),
-            'name' => $user->getName()
+            'name' => $user->getName(),
+            'public_key' => $user->getPublicKey()
             // @TODO 'last_seen' => (float) $user->getLastSeen()->format('U.u')
         ];
 

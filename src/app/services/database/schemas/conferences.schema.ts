@@ -1,6 +1,6 @@
 import { RxJsonSchema } from 'rxdb';
 
-import { Conference } from '../../../models/Conference'
+import { Conference } from '../../../models/Conference';
 
 const conferenceSchema: RxJsonSchema<Conference> = {
   version: 0,

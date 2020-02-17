@@ -157,6 +157,7 @@ class Messenger():
 
 
         message.readed = True
+        message.readed_at = datetime.datetime.utcnow()
 
         database.session.add(message)
 

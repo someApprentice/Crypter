@@ -3,5 +3,8 @@ export interface User {
   email?: string,
   name: string,
   jwt?: string,
-  last_seen?: number
+  last_seen?: number,
+  public_key?: string,
+  private_key?: string,
+  revocation_certificate?: string
 }

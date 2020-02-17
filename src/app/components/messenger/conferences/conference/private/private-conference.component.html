@@ -72,5 +72,5 @@
         </ul>
     </div>
 
-    <app-message-form [to]="participant?.uuid" (sent)=onSent($event)></app-message-form>
+    <app-message-form [from]="user" [to]="participant" (sent)=onSent($event)></app-message-form>
 </div>

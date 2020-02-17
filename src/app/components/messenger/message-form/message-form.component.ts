@@ -1,11 +1,13 @@
-import { Component, Injector, Inject, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy } from '@angular/core';
+import { Component, Injector, Inject, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 
 import { Subscription, Subject, throwError, of } from 'rxjs';
-import { switchMap, delayWhen, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { map, switchMap, delayWhen, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
+
+import { CrypterService } from '../../../services/crypter.service';
 
 import { WampService } from '../../../services/wamp.service'
 import { EventMessage } from 'thruway.js/src/Messages/EventMessage'
@@ -15,6 +17,7 @@ import { AuthService } from '../../auth/auth.service';
 import { DatabaseService } from '../../../services/database/database.service';
 import { MessageDocument } from '../../../services/database/documents/message.document';
 
+import { User } from '../../../models/User';
 import { Conference } from '../../../models/Conference';
 import { Message }  from '../../../models/Message';
 
@@ -24,14 +27,12 @@ import { Message }  from '../../../models/Message';
   templateUrl: './message-form.component.html',
   styleUrls: ['./message-form.component.css']
 })
-export class MessageFormComponent implements OnInit, OnChanges, OnDestroy {
-  @Input() to: string;
+export class MessageFormComponent implements OnInit, OnDestroy {
+  @Input() from: User;
+  @Input() to: User;
   @Output() sent = new EventEmitter<Message>();
 
   form = new FormGroup({
-    to: new FormControl('', [
-      Validators.required
-    ]),
     message: new FormControl('', [
       Validators.required
     ])
@@ -47,6 +48,7 @@ export class MessageFormComponent implements OnInit, OnChanges, OnDestroy {
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
+    private crypterService: CrypterService,
     private authService: AuthService,
     private injector: Injector
   ) {
@@ -56,13 +58,7 @@ export class MessageFormComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  ngOnChanges() {
-    this.form.get('to').setValue(this.to);
-  }
-
   ngOnInit() {
-    this.form.get('to').setValue(this.to);
-
     if (isPlatformBrowser(this.platformId)) {
       this.writing$ = this.writing.pipe(
         debounceTime(333),
@@ -80,19 +76,20 @@ export class MessageFormComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  send(to: string, text: string) {
-    let data = {
-      'to': to,
-      'text': text,
-      'Bearer token': this.authService.user.jwt
-    };
+  send(text: string) {
+    this.form.get('message').reset();
 
-    // Handle response errors
+    // Encrypt message
+    // Then send message to the wamp service
+    // Then handle response errors
     // Then upsert conference
     // Then upsert message
-    // And only after that reset form and emit event
-    this.wamp.call('send', [data])
-    .pipe(
+    // And only after that reset form and emit event 
+    this.crypterService.encrypt(text, [ this.from.public_key, this.to.public_key  ]).pipe(
+      map(encrypted => {
+        return { 'to': this.to.uuid, 'text': encrypted, 'Bearer token': this.authService.user.jwt  };
+      }),
+      switchMap(data => this.wamp.call('send', [data])),
       switchMap(res => (Object.keys(res.args[0].errors).length > 0) ? throwError(JSON.stringify(res.args[0].errors)) : of(res)),
       delayWhen(res => {
         let conference: Conference = {
@@ -108,16 +105,15 @@ export class MessageFormComponent implements OnInit, OnChanges, OnDestroy {
       delayWhen(res => {
         let message: Message = res.args[0].message;
 
+        message.content = text;
+
         return this.databaseService.upsertMessage(message);
       })
-    )
-    .subscribe(
+    ).subscribe(
       res => {
         let message: Message = res.args[0].message;
 
         this.sent.emit(message);
-
-        this.form.get('message').reset();
       },
       err => {
         if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
@@ -130,20 +126,20 @@ export class MessageFormComponent implements OnInit, OnChanges, OnDestroy {
   onSubmit(e: Event) {
     e.preventDefault()
 
-    let to = this.form.get('to').value
     let text = this.form.get('message').value
 
-    this.send(to, text);
+    if (this.form.valid)
+      this.send(text);
   }
 
   onEnter(e: KeyboardEvent) {
     if (e.key == "Enter" && !e.shiftKey) {      
       e.preventDefault();
 
-      let to = this.form.get('to').value
       let text = this.form.get('message').value
 
-      this.send(to, text);
+      if (this.form.valid)
+        this.send(text);
     }
   }
 

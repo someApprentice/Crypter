@@ -11,21 +11,17 @@ import {
 } from '@angular/animations';
 
 
-import { Subscription, from, throwError } from 'rxjs';
-import { tap, map, switchMap } from 'rxjs/operators';
+import { Subscription, from, of, zip, throwError } from 'rxjs';
+import { tap, map, switchMap, mergeMap, delayWhen } from 'rxjs/operators';
 
 import { SessionData } from 'thruway.js';
 
 import { WampService } from '../../services/wamp.service'
-import { EventMessage } from 'thruway.js/src/Messages/EventMessage'
+import { EventMessage } from 'thruway.js/src/Messages/EventMessage';
 
 import { MessengerService } from './messenger.service';
-
-import { RxDatabase } from 'rxdb';
+import { CrypterService } from '../../services/crypter.service';
 import { DatabaseService } from '../../services/database/database.service';
-import { ConferenceDocument } from '../../services/database/documents/conference.document';
-import { MessageDocument } from '../../services/database/documents/message.document';
-
 import { AuthService } from '../auth/auth.service';
 
 import { Conference } from '../../models/Conference';
@@ -82,7 +78,7 @@ import { Message } from '../../models/Message';
       ])
     ])
   ],
-  providers: [WampService, DatabaseService]
+  providers: [ WampService ]
 })
 export class MessengerComponent implements OnInit, OnDestroy {
 
@@ -94,6 +90,7 @@ export class MessengerComponent implements OnInit, OnDestroy {
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private messengerService: MessengerService,
+    private crypterService: CrypterService,
     private authService: AuthService,
     private injector: Injector,
   ) {
@@ -125,8 +122,46 @@ export class MessengerComponent implements OnInit, OnDestroy {
     this.authService.user.last_seen = last_seen;
 
     this.subscriptions[`this.wamp.topic(conference.updated.for.${this.authService.user.uuid})`] = this.wamp.topic(`conference.updated.for.${this.authService.user.uuid}`).subscribe(this.onConference.bind(this));
-    this.subscriptions[`this.wamp.topic(private.message.to.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.to.${this.authService.user.uuid}`).subscribe(this.onMessage.bind(this));
-    this.subscriptions[`this.wamp.topic(private.message.updated.for.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.updated.for.${this.authService.user.uuid}`).subscribe(this.onMessage.bind(this));
+
+    let user$ = this.databaseService.getUser(this.authService.user.uuid);
+
+    this.subscriptions[`this.wamp.topic(private.message.to.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.to.${this.authService.user.uuid}`).pipe(
+      mergeMap((e: EventMessage) => {
+        let message: Message = e.args[0];
+
+        return zip(of(message), user$)
+      }),
+      switchMap(([ message, user ]) => {
+        let decrypted$ = this.crypterService.decrypt(message.content, user.private_key);
+
+        return zip(of(message), decrypted$);
+      }),
+      map(([message, decrypted]) => {
+        message.content = decrypted;
+
+        return message;
+      }),
+      switchMap((message: Message) => this.databaseService.upsertMessage(message))
+    ).subscribe();
+
+    this.subscriptions[`this.wamp.topic(private.message.updated.for.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.updated.for.${this.authService.user.uuid}`).pipe(
+      mergeMap((e: EventMessage) => {
+        let message: Message = e.args[0];
+
+        return zip(of(message), user$)
+      }),
+      switchMap(([ message, user ]) => {
+        let decrypted$ = this.crypterService.decrypt(message.content, user.private_key);
+
+        return zip(of(message), decrypted$);
+      }),
+      map(([message, decrypted]) => {
+        message.content = decrypted;
+
+        return message;
+      }),
+      switchMap((message: Message) => this.databaseService.upsertMessage(message))
+    ).subscribe();
 
     return session;
   }

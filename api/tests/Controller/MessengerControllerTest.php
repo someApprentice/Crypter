@@ -45,7 +45,10 @@ class MessengerControllerTest extends WebTestCase
             $parameters = [
                 'email' => 'alice@crypter.com',
                 'name' => 'Alice',
-                'password' => 'password'
+                'password' => 'password',
+                'public_key' => '-----BEGIN PGP PUBLIC KEY BLOCK ... ',
+                'private_key' => '-----BEGIN PGP PRIVATE KEY BLOCK ... ',
+                'revocation_certificate' => '-----BEGIN PGP PUBLIC KEY BLOCK ... '
             ],
             $files = [],
             $server = [
@@ -61,7 +64,10 @@ class MessengerControllerTest extends WebTestCase
             $parameters = [
                 'email' => 'bob@crypter.com',
                 'name' => 'Bob',
-                'password' => 'password'
+                'password' => 'password',
+                'public_key' => '-----BEGIN PGP PUBLIC KEY BLOCK ... ',
+                'private_key' => '-----BEGIN PGP PRIVATE KEY BLOCK ... ',
+                'revocation_certificate' => '-----BEGIN PGP PUBLIC KEY BLOCK ... '
             ],
             $files = [],
             $server = [
@@ -77,7 +83,10 @@ class MessengerControllerTest extends WebTestCase
             $parameters = [
                 'email' => 'tester@crypter.com',
                 'name' => 'Tester',
-                'password' => 'password'
+                'password' => 'password',
+                'public_key' => '-----BEGIN PGP PUBLIC KEY BLOCK ... ',
+                'private_key' => '-----BEGIN PGP PRIVATE KEY BLOCK ... ',
+                'revocation_certificate' => '-----BEGIN PGP PUBLIC KEY BLOCK ... '
             ],
             $files = [],
             $server = [

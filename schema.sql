@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 11.5
--- Dumped by pg_dump version 11.5
+-- Dumped from database version 12.1
+-- Dumped by pg_dump version 12.1
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -17,7 +17,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: 
+-- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
@@ -32,7 +32,7 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 
 SET default_tablespace = '';
 
-SET default_with_oids = false;
+SET default_table_access_method = heap;
 
 --
 -- Name: conference; Type: TABLE; Schema: public; Owner: crypter
@@ -72,7 +72,7 @@ CREATE TABLE public.message (
     readed boolean DEFAULT false NOT NULL,
     date timestamp with time zone DEFAULT now() NOT NULL,
     type character varying NOT NULL,
-    content character varying NOT NULL,
+    content text NOT NULL,
     consumed boolean,
     edited boolean,
     readed_at timestamp with time zone
@@ -173,7 +173,10 @@ CREATE TABLE public."user" (
     email character varying(255) NOT NULL,
     name character varying(255) NOT NULL,
     hash character varying(60) NOT NULL,
-    last_seen timestamp with time zone DEFAULT now() NOT NULL
+    last_seen timestamp with time zone DEFAULT now() NOT NULL,
+    public_key text NOT NULL,
+    private_key text NOT NULL,
+    revocation_certificate text NOT NULL
 );
 
 

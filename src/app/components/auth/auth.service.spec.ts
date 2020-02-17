@@ -76,15 +76,21 @@ describe('AuthService', () => {
     let email = 'tester@crypter.com';
     let name = 'Tester';
     let password = 'password';
+    let publicKey = '-----BEGIN PGP PUBLIC KEY BLOCK ... ';
+    let privateKey = '-----BEGIN PGP PRIVATE KEY BLOCK ... ';
+    let revocationCertificate = '-----BEGIN PGP PUBLIC KEY BLOCK ... ';
 
     let user = <User> {
       uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       email,
       name,
-      jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
+      jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY',
+      public_key: publicKey,
+      private_key: privateKey,
+      revocation_certificate: revocationCertificate
     }
 
-    service.registrate(email, name, password).subscribe(d => {
+    service.registrate(email, name, password, publicKey, privateKey, revocationCertificate).subscribe(d => {
       expect(service.user).not.toBeUndefined();
       expect(d).toEqual(user);
     });

@@ -11,19 +11,24 @@ import * as PouchdbAdapterIdb from 'pouchdb-adapter-idb';
 
 RxDB.plugin(PouchdbAdapterIdb);
 
+import { UserDocument } from './documents/user.document';
 import { ConferenceDocument } from './documents/conference.document';
 import { MessageDocument } from './documents/message.document';
 
+import { UserCollection } from './collections/user.collection';
 import { ConferencesCollection } from './collections/conference.collection';
 import { MessagesCollection } from './collections/messages.collection';
 
+import userSchema from './schemas/user.schema';
 import conferenceSchema from './schemas/conferences.schema';
 import messagesSchema from './schemas/messages.schema';
 
+import { User } from '../../models/User';
 import { Conference } from '../../models/Conference';
 import { Message } from '../../models/Message';
 
 type Collections = {
+  users: UserCollection,
   conferences: ConferencesCollection,
   messages: MessagesCollection
 };
@@ -33,29 +38,67 @@ export class DatabaseService implements OnDestroy {
   // const
   static readonly BATCH_SIZE = 20;
 
-  public $ = from(
-    RxDB.create<RxDatabase<Collections>>({
-      name: 'crypterdb',
-      adapter: 'idb',
-      queryChangeDetection: true,
-      multiInstance: (environment.test) ? true : false,
-      ignoreDuplicate: (environment.test) ? true : false
-    })
-  ).pipe(
-    delayWhen(db =>
-      zip(
-        db.collection({
-          name: 'conferences',
-          schema: conferenceSchema
-        }),
-        db.collection({
-          name: 'messages',
-          schema: messagesSchema
-        })
-      )
-    ),
-    shareReplay(1)
-  );
+  public $: Observable<RxDatabase<Collections>>;
+
+  constructor() {
+    this.create();
+  }
+
+  create(): Observable<RxDatabase<Collections>> {
+    this.$ = from(
+      RxDB.create<RxDatabase<Collections>>({
+        name: 'crypterdb',
+        adapter: 'idb',
+        queryChangeDetection: true,
+        multiInstance: (environment.test) ? true : false,
+        ignoreDuplicate: (environment.test) ? true : false
+      })
+    ).pipe(
+      delayWhen(db =>
+        zip(
+          db.collection({
+            name: 'users',
+            schema: userSchema
+          }),
+          db.collection({
+            name: 'conferences',
+            schema: conferenceSchema
+          }),
+          db.collection({
+            name: 'messages',
+            schema: messagesSchema
+          })
+        )
+      ),
+      shareReplay(1)
+    );
+
+    return this.$;
+  }
+
+  getUser(uuid: string): Observable<User> {
+    return this.$.pipe(
+      switchMap(db => db.users.findOne().where('uuid').eq(uuid).$),
+      filter(document => !!document),
+      map((document: UserDocument) => {
+        let user: User = {
+          uuid: document.uuid,
+          email: document.email,
+          name: document.name,
+          last_seen: document.last_seen,
+          public_key: document.public_key,
+          private_key: document.private_key,
+          revocation_certificate: document.revocation_certificate
+        };
+
+        return user;
+      })
+    );
+  }
+
+  upsertUser(user: User): Observable<UserDocument> {
+    return this.$.pipe(switchMap(db => from(db.users.atomicUpsert(user))));
+  }
 
   getConferences(): Observable<Conference[]> {
     // https://rxdb.info/rx-collection.html#get-a-collection-from-the-database
@@ -393,6 +436,10 @@ export class DatabaseService implements OnDestroy {
 
   upsertMessage(message: Message): Observable<MessageDocument> {
     return this.$.pipe(switchMap(db => from(db.messages.atomicUpsert(message))));
+  }
+
+  destroy(): Observable<any> {
+    return this.$.pipe(switchMap(db => from(db.remove())));
   }
 
   ngOnDestroy() {

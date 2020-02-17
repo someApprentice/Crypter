@@ -35,6 +35,9 @@ class AuthControllerTest extends WebTestCase
         $email = "tester@crypter.com";
         $name = "Tester";
         $password = "password";
+        $publicKey = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
+        $privateKey = "-----BEGIN PGP PRIVATE KEY BLOCK ... ";
+        $revocationCertificate = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
 
         $client = static::createClient();
 
@@ -44,7 +47,10 @@ class AuthControllerTest extends WebTestCase
             $parameters = [
                 'email' => $email,
                 'name' => $name,
-                'password' => $password
+                'password' => $password,
+                'public_key' => $publicKey,
+                'private_key' => $privateKey,
+                'revocation_certificate' => $revocationCertificate
             ],
             $files = [],
             $server = [
@@ -63,6 +69,9 @@ class AuthControllerTest extends WebTestCase
         $this->assertArrayHasKey('email', $data);
         $this->assertArrayHasKey('name', $data);
         $this->assertArrayHasKey('jwt', $data);
+        $this->assertArrayHasKey('public_key', $data);
+        $this->assertArrayHasKey('private_key', $data);
+        $this->assertArrayHasKey('revocation_certificate', $data);
 
         $this->assertNotNull($cookies->get('uuid'));
         $this->assertNotNull($cookies->get('email'));
@@ -91,6 +100,9 @@ class AuthControllerTest extends WebTestCase
         $email = "tester@crypter.com";
         $name = "Tester";
         $password = "password";
+        $publicKey = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
+        $privateKey = "-----BEGIN PGP PRIVATE KEY BLOCK ... ";
+        $revocationCertificate = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
 
         $client = static::createClient();
 
@@ -100,7 +112,10 @@ class AuthControllerTest extends WebTestCase
             $parameters = [
                 'email' => $email,
                 'name' => $name,
-                'password' => $password
+                'password' => $password,
+                'public_key' => $publicKey,
+                'private_key' => $privateKey,
+                'revocation_certificate' => $revocationCertificate
             ],
             $files = [],
             $server = [
@@ -114,7 +129,10 @@ class AuthControllerTest extends WebTestCase
             $parameters = [
                 'email' => $email,
                 'name' => $name,
-                'password' => $password
+                'password' => $password,
+                'public_key' => $publicKey,
+                'private_key' => $privateKey,
+                'revocation_certificate' => $revocationCertificate
             ],
             $files = [],
             $server = [
@@ -133,6 +151,9 @@ class AuthControllerTest extends WebTestCase
         $email = "";
         $name = "";
         $password = "";
+        $publicKey = "";
+        $privateKey = "";
+        $revocationCertificate = "";
 
         $client = static::createClient();
 
@@ -142,7 +163,10 @@ class AuthControllerTest extends WebTestCase
             $parameters = [
                 'email' => $email,
                 'name' => $name,
-                'password' => $password
+                'password' => $password,
+                'public_key' => $publicKey,
+                'private_key' => $privateKey,
+                'revocation_certificate' => $revocationCertificate
             ],
             $files = [],
             $server = [
@@ -161,6 +185,9 @@ class AuthControllerTest extends WebTestCase
         $email = "tester@crypter.com";
         $name = "Tester";
         $password = "password";
+        $publicKey = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
+        $privateKey = "-----BEGIN PGP PRIVATE KEY BLOCK ... ";
+        $revocationCertificate = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
 
         $client = static::createClient();
 
@@ -189,7 +216,10 @@ class AuthControllerTest extends WebTestCase
             $parameters = [
                 'email' => $email,
                 'name' => $name,
-                'password' => $password
+                'password' => $password,
+                'public_key' => $publicKey,
+                'private_key' => $privateKey,
+                'revocation_certificate' => $revocationCertificate
             ],
             $files = [],
             $server = [
@@ -221,6 +251,10 @@ class AuthControllerTest extends WebTestCase
         $this->assertArrayHasKey('email', $data);
         $this->assertArrayHasKey('name', $data);
         $this->assertArrayHasKey('jwt', $data);
+        $this->assertArrayHasKey('last_seen', $data);
+        $this->assertArrayHasKey('public_key', $data);
+        $this->assertArrayHasKey('private_key', $data);
+        $this->assertArrayHasKey('revocation_certificate', $data);
 
         $this->assertNotNull($cookies->get('uuid'));
         $this->assertNotNull($cookies->get('email'));
@@ -273,6 +307,9 @@ class AuthControllerTest extends WebTestCase
         $email = "tester@crypter.com";
         $name = "Tester";
         $password = "password";
+        $publicKey = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
+        $privateKey = "-----BEGIN PGP PRIVATE KEY BLOCK ... ";
+        $revocationCertificate = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
 
         $client = static::createClient();
 
@@ -282,7 +319,10 @@ class AuthControllerTest extends WebTestCase
             $parameters = [
                 'email' => $email,
                 'name' => $name,
-                'password' => $password
+                'password' => $password,
+                'public_key' => $publicKey,
+                'private_key' => $privateKey,
+                'revocation_certificate' => $revocationCertificate
             ],
             $files = [],
             $server = [
@@ -320,6 +360,9 @@ class AuthControllerTest extends WebTestCase
         $email = "tester@crypter.com";
         $name = "Tester";
         $password = "password";
+        $publicKey = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
+        $privateKey = "-----BEGIN PGP PRIVATE KEY BLOCK ... ";
+        $revocationCertificate = "-----BEGIN PGP PUBLIC KEY BLOCK ... ";
 
         $client = static::createClient();
 
@@ -343,7 +386,10 @@ class AuthControllerTest extends WebTestCase
             $parameters = [
                 'email' => $email,
                 'name' => $name,
-                'password' => $password
+                'password' => $password,
+                'public_key' => $publicKey,
+                'private_key' => $privateKey,
+                'revocation_certificate' => $revocationCertificate
             ],
             $files = [],
             $server = [

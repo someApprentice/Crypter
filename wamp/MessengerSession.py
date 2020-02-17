@@ -40,7 +40,7 @@ class MessengerSession(ApplicationSession):
 
                 m['conference']['participant'] = conference_reference['participant']['uuid']
 
-                self.publish(f"private.message.to.{result['data']['to']}", m)
+                p = self.publish(f"private.message.to.{result['data']['to']}", m)
 
             conference = {
                 'uuid': result['conference']['uuid'],
@@ -53,7 +53,6 @@ class MessengerSession(ApplicationSession):
             self.publish(f"conference.updated.for.{conference_reference['user']}", conference)
 
         return response
-
 
     def read_message(self, data):
         result = Messenger.read_message(data)

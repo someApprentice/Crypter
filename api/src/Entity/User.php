@@ -53,6 +53,30 @@ class User implements UserInterface
      */
     private $lastSeen;
 
+    /**
+     * @ORM\Column(name="public_key", type="text")
+     *
+     * @Assert\NotBlank
+     * @Assert\Type("string")
+     */
+    private $publicKey;
+
+    /**
+     * @ORM\Column(name="private_key", type="text")
+     *
+     * @Assert\NotBlank
+     * @Assert\Type("string")
+     */
+    private $privateKey;
+
+    /**
+     * @ORM\Column(name="revocation_certificate", type="text")
+     *
+     * @Assert\NotBlank
+     * @Assert\Type("string")
+     */
+    private $revocationCertificate;
+
     public function __construct()
     {
         $this->lastSeen = (new \DateTime());
@@ -155,6 +179,42 @@ class User implements UserInterface
     public function setLastSeen(\DateTimeInterface $date): self
     {
         $this->lastSeen = $date;
+
+        return $this;
+    }
+
+    public function getPublicKey(): string
+    {
+        return $this->publicKey;
+    }
+
+    public function setPublicKey(string $publicKey): self
+    {
+        $this->publicKey = $publicKey;
+
+        return $this;
+    }
+
+    public function getPrivateKey(): string
+    {
+        return $this->privateKey;
+    }
+
+    public function setPrivateKey(string $privateKey): self
+    {
+        $this->privateKey = $privateKey;
+
+        return $this;
+    }
+
+    public function getRevocationCertificate(): string
+    {
+        return $this->revocationCertificate;
+    }
+
+    public function setRevocationCertificate(string $revocationCertificate): self
+    {
+        $this->revocationCertificate = $revocationCertificate;
 
         return $this;
     }

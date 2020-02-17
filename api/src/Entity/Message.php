@@ -48,7 +48,7 @@ class Message
     private $type;
 
     /**
-     * @ORM\Column(type="string")
+     * @ORM\Column(type="text")
      */
     private $content;
 

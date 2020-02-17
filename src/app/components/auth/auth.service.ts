@@ -29,8 +29,17 @@ export class AuthService {
     }
   }
 
-  registrate(email:string, name:string, password:string): Observable<User> {
-    return this.http.post<User>('/api/auth/registrate', { email, name, password }, { headers: new HttpHeaders({ 'Content-Type': 'application/json' }), withCredentials: true }).pipe(
+  registrate(email:string, name:string, password:string, publicKey:string, privateKey:string, revocationCertificate:string): Observable<User> {
+    let data = {
+      email,
+      name,
+      password,
+      public_key: publicKey,
+      private_key: privateKey,
+      revocation_certificate: revocationCertificate
+    };
+
+    return this.http.post<User>('/api/auth/registrate', data, { headers: new HttpHeaders({ 'Content-Type': 'application/json' }), withCredentials: true }).pipe(
       tap(d => this.user = <User> d),
       catchError(this.handleErrors)
     );

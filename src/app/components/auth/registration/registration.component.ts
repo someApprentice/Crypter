@@ -1,16 +1,23 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, Injector, Inject, OnInit, OnDestroy } from '@angular/core';
 import { FormGroup, FormControl, Validators, AbstractControl } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
-import { Subscription } from 'rxjs';
-import { debounceTime, take, map, tap } from 'rxjs/operators';
+import { PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 
+import { Subscription, zip, of } from 'rxjs';
+import { debounceTime, take, map, switchMap, tap } from 'rxjs/operators';
+
+import { CrypterService } from '../../../services/crypter.service';
 import { AuthService } from '../auth.service';
+import { DatabaseService } from '../../../services/database/database.service';
+
+import { User } from '../../../models/User';
 
 @Component({
   selector: 'app-registration',
   templateUrl: './registration.component.html',
-  styleUrls: ['./registration.component.css']
+  styleUrls: ['./registration.component.css'],
 })
 export class RegistrationComponent implements OnInit, OnDestroy {
   form = new FormGroup(
@@ -70,7 +77,21 @@ export class RegistrationComponent implements OnInit, OnDestroy {
   error?: string;
 
   subscriptions: { [key: string]: Subscription } = { };
-  constructor(private authService: AuthService, private router: Router, private route: ActivatedRoute) { }
+
+  private databaseService: DatabaseService;
+
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private crypterService: CrypterService,
+    private authService: AuthService,
+    private router: Router,
+    private route: ActivatedRoute,
+    private injector: Injector
+  ) {
+    if (isPlatformBrowser(this.platformId)) {
+      this.databaseService = injector.get(DatabaseService);
+    }
+  }
 
   ngOnInit() {
     this.subscriptions['this.route.data'] = this.route.data.subscribe(d => {
@@ -88,16 +109,40 @@ export class RegistrationComponent implements OnInit, OnDestroy {
     let name = this.form.get('name').value;
     let password = this.form.get('password').value;
 
-    this.subscriptions['this.authService.registrate'] = this.authService.registrate(email, name, password).pipe(
+    // Genereate keys
+    // Call API to registrate User
+    // Decrypt private key with a password
+    // Upsert User with the decrypted key into IndexeDB
+    this.crypterService.generateKey(name, email, password).pipe(
+      switchMap((key) => {
+        return this.authService.registrate(
+          email,
+          name,
+          password,
+          key.publicKeyArmored,
+          key.privateKeyArmored,
+          key.revocationCertificate
+        )
+      }),
+      switchMap((user: User) => {
+        localStorage.setItem('uuid', user.uuid);
+        localStorage.setItem('email', user.email);
+        localStorage.setItem('name', user.name);
+        localStorage.setItem('jwt', user.jwt);
+        localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+
+        return zip(of(user), this.crypterService.decryptPrivateKey(user.private_key, password));
+      }),
+      switchMap(([user, decryptedPrivateKey]) => {
+        let u: User = user;
+
+        u.private_key = decryptedPrivateKey;
+
+        return this.databaseService.upsertUser(u);
+      }),
       tap(() => this.pending = false)
     ).subscribe(
       d => {
-        localStorage.setItem('uuid', d.uuid);
-        localStorage.setItem('email', d.email);
-        localStorage.setItem('name', d.name);
-        localStorage.setItem('jwt', d.jwt);
-        localStorage.setItem('last_seen', d.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-
         this.router.navigate(['']);
       },
       err => {

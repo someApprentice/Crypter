@@ -1,26 +1,39 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, Injector, Inject } from '@angular/core';
+
+import { PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser, isPlatformServer } from '@angular/common';
+
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { Subscription } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { tap, switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../auth.service';
+import { DatabaseService } from '../../../services/database/database.service';
 
 @Component({
   selector: 'app-logout',
   templateUrl: './logout.component.html',
   styleUrls: ['./logout.component.css']
 })
-export class LogoutComponent implements OnInit, OnDestroy {
+export class LogoutComponent {
   logout$: Subscription;
 
   pending: boolean = false;
 
   error?: string;
 
-  constructor(private authService: AuthService, private router: Router) { }
+  private databaseService: DatabaseService;
 
-  ngOnInit() {
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private authService: AuthService,
+    private router: Router,
+    private injector: Injector
+  ) {
+    if (isPlatformBrowser(platformId)) {
+      this.databaseService = this.injector.get(DatabaseService); 
+    }
   }
 
   logout(e: Event) {
@@ -28,17 +41,21 @@ export class LogoutComponent implements OnInit, OnDestroy {
 
     this.pending = true;
 
-    this.logout$ = this.authService.logout().pipe(
-      tap(() => this.pending = false)
-    ).subscribe(
-      d => {
+    this.authService.logout().pipe(
+      switchMap(res => {
         localStorage.removeItem('uuid');
         localStorage.removeItem('email');
         localStorage.removeItem('name');
         localStorage.removeItem('jwt');
         localStorage.removeItem('last_seen');
 
-        this.router.navigate([''])
+        return this.databaseService.destroy();
+      }),
+      switchMap(() => this.databaseService.create()),
+      tap(() => this.pending = false)
+    ).subscribe(
+      d => {
+        this.router.navigate(['']);
       },
       err => {
         this.pending = false;
@@ -48,9 +65,5 @@ export class LogoutComponent implements OnInit, OnDestroy {
         }
       }
     );
-  }
-
-  ngOnDestroy() {
-    if (this.logout$) this.logout$.unsubscribe();
   }
 }
