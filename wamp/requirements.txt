@@ -64,7 +64,7 @@ six==1.12.0
 sortedcontainers==2.1.0
 SQLAlchemy==1.3.3
 treq==18.6.0
-Twisted==19.2.0
+Twisted==19.7.0
 txaio==18.8.1
 txtorcon==19.0.0
 u-msgpack-python==2.5.1
