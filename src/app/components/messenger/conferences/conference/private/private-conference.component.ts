@@ -1,11 +1,11 @@
-import { Component, Injector, Inject, ViewChild, ViewChildren, ElementRef, QueryList, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, Injector, Inject, ViewChild, ViewChildren, ElementRef, QueryList, HostListener, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser, isPlatformServer } from '@angular/common';
-import { TransferState, makeStateKey, DOCUMENT } from '@angular/platform-browser';
+import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
+import { TransferState, makeStateKey } from '@angular/platform-browser';
 
-import { Observable, Subscription, of, from, zip, concat, throwError} from 'rxjs';
+import { Observable, Subscription, of, from, fromEvent, zip, concat, throwError } from 'rxjs';
 import { switchMap, delayWhen, map, tap, first, delay, reduce } from 'rxjs/operators';
 
 import { CrypterService } from '../../../../../services/crypter.service';
@@ -63,6 +63,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   private wamp: WampService;
   private databaseService: DatabaseService;
+  private document: Document;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -76,6 +77,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     if (isPlatformBrowser(this.platformId)) {
       this.wamp = injector.get(WampService);
       this.databaseService = injector.get(DatabaseService);
+      this.document = injector.get(DOCUMENT);
     }
   }
 
@@ -403,35 +405,30 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   public onIntersection({ target, visible }: { target: Element; visible: boolean }): void {
     if (isPlatformBrowser(this.platformId)) {
-      if (visible && !document.hidden) {
+      if (visible && this.document.hasFocus() && !this.document.hidden) {
         let message = this.messages.find(m => m.uuid == target.id);
 
-        if (message && message.author.uuid != this.authService.user.uuid && !message.readed) {
-          let data = {
-            'by': this.authService.user.uuid,
-            'message': message.uuid,
-            'Bearer token': this.authService.user.jwt
-          };
+        this.read(message);
+      }
+    }
+  }
 
-          this.wamp.call('read', [data]).pipe(
-            // Handle errors
-            switchMap(res => (Object.keys(res.args[0].errors).length > 0) ? throwError(JSON.stringify(res.args[0].errors)) : of(res)),
-          ).subscribe(
-            res => {
-              let m: Message = res.args[0].message;
+  @HostListener('window:focus', ['$event'])
+  onFocus(event: Event): void {
+    let scrollerEl = this.scroller.nativeElement;
 
-              // No need to update message in IndexeDB since Messenger do this on the background
-              // Update message in document to shortcut IndexeDB
-              message.readed = m.readed;
-              message.readedAt = m.readedAt;
-            },
-            err => {
-              if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
-                this.error = err.message;
-              }
-            }
-          );
-        }
+    for (let v of this.messagesList.toArray()) {
+      let el = v.nativeElement;
+
+      if (
+        el.offsetTop - scrollerEl.offsetTop >= scrollerEl.scrollTop &&
+        el.offsetLeft - scrollerEl.offsetLeft >= scrollerEl.scrollLeft &&
+        el.offsetTop - scrollerEl.offsetTop + el.offsetHeight <= scrollerEl.scrollTop + scrollerEl.offsetHeight &&
+        el.offsetLeft - scrollerEl.offsetLeft + el.offsetWidth <= scrollerEl.scrollLeft + scrollerEl.offsetWidth
+      ) {
+        let message = this.messages.find(m => m.uuid == el.id);
+
+        this.read(message);
       }
     }
   }
@@ -442,6 +439,35 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     this.previousScrollTop = this.scroller.nativeElement.scrollTop;
     this.previousScrollHeight = this.scroller.nativeElement.scrollHeight;
     this.previousOffsetHeight = this.scroller.nativeElement.offsetHeight;
+  }
+
+  read(message: Message):void {
+    if (message && message.author.uuid != this.authService.user.uuid && !message.readed) {
+      let data = {
+        'by': this.authService.user.uuid,
+        'message': message.uuid,
+        'Bearer token': this.authService.user.jwt
+      };
+
+      this.wamp.call('read', [data]).pipe(
+        // Handle errors
+        switchMap(res => (Object.keys(res.args[0].errors).length > 0) ? throwError(JSON.stringify(res.args[0].errors)) : of(res)),
+      ).subscribe(
+        res => {
+          let m: Message = res.args[0].message;
+
+          // No need to update message in IndexeDB since Messenger do this on the background
+          // Update message in document to shortcut IndexeDB
+          message.readed = m.readed;
+          message.readedAt = m.readedAt;
+        },
+        err => {
+          if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
+            this.error = err.message;
+          }
+        }
+      );
+    }
   }
 
   ngAfterViewInit() {
