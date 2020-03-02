@@ -101,10 +101,6 @@ export class RegistrationComponent implements OnInit, OnDestroy {
     let name = this.form.get('name').value;
     let password = this.form.get('password').value;
 
-    // Genereate keys
-    // Call API to registrate User
-    // Decrypt private key with a password
-    // Upsert User with the decrypted key into IndexeDB
     this.crypterService.generateKey(name, email, password).pipe(
       switchMap((key) => {
         return this.authService.registrate(
@@ -115,13 +111,6 @@ export class RegistrationComponent implements OnInit, OnDestroy {
           key.privateKeyArmored,
           key.revocationCertificate
         )
-      }),
-      tap((user: User) => {
-        localStorage.setItem('uuid', user.uuid);
-        localStorage.setItem('email', user.email);
-        localStorage.setItem('name', user.name);
-        localStorage.setItem('jwt', user.jwt);
-        localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
       }),
       switchMap((user: User) => {
         return zip(of(user), this.crypterService.decryptPrivateKey(user.private_key, password));

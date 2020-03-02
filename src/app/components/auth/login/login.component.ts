@@ -9,8 +9,6 @@ import { map, tap, switchMap } from 'rxjs/operators'
 import { AuthService } from '../auth.service';
 import { CrypterService } from '../../../services/crypter.service';
 
-import { AuthenticationFailedError } from '../../../models/errors/AuthenticationFailedError';
-
 import { User } from '../../../models/User';
 
 @Component({
@@ -63,14 +61,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     let email = this.form.get('email').value;
     let password = this.form.get('password').value;
 
-    this.subscriptions['this.authService.login'] = this.authService.login(email, password).pipe(
-      tap((user: User) => {
-        localStorage.setItem('uuid', user.uuid);
-        localStorage.setItem('email', user.email);
-        localStorage.setItem('name', user.name);
-        localStorage.setItem('jwt', user.jwt);
-        localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-      }),
+    this.authService.login(email, password).pipe(
       switchMap((user: User) => zip(of(user), this.crypterService.decryptPrivateKey(user.private_key, password))),
       map(([user, decryptedPrivateKey]) => {
         user.private_key = decryptedPrivateKey;
@@ -92,8 +83,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       err => {
         this.pending = false;
 
-        if (err instanceof AuthenticationFailedError || 'message' in err) { // TypeScript instance of interface check
-          this.error = "No matches found"
+        if (err.status === 404) {
+          this.error = "No matches found";
 
           return;
         }

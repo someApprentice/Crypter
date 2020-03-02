@@ -1,10 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { Subscription } from 'rxjs';
 import { tap } from 'rxjs/operators'
-
 
 import { AuthService } from '../auth.service';
 
@@ -13,7 +11,7 @@ import { AuthService } from '../auth.service';
   templateUrl: './welcome.component.html',
   styleUrls: ['./welcome.component.css']
 })
-export class WelcomeComponent implements OnInit, OnDestroy {
+export class WelcomeComponent implements OnInit {
   form = new FormGroup({
     email: new FormControl('', [
       Validators.pattern(/^([^@\s]+@[^@\s]+\.[^@\s]+)$/), //email with top-level domain
@@ -26,8 +24,6 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   pending: boolean = false;
 
   error?: string;
-
-  subscriptions: { [key: string]: Subscription } = { };
 
   constructor(private authService: AuthService, private router: Router) { }
 
@@ -44,7 +40,7 @@ export class WelcomeComponent implements OnInit, OnDestroy {
 
     let redirect = 'registration';
 
-    this.subscriptions['this.authService.isEmailExist'] = this.authService.isEmailExist(email).pipe(
+    this.authService.isEmailExist(email).pipe(
       tap(() => this.pending = false)
     ).subscribe(
       d => {
@@ -67,11 +63,5 @@ export class WelcomeComponent implements OnInit, OnDestroy {
         }
       }
     );
-  }
-
-  ngOnDestroy() {
-    for (let key in this.subscriptions) {
-      this.subscriptions[key].unsubscribe();
-    }
   }
 }

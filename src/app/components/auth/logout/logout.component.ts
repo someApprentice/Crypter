@@ -13,8 +13,6 @@ import { AuthService } from '../auth.service';
   styleUrls: ['./logout.component.css']
 })
 export class LogoutComponent {
-  logout$: Subscription;
-
   pending: boolean = false;
 
   error?: string;
@@ -30,13 +28,6 @@ export class LogoutComponent {
     this.pending = true;
 
     this.authService.logout().pipe(
-      tap(res => {
-        localStorage.removeItem('uuid');
-        localStorage.removeItem('email');
-        localStorage.removeItem('name');
-        localStorage.removeItem('jwt');
-        localStorage.removeItem('last_seen');
-      }),
       tap(() => this.pending = false)
     ).subscribe(
       d => {

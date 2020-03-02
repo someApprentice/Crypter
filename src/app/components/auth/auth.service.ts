@@ -2,13 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 
 import { Observable, of, throwError } from 'rxjs';
-import { delay, tap, map, catchError } from 'rxjs/operators';
+import { first, delay, tap, map, catchError } from 'rxjs/operators';
 
 import { StorageService } from '../../services/storage/storage.service';
 
 import { User } from '../../models/User';
-
-import { AuthenticationFailedError } from '../../models/errors/AuthenticationFailedError';
 
 @Injectable({
   providedIn: 'root'
@@ -28,41 +26,75 @@ export class AuthService {
     }
   }
 
-  registrate(email:string, name:string, password:string, publicKey:string, privateKey:string, revocationCertificate:string): Observable<User> {
-    let data = {
-      email,
-      name,
-      password,
-      public_key: publicKey,
-      private_key: privateKey,
-      revocation_certificate: revocationCertificate
-    };
-
-    return this.http.post<User>('/api/auth/registrate', data, { headers: new HttpHeaders({ 'Content-Type': 'application/json' }), withCredentials: true }).pipe(
-      tap(d => this.user = <User> d),
-      catchError(this.handleErrors)
+  registrate(email: string, name: string, password: string, publicKey: string, privateKey: string, revocationCertificate: string): Observable<User> {
+    return this.http.post<User>(
+      '/api/auth/registrate',
+      {
+        email,
+        name,
+        password,
+        public_key: publicKey,
+        private_key: privateKey,
+        revocation_certificate: revocationCertificate
+      },
+      {
+        headers: new HttpHeaders({ 'Content-Type': 'application/json' }),
+        withCredentials: true
+      }
+    ).pipe(
+      first(),
+      tap((user: User) => this.user = user),
+      tap((user: User) => {
+        localStorage.setItem('uuid', user.uuid);
+        localStorage.setItem('email', user.email);
+        localStorage.setItem('name', user.name);
+        localStorage.setItem('jwt', user.jwt);
+        localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+      })
     );
   }
 
-  login(email:string, password:string): Observable<User> {
+  login(email: string, password: string): Observable<User> {
     return this.http.post<User>('/api/auth/login', { email, password }, { withCredentials: true }).pipe(
-      tap(d => this.user = <User> d),
-      catchError(this.handleErrors)
+      first(),
+      tap((user: User) => this.user = user),
+      tap((user: User) => {
+        localStorage.setItem('uuid', user.uuid);
+        localStorage.setItem('email', user.email);
+        localStorage.setItem('name', user.name);
+        localStorage.setItem('jwt', user.jwt);
+        localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+      })
     );
   }
 
   logout(): Observable<boolean> {
     // responseType: 'text' as 'json' https://github.com/angular/angular/issues/18586
-    return this.http.post<any>('/api/auth/logout', {}, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.jwt}` }), withCredentials: true, responseType: 'text' as 'json' }).pipe(
+    return this.http.post<any>(
+      '/api/auth/logout',
+      {},
+      {
+        headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.jwt}` }),
+        withCredentials: true, responseType: 'text' as 'json'
+      }
+    ).pipe(
+      first(),
       map(d => true),
       tap(d => this.user = undefined),
-      catchError(this.handleErrors)
+      tap(d => {
+        localStorage.removeItem('uuid');
+        localStorage.removeItem('email');
+        localStorage.removeItem('name');
+        localStorage.removeItem('jwt');
+        localStorage.removeItem('last_seen');
+      })
     )
   }
 
-  isEmailExist(email:string): Observable<boolean> {
+  isEmailExist(email: string): Observable<boolean> {
     // responseType: 'text' as 'json' https://github.com/angular/angular/issues/18586
     return this.http.get<any>(`/api/auth/email/${email}`, { responseType: 'text' as 'json' }).pipe(
+      first(),
       map(d => true),
       catchError(err => {
         if (err.status === 404) {
@@ -74,15 +106,9 @@ export class AuthService {
     );
   }
 
-  getUser(uuid:string):Observable<User> {
-    return this.http.get<User>(`/api/auth/user/${uuid}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.jwt}` }) });
-  }
-
-  handleErrors(err: HttpErrorResponse) {
-    if (err.status === 404) {
-      return throwError(new AuthenticationFailedError());
-    }
-
-    return throwError(err);
+  getUser(uuid: string):Observable<User> {
+    return this.http.get<User>(`/api/auth/user/${uuid}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.jwt}` }) }).pipe(
+      first()
+    );
   }
 }

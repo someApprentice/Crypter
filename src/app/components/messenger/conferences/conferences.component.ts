@@ -32,7 +32,6 @@ export class ConferencesComponent implements OnInit, OnDestroy {
 
   subscriptions: { [key: string]: Subscription } = { };
   
-
   private databaseService: DatabaseService;
 
   constructor(
@@ -56,7 +55,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
     // get Conferences from api
     // if it's a browser push them into indexeDB
     // if it's a server push them into conferences array
-    this.subscriptions['this.messengerService.getConferences'] = this.messengerService.getConferences().subscribe(
+    this.messengerService.getConferences().subscribe(
       (conferences: Conference[]) => {
         for (let conference of conferences) {
           if (isPlatformBrowser(this.platformId)) {
