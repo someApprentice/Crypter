@@ -1,3 +1,3 @@
 <app-welcome *ngIf="!authService.user"></app-welcome>
 
-<app-messenger *ngIf="authService.user"></app-messenger>
+<app-messenger *ngIf="authService.user" [user]="user"></app-messenger>

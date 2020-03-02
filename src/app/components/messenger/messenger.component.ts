@@ -1,4 +1,4 @@
-import { Component, Injector, Inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Injector, Inject, OnInit, OnDestroy } from '@angular/core';
 
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
@@ -12,7 +12,7 @@ import {
 
 
 import { Subscription, from, of, zip, throwError } from 'rxjs';
-import { tap, map, switchMap, mergeMap, delayWhen } from 'rxjs/operators';
+import { tap, map, switchMap, mergeMap, delayWhen, shareReplay } from 'rxjs/operators';
 
 import { SessionData } from 'thruway.js';
 
@@ -24,9 +24,9 @@ import { CrypterService } from '../../services/crypter.service';
 import { DatabaseService } from '../../services/database/database.service';
 import { AuthService } from '../auth/auth.service';
 
+import { User } from '../../models/User';
 import { Conference } from '../../models/Conference';
 import { Message } from '../../models/Message';
-
 
 @Component({
   selector: 'app-messenger',
@@ -78,9 +78,10 @@ import { Message } from '../../models/Message';
       ])
     ])
   ],
-  providers: [ WampService ]
+  providers: [ DatabaseService, WampService ]
 })
 export class MessengerComponent implements OnInit, OnDestroy {
+  @Input() user?: User;
 
   subscriptions: { [key: string]: Subscription } = { };
   
@@ -94,7 +95,6 @@ export class MessengerComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private injector: Injector,
   ) {
-
     if (isPlatformBrowser(this.platformId)) {
       this.wamp = injector.get(WampService);
       this.databaseService = injector.get(DatabaseService);
@@ -103,6 +103,18 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
+      if (this.user) {
+        this.databaseService.upsertUser(this.user).subscribe();
+      }
+
+      this.databaseService.user$ = this.databaseService.getUser(this.authService.user.uuid).pipe(
+        shareReplay(1)
+      );
+
+      this.subscriptions['this.databaseService.user$'] = this.databaseService.user$.subscribe((user: User) => {
+        this.authService.user = user;
+      });
+
       this.subscriptions['this.wamp.onOpen'] = this.wamp.onOpen.pipe(
         tap(this.onOpen.bind(this)),
         switchMap((session: SessionData) => this.messengerService.getReadedMessages(session.welcomeMsg.details.authextra.user.last_seen)) // update messages readed while client was offline

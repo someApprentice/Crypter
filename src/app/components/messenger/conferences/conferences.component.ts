@@ -16,7 +16,6 @@ import { MessageDocument } from '../../../services/database/documents/message.do
 import { Conference } from '../../../models/Conference';
 import { Message } from '../../../models/Message';
 
-
 const CONFERENCES_STATE_KEY = makeStateKey('conferences');
 
 @Component({

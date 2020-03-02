@@ -1,16 +1,12 @@
-import { Component, Injector, Inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormGroup, FormControl, Validators, AbstractControl } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-
-import { PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 
 import { Subscription, zip, of } from 'rxjs';
 import { debounceTime, take, map, switchMap, tap } from 'rxjs/operators';
 
 import { CrypterService } from '../../../services/crypter.service';
 import { AuthService } from '../auth.service';
-import { DatabaseService } from '../../../services/database/database.service';
 
 import { User } from '../../../models/User';
 
@@ -78,24 +74,18 @@ export class RegistrationComponent implements OnInit, OnDestroy {
 
   subscriptions: { [key: string]: Subscription } = { };
 
-  private databaseService: DatabaseService;
-
   constructor(
-    @Inject(PLATFORM_ID) private platformId: Object,
     private crypterService: CrypterService,
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
-    private injector: Injector
-  ) {
-    if (isPlatformBrowser(this.platformId)) {
-      this.databaseService = injector.get(DatabaseService);
-    }
-  }
+  ) { }
 
   ngOnInit() {
     this.subscriptions['this.route.data'] = this.route.data.subscribe(d => {
-      this.form.get('email').setValue(d.email);
+      if ('email' in d) {
+        this.form.get('email').setValue(d['email']);
+      }
     });
   }
 
@@ -104,6 +94,8 @@ export class RegistrationComponent implements OnInit, OnDestroy {
 
     this.error = '';
     this.pending = true;
+
+    let redirect = '';
 
     let email = this.form.get('email').value;
     let name = this.form.get('name').value;
@@ -124,26 +116,32 @@ export class RegistrationComponent implements OnInit, OnDestroy {
           key.revocationCertificate
         )
       }),
-      switchMap((user: User) => {
+      tap((user: User) => {
         localStorage.setItem('uuid', user.uuid);
         localStorage.setItem('email', user.email);
         localStorage.setItem('name', user.name);
         localStorage.setItem('jwt', user.jwt);
         localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-
+      }),
+      switchMap((user: User) => {
         return zip(of(user), this.crypterService.decryptPrivateKey(user.private_key, password));
       }),
-      switchMap(([user, decryptedPrivateKey]) => {
-        let u: User = user;
+      map(([user, decryptedPrivateKey]) => {
+        user.private_key = decryptedPrivateKey;
 
-        u.private_key = decryptedPrivateKey;
+        return user;
+      }),
+      tap((user: User) => {
+        this.authService.user = user;
 
-        return this.databaseService.upsertUser(u);
+        let route = this.router.config.find(r => r.path === redirect);
+
+        route.data['user'] = user;
       }),
       tap(() => this.pending = false)
     ).subscribe(
       d => {
-        this.router.navigate(['']);
+        this.router.navigate([redirect]);
       },
       err => {
         if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check 

@@ -59,8 +59,6 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   subscriptions: { [key: string]: Subscription } = { };
 
-  user$?: Observable<User>;
-
   private wamp: WampService;
   private databaseService: DatabaseService;
   private document: Document;
@@ -86,14 +84,6 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     this.conference = this.state.get(CONFERENCE_STATE_KEY, undefined);
     this.messages = this.state.get(MESSAGES_STATE_KEY, [] as Message[]);
 
-    if (isPlatformBrowser(this.platformId)) {
-      this.user$ = this.databaseService.getUser(this.authService.user.uuid);
-
-      this.subscriptions['this.databaseService.getUser'] = this.user$.subscribe((user: User) => {
-        this.user = user;
-      });
-    }
-
     // Get uuid from route params
     // Wait until logged in User to fetch from IndexeDB
     // Then get participant User from API
@@ -115,7 +105,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     this.subscriptions['this.messengerService.getMessagesBy'] = this.route.params.pipe(
       delayWhen(params => {
         if (isPlatformBrowser(this.platformId)) {
-          return this.user$.pipe(
+          return this.databaseService.user$.pipe(
             tap((user: User) => this.user = user)
           );
         }

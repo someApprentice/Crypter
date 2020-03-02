@@ -10,7 +10,6 @@ import { User } from '../../models/User';
 
 import { AuthenticationFailedError } from '../../models/errors/AuthenticationFailedError';
 
-
 @Injectable({
   providedIn: 'root'
 })

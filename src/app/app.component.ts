@@ -1,8 +1,5 @@
 import { Component, Injector, Inject, OnInit, OnDestroy } from '@angular/core';
 
-import { PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser, isPlatformServer } from '@angular/common';
-
 import { Router, NavigationEnd, ActivatedRoute, RouterOutlet } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import {
@@ -10,11 +7,9 @@ import {
   transition, animate, style, query
 } from '@angular/animations';
 
-
 import { Subscription } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 
-import { DatabaseService } from './services/database/database.service';
 import { AuthService } from './components/auth/auth.service';
 
 @Component({
@@ -48,27 +43,18 @@ import { AuthService } from './components/auth/auth.service';
         query(':enter', animateChild()),
       ])
     ])
-  ],
-  providers: [ DatabaseService ]
+  ]
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'Crypter';
   title$: Subscription;
 
-  private databaseService: DatabaseService;
-
   constructor(
-    @Inject(PLATFORM_ID) private platformId: Object,
     private router: Router,
     private route: ActivatedRoute,
     private titleService: Title,
     public authService: AuthService,
-    private injector: Injector
-  ) {
-    if (isPlatformBrowser(this.platformId)) {
-      this.databaseService = injector.get(DatabaseService);
-    }
-  }
+  ) { }
 
   ngOnInit() {
     // Is there any shorter way to observe route.date.title?

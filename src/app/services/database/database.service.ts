@@ -35,46 +35,37 @@ type Collections = {
 
 @Injectable()
 export class DatabaseService implements OnDestroy {
-  // const
   static readonly BATCH_SIZE = 20;
 
-  public $: Observable<RxDatabase<Collections>>;
+  public $: Observable<RxDatabase<Collections>> = from(
+    RxDB.create<RxDatabase<Collections>>({
+      name: 'crypterdb',
+      adapter: 'idb',
+      queryChangeDetection: true,
+      multiInstance: (environment.test) ? true : false,
+      ignoreDuplicate: (environment.test) ? true : false
+    })
+  ).pipe(
+    delayWhen(db =>
+      zip(
+        db.collection({
+          name: 'users',
+          schema: userSchema
+        }),
+        db.collection({
+          name: 'conferences',
+          schema: conferenceSchema
+        }),
+        db.collection({
+          name: 'messages',
+          schema: messagesSchema
+        })
+      )
+    ),
+    shareReplay(1)
+  );
 
-  constructor() {
-    this.create();
-  }
-
-  create(): Observable<RxDatabase<Collections>> {
-    this.$ = from(
-      RxDB.create<RxDatabase<Collections>>({
-        name: 'crypterdb',
-        adapter: 'idb',
-        queryChangeDetection: true,
-        multiInstance: (environment.test) ? true : false,
-        ignoreDuplicate: (environment.test) ? true : false
-      })
-    ).pipe(
-      delayWhen(db =>
-        zip(
-          db.collection({
-            name: 'users',
-            schema: userSchema
-          }),
-          db.collection({
-            name: 'conferences',
-            schema: conferenceSchema
-          }),
-          db.collection({
-            name: 'messages',
-            schema: messagesSchema
-          })
-        )
-      ),
-      shareReplay(1)
-    );
-
-    return this.$;
-  }
+  public user$: Observable<User>;
 
   getUser(uuid: string): Observable<User> {
     return this.$.pipe(
@@ -85,6 +76,7 @@ export class DatabaseService implements OnDestroy {
           uuid: document.uuid,
           email: document.email,
           name: document.name,
+          jwt: document.jwt,
           last_seen: document.last_seen,
           public_key: document.public_key,
           private_key: document.private_key,
@@ -436,10 +428,6 @@ export class DatabaseService implements OnDestroy {
 
   upsertMessage(message: Message): Observable<MessageDocument> {
     return this.$.pipe(switchMap(db => from(db.messages.atomicUpsert(message))));
-  }
-
-  destroy(): Observable<any> {
-    return this.$.pipe(switchMap(db => from(db.remove())));
   }
 
   ngOnDestroy() {
