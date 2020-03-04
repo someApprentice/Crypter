@@ -36,7 +36,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    let route = this.router.config.find(r => r.path === this.router.url.substr(1));
+    let route = this.router.config.find(r => this instanceof r.component);
 
     delete route.data.user;
 

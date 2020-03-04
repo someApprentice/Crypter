@@ -66,7 +66,7 @@ export class MessageFormComponent implements OnInit, OnDestroy {
         switchMap(() => {
           let data = {
             'user': this.authService.user.uuid,
-            'to': this.to,
+            'to': this.to.uuid,
             'Bearer token': this.authService.user.jwt
           }
 

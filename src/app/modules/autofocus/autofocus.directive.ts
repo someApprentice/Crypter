@@ -15,7 +15,6 @@ export class AutofocusDirective implements AfterContentInit {
                    && value !== 'null'
                    && value !== 'undefined'
                    && value !== '0'
-                   && value !== ''
     ;
   }
 

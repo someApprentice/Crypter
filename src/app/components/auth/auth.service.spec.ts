@@ -10,11 +10,7 @@ import { AuthService } from './auth.service';
 import { StorageService } from '../../services/storage/storage.service';
 import { StorageWrapper } from '../../services/storage/StorageWrapper';
 
-import { DatabaseService } from '../../services/database/database.service';
-
 import { User } from '../../models/User';
-
-import { AuthenticationFailedError } from '../../models/errors/AuthenticationFailedError';
 
 describe('AuthService', () => {
   let injector: Injector;
@@ -24,7 +20,6 @@ describe('AuthService', () => {
   let service: AuthService;
 
   let storageService: StorageService;
-  let databaseService: DatabaseService;
 
   let storageServiceStub: Partial<StorageService>;
 
@@ -45,8 +40,6 @@ describe('AuthService', () => {
     service = TestBed.get(AuthService);
 
     storageService = TestBed.get(StorageService);
-    databaseService = TestBed.get(DatabaseService);
-
   });
 
   afterEach(() => {
@@ -125,24 +118,6 @@ describe('AuthService', () => {
     req.flush(user);
   });
 
-  it('should throw AuthenticationFailedError while login', () => {
-    let email = 'tester@crypter.com';
-    let password = 'password';
-    
-    service.login(email, password).subscribe(
-      d => fail('should have failed with the AuthenticationFailedError'),
-      err => {
-        expect(err).toEqual(jasmine.any(AuthenticationFailedError));
-      }
-    );
-
-    let req = httpTestingController.expectOne('/api/auth/login');
-
-    expect(req.request.method).toEqual('POST');
-
-    req.flush('Not Found', { status: 404, statusText: 'Not Found' });
-  });
-
   it('should logout, retrive true and set User property to undefined', () => {
     storageService.storage = new StorageWrapper(
       {
@@ -192,26 +167,5 @@ describe('AuthService', () => {
     expect(req.request.method).toEqual('GET');
     req.flush('Not Found', { status: 404, statusText: 'Not Found' });
     isEmailExist$.unsubscribe();
-  });
-
-  it('should catch errors in the right way', () => {
-    let dummyNotFoundError = new HttpErrorResponse({ status: 404, statusText: 'Not Found' });
-
-    service.handleErrors(dummyNotFoundError).subscribe(
-      d => fail('should be failed i guess'),
-      err => {
-        expect(err).toEqual(jasmine.any(AuthenticationFailedError));
-      }
-    );
-
-
-    let dummyFatalError = new HttpErrorResponse({ status: 500, statusText: 'Internal Server Error' });
-
-    service.handleErrors(dummyFatalError).subscribe(
-      d => fail('should be failed i guess'),
-      err => {
-        expect(err).toEqual(dummyFatalError);
-      }
-    );
   });
 });

@@ -15,7 +15,6 @@ import { Message } from '../../models/Message';
   providedIn: 'root'
 })
 export class MessengerService {
-  // const
   static readonly BATCH_SIZE = 20;
 
   constructor(private http: HttpClient, private authService: AuthService) { }

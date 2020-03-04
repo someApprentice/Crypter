@@ -23,7 +23,7 @@
             name="password"
             placeholder="password"
             required
-            [autofocus]="form.get('email').value"
+            [autofocus]="!!form.get('email').value"
             class="form-control my-1"
             [class.is-valid]="form.controls['password'].valid"
             [class.is-invalid]="form.controls['password'].invalid && form.controls['password'].dirty"

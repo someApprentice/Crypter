@@ -14,8 +14,6 @@ import { of } from 'rxjs';
 
 import { LoginComponent } from './login.component';
 
-import { AuthenticationFailedError } from '../../../models/errors/AuthenticationFailedError';
-
 describe('LoginComponent', () => {
   let router: Router;
   let activatedRoute: ActivatedRoute;
@@ -175,7 +173,7 @@ describe('LoginComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['']);
   });
 
-  it('should handle AuthenticationError', () => {
+  it('should handle 404 status', () => {
     let email = 'tester@crypter.com';
     let password = 'secret';
 
@@ -198,7 +196,7 @@ describe('LoginComponent', () => {
 
     fixture.detectChanges();
 
-    expect(form.textContent).toContain(new AuthenticationFailedError().message);
+    expect(form.textContent).toContain("No matches found");
   });
 
   it('should handle any http error', () => {
