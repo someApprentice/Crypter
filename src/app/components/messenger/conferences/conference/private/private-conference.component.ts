@@ -5,8 +5,8 @@ import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
-import { Observable, Subscription, of, from, fromEvent, zip, concat, throwError } from 'rxjs';
-import { switchMap, delayWhen, map, tap, first, delay, reduce } from 'rxjs/operators';
+import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, throwError } from 'rxjs';
+import { switchMap, delayWhen, map, tap, first, delay, reduce, takeUntil } from 'rxjs/operators';
 
 import { CrypterService } from '../../../../../services/crypter.service';
 
@@ -59,6 +59,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   subscriptions: { [key: string]: Subscription } = { };
 
+  private unsubscribe$ = new Subject<void>();
+
   private wamp: WampService;
   private databaseService: DatabaseService;
   private document: Document;
@@ -85,12 +87,12 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     this.messages = this.state.get(MESSAGES_STATE_KEY, [] as Message[]);
 
     // Get uuid from route params
-    // Wait until logged in User to fetch from IndexeDB
     // Then get participant User from API
     // Then get Conference from API
     //   If it's a browser
     //     Push it into indexeDB
     //     And subscribe to writing event
+    // Wait until logged in User to fetch from IndexeDB
     // Then get Messages from API
     //   And if count of unread messages > BATCH_SIZE get batch of new messages
     //   Else get last batch of messages
@@ -103,15 +105,6 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     //      to detect whether or not scroller has a overflow
     //      and if it isn't so subscribe to the last messages
     this.subscriptions['this.messengerService.getMessagesBy'] = this.route.params.pipe(
-      delayWhen(params => {
-        if (isPlatformBrowser(this.platformId)) {
-          return this.databaseService.user$.pipe(
-            tap((user: User) => this.user = user)
-          );
-        }
-
-        return of(params);
-      }),
       map(params => params['uuid']),
       switchMap((uuid: string) => {
         this.isParticipantLoading = true;
@@ -126,7 +119,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         this.state.set(PARTICIPANT_STATE_KEY, participant as User);
 
         if (isPlatformBrowser(this.platformId)) {
-          this.subscriptions[`this.wamp.topic(writing.for.${this.authService.user.uuid})`] = this.wamp.topic(`writing.for.${this.authService.user.uuid}`).pipe(
+          this.wamp.topic(`writing.for.${this.authService.user.uuid}`).pipe(
+            takeUntil(this.unsubscribe$),
             tap((e: EventMessage) => {
               if (e.args[0].user.uuid === this.participant.uuid) {
                 this.writing = <User> {
@@ -173,6 +167,15 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
         return of([] as Message[]);
       }),
+      delayWhen((messages: Message[]) => {
+        if (isPlatformBrowser(this.platformId)) {
+          return this.databaseService.user$.pipe(
+            tap((user: User) => this.user = user)
+          );
+        }
+
+        return of(messages);
+      }),
       switchMap((messages: Message[]) => {
         if (isPlatformBrowser(this.platformId)) {
           let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.user.private_key)));
@@ -208,14 +211,19 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
         // How to properly switch to this observables on browser condition?
         if (isPlatformBrowser(this.platformId)) {
-          this.subscriptions['this.databaseService.getConferenceByParticipant'] = this.databaseService.getConferenceByParticipant(this.participant.uuid).subscribe(
+          this.databaseService.getConferenceByParticipant(this.participant.uuid).pipe(
+            takeUntil(this.unsubscribe$)
+          ).subscribe(
             (conference: Conference) => {
               this.conference = conference;
             }
           );
 
           if (this.messages.length === 0) {
-            this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
+            // will be cleaned after refactoring
+            this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).pipe(
+              takeUntil(this.unsubscribe$)
+            ).subscribe((messages: Message[]) => {
               this.messages = messages.reduce((acc, cur) => {
                 if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                   acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -235,7 +243,10 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
               first()
             ).subscribe((ql: QueryList<ElementRef>) => {
               if (this.scroller.nativeElement.clientHeight === this.scroller.nativeElement.scrollHeight) {
-                this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
+                // will be cleaned after refactoring
+                this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).pipe(
+                  takeUntil(this.unsubscribe$)
+                ).subscribe((messages: Message[]) => {
                   this.messages = messages.reduce((acc, cur) => {
                     if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                       acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -262,7 +273,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     }
 
     if (!this.isOldMessagesLoading) {
-      this.subscriptions[`this.databaseService.getOldMessagesByParticipant-${timestamp}`] = this.messengerService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+      this.messengerService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
         tap(() => this.isOldMessagesLoading = true),
         switchMap((messages: Message[]) => {
           let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.user.private_key)));
@@ -285,7 +296,9 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           return messages;
         }),
         switchMap(() => {
-          return this.databaseService.getOldMessagesByParticipant(this.participant.uuid, timestamp)
+          return this.databaseService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+            takeUntil(this.unsubscribe$)
+          )
         })
       ).subscribe((messages: Message[]) => {
           messages.sort((a: Message, b: Message) => b.date - a.date);
@@ -293,6 +306,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           // scroll to the last obtained message in case if a scroll was at the very top
           if (!(`this.messagesList.changes-${timestamp}` in this.subscriptions) && messages.length > 0) {
             this.subscriptions[`this.messagesList.changes-${timestamp}`] = this.messagesList.changes.pipe(
+              takeUntil(this.unsubscribe$),
               first()
             ).subscribe((ql: QueryList<ElementRef>) => {
               if (this.scroller.nativeElement.scrollTop === 0 && messages.length > 0) {
@@ -328,8 +342,11 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   onScrollDown(timestamp: number) {
     if (this.conference.unread === 0) {
+      // will be cleaned after refactoring
       if (!('this.databaseService.getMessagesByParticipant' in this.subscriptions)) {
-        this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).subscribe((messages: Message[]) => {
+        this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).pipe(
+          takeUntil(this.unsubscribe$)
+        ).subscribe((messages: Message[]) => {
           this.messages = messages.reduce((acc, cur) => {
             if (acc.find((m: Message) => m.uuid === cur.uuid)) {
               acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -348,7 +365,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     if (this.conference.unread > 0) {
       this.isNewMessagesLoading = true;
 
-      this.subscriptions[`this.databaseService.getNewMessagesByParticipant-${timestamp}`] = this.messengerService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+      this.messengerService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
         switchMap((messages: Message[]) => {
           let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.user.private_key)));
 
@@ -368,7 +385,9 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           }
         }),
         switchMap((messages: Message[]) => {
-          return this.databaseService.getNewMessagesByParticipant(this.participant.uuid, timestamp)
+          return this.databaseService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+            takeUntil(this.unsubscribe$)
+          )
         }),
         tap(() => this.isNewMessagesLoading = false)
       ).subscribe((messages: Message[]) => {
@@ -470,7 +489,9 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       }
 
       // autoscroll on new message
-      this.subscriptions['this.messagesList.changes'] = this.messagesList.changes.subscribe((ql: QueryList<ElementRef>) => {
+      this.messagesList.changes.pipe(
+        takeUntil(this.unsubscribe$)
+      ).subscribe((ql: QueryList<ElementRef>) => {
         let scrollerEl: HTMLElement = this.scroller.nativeElement;
 
         if (this.previousScrollTop + this.previousOffsetHeight == this.previousScrollHeight) {
@@ -489,6 +510,10 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     this.state.remove(CONFERENCE_STATE_KEY);
     this.state.remove(MESSAGES_STATE_KEY);
 
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
+
+    // will be cleaned after rafactroing
     for (let key in this.subscriptions) {
       this.subscriptions[key].unsubscribe();
     }

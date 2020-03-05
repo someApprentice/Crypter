@@ -11,8 +11,8 @@ import {
 } from '@angular/animations';
 
 
-import { Subscription, from, of, zip, throwError } from 'rxjs';
-import { tap, map, switchMap, mergeMap, delayWhen, shareReplay } from 'rxjs/operators';
+import { Subject, from, of, zip, throwError } from 'rxjs';
+import { tap, map, switchMap, mergeMap, delayWhen, shareReplay, takeUntil } from 'rxjs/operators';
 
 import { SessionData } from 'thruway.js';
 
@@ -83,8 +83,8 @@ import { Message } from '../../models/Message';
 export class MessengerComponent implements OnInit, OnDestroy {
   @Input() user?: User;
 
-  subscriptions: { [key: string]: Subscription } = { };
-  
+  private unsubscribe$ = new Subject<void>();
+
   private wamp: WampService;
   private databaseService: DatabaseService;
 
@@ -111,11 +111,12 @@ export class MessengerComponent implements OnInit, OnDestroy {
         shareReplay(1)
       );
 
-      this.subscriptions['this.databaseService.user$'] = this.databaseService.user$.subscribe((user: User) => {
+      this.databaseService.user$.pipe(takeUntil(this.unsubscribe$)).subscribe((user: User) => {
         this.authService.user = user;
       });
 
-      this.subscriptions['this.wamp.onOpen'] = this.wamp.onOpen.pipe(
+      this.wamp.onOpen.pipe(
+        takeUntil(this.unsubscribe$),
         tap(this.onOpen.bind(this)),
         switchMap((session: SessionData) => this.messengerService.getReadedMessages(session.welcomeMsg.details.authextra.user.last_seen)) // update messages readed while client was offline
       ).subscribe(messages => {
@@ -133,11 +134,14 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
     this.authService.user.last_seen = last_seen;
 
-    this.subscriptions[`this.wamp.topic(conference.updated.for.${this.authService.user.uuid})`] = this.wamp.topic(`conference.updated.for.${this.authService.user.uuid}`).subscribe(this.onConference.bind(this));
+    this.wamp.topic(`conference.updated.for.${this.authService.user.uuid}`).pipe(
+      takeUntil(this.unsubscribe$)
+    ).subscribe(this.onConference.bind(this));
 
     let user$ = this.databaseService.getUser(this.authService.user.uuid);
 
-    this.subscriptions[`this.wamp.topic(private.message.to.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.to.${this.authService.user.uuid}`).pipe(
+    this.wamp.topic(`private.message.to.${this.authService.user.uuid}`).pipe(
+      takeUntil(this.unsubscribe$),
       mergeMap((e: EventMessage) => {
         let message: Message = e.args[0];
 
@@ -156,7 +160,8 @@ export class MessengerComponent implements OnInit, OnDestroy {
       switchMap((message: Message) => this.databaseService.upsertMessage(message))
     ).subscribe();
 
-    this.subscriptions[`this.wamp.topic(private.message.updated.for.${this.authService.user.uuid}`] = this.wamp.topic(`private.message.updated.for.${this.authService.user.uuid}`).pipe(
+    this.wamp.topic(`private.message.updated.for.${this.authService.user.uuid}`).pipe(
+      takeUntil(this.unsubscribe$),
       mergeMap((e: EventMessage) => {
         let message: Message = e.args[0];
 
@@ -215,8 +220,7 @@ export class MessengerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    for (let key in this.subscriptions) {
-      this.subscriptions[key].unsubscribe();
-    }
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 }

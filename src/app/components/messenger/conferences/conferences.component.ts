@@ -4,8 +4,8 @@ import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
-import { Subscription, from, throwError } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { Subject, from, throwError } from 'rxjs';
+import { map, switchMap, takeUntil } from 'rxjs/operators';
 
 import { MessengerService } from '../messenger.service';
 
@@ -30,7 +30,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
 
   conferences: Conference[] = [];
 
-  subscriptions: { [key: string]: Subscription } = { };
+  private unsubscribe$ = new Subject<void>();
   
   private databaseService: DatabaseService;
 
@@ -92,7 +92,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
       // if conference doesn't exists in a conferences array, push it, otherwise update entry
       // and then sort conferences in case if some of conferences have been pushed before query
       // (for example before request from api)
-      this.subscriptions['this.databaseService.getConferences'] = this.databaseService.getConferences().subscribe(
+      this.databaseService.getConferences().pipe(takeUntil(this.unsubscribe$)).subscribe(
         (conferences: Conference[]) => {
           this.conferences = conferences.reduce((acc, cur) => {
             if (acc.find((c: Conference) => c.uuid === cur.uuid)) {
@@ -124,8 +124,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.state.remove(CONFERENCES_STATE_KEY);
 
-    for (let key in this.subscriptions) {
-      this.subscriptions[key].unsubscribe();
-    }
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 }

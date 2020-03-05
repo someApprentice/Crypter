@@ -3,8 +3,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
-import { Subscription, zip, of } from 'rxjs';
-import { map, tap, switchMap } from 'rxjs/operators'
+import { Subject, zip, of } from 'rxjs';
+import { map, tap, switchMap, takeUntil } from 'rxjs/operators'
 
 import { AuthService } from '../auth.service';
 import { CrypterService } from '../../../services/crypter.service';
@@ -33,7 +33,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   error?: string;
 
-  subscriptions: { [key: string]: Subscription } = { };
+  private unsubscribe$ = new Subject<void>();
 
   constructor(
     private authService: AuthService,
@@ -43,7 +43,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    this.subscriptions['this.route.data'] = this.route.data.subscribe(d => {
+    this.route.data.pipe(takeUntil(this.unsubscribe$)).subscribe(d => {
       if ('email' in d) {
         this.form.get('email').setValue(d['email']);
       }
@@ -97,14 +97,11 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.subscriptions['this.route.url.subscribe'] = this.route.url.subscribe(u => {
-      let route = this.router.config.find(r => r.path === u[u.length - 1].path);
+    let route = this.router.config.find(r => this instanceof r.component);
 
-      delete route.data.email;
-    });
+    delete route.data['email'];
 
-    for (let key in this.subscriptions) {
-      this.subscriptions[key].unsubscribe();
-    }
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 }

@@ -2,7 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 
 import { Router, ActivatedRoute } from '@angular/router';
 
-import { Subscription } from 'rxjs';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../auth/auth.service';
 import { StorageService } from '../../services/storage/storage.service';
@@ -15,12 +16,12 @@ import { User } from '../../models/User';
   styleUrls: ['./main.component.css']
 })
 export class MainComponent implements OnInit, OnDestroy {
+  private unsubscribe$ = new Subject<void>();
+
   // The purpose of this property is to pass User to the MessengerComponent
   // so that it upserts him into IndexeDB on log in.
   user?: User;
 
-  subscriptions: { [key:string]: Subscription } = { };
-  
   constructor(
     public authService: AuthService,
     private router: Router,
@@ -28,7 +29,7 @@ export class MainComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    this.subscriptions['this.route.data'] = this.route.data.subscribe(d => {
+    this.route.data.pipe(takeUntil(this.unsubscribe$)).subscribe(d => {
       if ('user' in d) {
         this.user = d['user'];
       }
@@ -38,10 +39,9 @@ export class MainComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     let route = this.router.config.find(r => this instanceof r.component);
 
-    delete route.data.user;
+    delete route.data['user'];
 
-    for (let key in this.subscriptions) {
-      this.subscriptions[key].unsubscribe();
-    }
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 }
