@@ -18,8 +18,25 @@ from message_reference import Message_Reference
 
 @pytest.fixture
 def populate_users():
-    alice = User(uuid='ea155bbf-726a-4f11-a2b6-f8bf04331d4d', email='alice@crypter.com', name='Alice', hash='$2y$13$4f4Z7J6GkzJcNg2Rg81TAuWh8pXZIanYEk6q3zFAEl2Y95HKKPEei')
-    bob = User(uuid='3ddfeb6e-ce7a-4e1e-808c-85a2a0d3d5e9', email='bob@crypter.com', name='Bob', hash='$2y$13$t8Q2cI3dXPiiSX5G8Toc7OlmTDLrqmqxuYFbamz4qmR3CYoCTarI6')
+    alice = User(
+        uuid='ea155bbf-726a-4f11-a2b6-f8bf04331d4d',
+        email='alice@crypter.com',
+        name='Alice',
+        hash='$2y$13$4f4Z7J6GkzJcNg2Rg81TAuWh8pXZIanYEk6q3zFAEl2Y95HKKPEei',
+        public_key='-----BEGIN PGP PUBLIC KEY BLOCK ... ',
+        private_key='-----BEGIN PGP PRIVATE KEY BLOCK ... ',
+        revocation_certificate='-----BEGIN PGP PRIVATE KEY BLOCK ... '
+    )
+
+    bob = User(
+        uuid='3ddfeb6e-ce7a-4e1e-808c-85a2a0d3d5e9',
+        email='bob@crypter.com',
+        name='Bob',
+        hash='$2y$13$t8Q2cI3dXPiiSX5G8Toc7OlmTDLrqmqxuYFbamz4qmR3CYoCTarI6',
+        public_key='-----BEGIN PGP PUBLIC KEY BLOCK ... ',
+        private_key='-----BEGIN PGP PRIVATE KEY BLOCK ... ',
+        revocation_certificate='-----BEGIN PGP PRIVATE KEY BLOCK ... '
+    )
 
     database.session.add_all([
         alice,

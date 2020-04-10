@@ -3,7 +3,7 @@ import datetime
 
 from sqlalchemy import Column
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, VARCHAR, TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID, VARCHAR, TEXT, TIMESTAMP
 
 from database import Base
 
@@ -18,6 +18,9 @@ class User(Base):
     name = Column(VARCHAR(255), nullable=False)
     hash = Column(VARCHAR(60), nullable=False)
     last_seen = Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.datetime.utcnow)
+    public_key = Column(TEXT, nullable=False)
+    private_key = Column(TEXT, nullable=False)
+    revocation_certificate = Column(TEXT, nullable=False)
 
     conferences = relationship("Conference",
         secondary="join(Conference, Conference_Reference, Conference.uuid == Conference_Reference.conference_uuid)",

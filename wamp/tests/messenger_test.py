@@ -12,12 +12,12 @@ from models.errors.authentication import UserNotFoundError
 
 # TODO: should create conference
 #  if the conference is not persist in the database,
-#  then the Messanger.send(...) method should create it,
+#  then the Messenger.send(...) method should create it,
 #  and if an error occurs, the test_send() will fail
 
 # TODO: should create conference referenences
 #  if the conference references is not persist in the database,
-#  then the Messanger.send(...) method should create them,
+#  then the Messenger.send(...) method should create them,
 #  and if an error occurs, the test_send() will fail
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def test_send(populate_users, truncate_conferences):
         'Bearer token': alice_token
     }
 
-    result = Messanger.send(data)
+    result = Messenger.send(data)
 
     assert not result['errors']
     assert result['message']
@@ -58,7 +58,7 @@ def test_send_to_existing_conference(populate_conference, truncate_conferences):
         'Bearer token': alice_token
     }
 
-    result = Messanger.send(data)
+    result = Messenger.send(data)
 
     assert not result['errors']
     assert result['conference']
@@ -76,7 +76,7 @@ def test_send_to_existing_conference_references(populate_conference, truncate_co
         'Bearer token': alice_token
     }
 
-    result = Messanger.send(data)
+    result = Messenger.send(data)
 
     assert not result['errors']
     assert result['conference_references']
@@ -97,7 +97,7 @@ def test_send_to_existing_conference_references(populate_conference, truncate_co
 #         'Bearer token': alice_token
 #     }
 
-#     result = Messanger.send(data)
+#     result = Messenger.send(data)
 
 #     print(datetime.datetime.fromtimestamp(result['conference']['updated'], pytz.utc))
 #     print(conference.updated)
@@ -126,7 +126,7 @@ def test_send_to_existing_conference_references(populate_conference, truncate_co
 #         'Bearer token': alice_token
 #     }
 
-#     result = Messanger.send(data)
+#     result = Messenger.send(data)
 
 #     assert not result['errors']
 #     assert result['conference_references']
@@ -137,7 +137,7 @@ def test_validation(populate_users, truncate_conferences):
 
     empty = {}
 
-    result = Messanger.send(empty)
+    result = Messenger.send(empty)
 
     assert 'to' in result['errors']
     assert 'text' in result['errors']
@@ -149,7 +149,7 @@ def test_validation(populate_users, truncate_conferences):
     with pytest.raises(Exception):
         nonpersistent_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1dWlkIjoiZWI0MDhlMGUtMTZjNi00ZjM4LThlNjgtMTIyODI2MzM1Mjc5IiwiaGFzaCI6IiQyYiQxMyRPMnk3MDU3SjU2NWZ4dHlCblJaemcuRFZOdzNFQXFnT0VoT1ZXZ2xtdy5Fb0lXTTYudktHZSJ9.booDgke6PHycAv7HZgbqWvw5XHHIkP7Aw5DTBzjI3nU'
 
-        result = Messanger.send({
+        result = Messenger.send({
             # {'to': ["field 'to' cannot be coerced: 'UUID' object has no attribute 'replace'"]}
             # 'to': bob.uuid,
             'to': str(bob.uuid),
@@ -162,7 +162,7 @@ def test_validation(populate_users, truncate_conferences):
 
     alice_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1dWlkIjoiZWExNTViYmYtNzI2YS00ZjExLWEyYjYtZjhiZjA0MzMxZDRkIiwiaGFzaCI6IiQyeSQxMyQ0ZjRaN0o2R2t6SmNOZzJSZzgxVEF1V2g4cFhaSWFuWUVrNnEzekZBRWwyWTk1SEtLUEVlaSJ9.tBrnw1_1JXD1ts4aLe6khZwiA8d__ohBHTS3-D_u0bk"
 
-    result = Messanger.send({
+    result = Messenger.send({
         'to': nonpersistent_uuid,
         'text': "Hey, Unknown",
         'Bearer token':  alice_token
