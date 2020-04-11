@@ -28,6 +28,16 @@ const messagesSchema: RxJsonSchema<Message> = {
         uuid: {
           type: 'string'
         },
+        updated: {
+          type: 'number',
+          index: true
+        },
+        count: {
+          type: 'number'
+        },
+        unread: {
+          type: 'number'
+        },
         participant: {
           type: 'string'
         }

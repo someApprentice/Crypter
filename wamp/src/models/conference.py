@@ -28,7 +28,7 @@ class Conference(Base):
 
     messages = relationship("Message",
         secondary="join(Message, Message_Reference, Message.uuid == Message_Reference.message_uuid)",
-        primaryjoin="Message_Reference.conference_uuid == Conference.uuid",
-        secondaryjoin="Message_Reference.conference_uuid == Conference.uuid",
+        primaryjoin="Message.conference_uuid == Conference.uuid",
+        secondaryjoin="Message.conference_uuid == Conference.uuid",
         # back_populates="user"
     )

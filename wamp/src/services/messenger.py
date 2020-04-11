@@ -65,8 +65,6 @@ class Messenger():
 
             return result
 
-
-
         result['user'] = {
             'uuid': str(user.uuid),
             'name': user.name
@@ -120,11 +118,9 @@ class Messenger():
 
             return result
 
-
         user = authenticator.authenticate(data['Bearer token'])
 
         message = database.session.query(Message).filter(Message.uuid == data['message']).one_or_none()
-
 
         if not message:
             result['errors'] = { 'message': "Message doesn't exists" }
@@ -141,7 +137,6 @@ class Messenger():
 
             return result
 
-
         message_reference = None
 
         for mr in message.message_references:
@@ -155,7 +150,6 @@ class Messenger():
 
             return result
 
-
         message.readed = True
         message.readed_at = datetime.datetime.utcnow()
 
@@ -163,7 +157,7 @@ class Messenger():
 
         database.session.flush()
 
-        conference_reference = database.session.query(Conference_Reference).filter(and_(Conference_Reference.conference_uuid == message_reference.conference_uuid, Conference_Reference.user_uuid == user.uuid)).one_or_none()
+        conference_reference = database.session.query(Conference_Reference).filter(and_(Conference_Reference.conference_uuid == message.conference_uuid, Conference_Reference.user_uuid == user.uuid)).one_or_none()
 
         if conference_reference:
             conference_reference.unread -= 1
@@ -172,9 +166,7 @@ class Messenger():
 
             database.session.flush()
 
-
         database.session.commit()
-
 
         result['message'] = {
             'uuid': str(message.uuid),
@@ -230,8 +222,6 @@ class Messenger():
             )
 
         return result;
-
-
 
     def send(data):
         result = {
@@ -315,9 +305,9 @@ class Messenger():
             database.session.flush()
 
 
-        message = Message(uuid=uuid4(), author=sender, type='text/plain', content=data['text'], edited=False)
-        sender_message_reference = Message_Reference(conference=conference, user=sender, message=message)
-        receiver_message_reference = Message_Reference(conference=conference, user=receiver, message=message)
+        message = Message(uuid=uuid4(), conference=conference, author=sender, type='text/plain', content=data['text'], edited=False)
+        sender_message_reference = Message_Reference(user=sender, message=message)
+        receiver_message_reference = Message_Reference(user=receiver, message=message)
 
         database.session.add(message)
         database.session.flush()

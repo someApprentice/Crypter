@@ -225,25 +225,25 @@ class MessengerController extends AbstractController
         $json = [];
 
         foreach ($messages as $message) {
-            $author = $message[0]->getAuthor();
+            $author = $message->getAuthor();
 
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
                     'uuid' => $author->getUuid(),
                     'name' => $author->getName(),
                     'public_key' => $author->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference']
+                    'uuid' => $message->getConference()->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' => (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' => (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -267,25 +267,25 @@ class MessengerController extends AbstractController
         $json = [];
 
         foreach ($messages as $message) {
-            $author = $message[0]->getAuthor();
+            $author = $message->getAuthor();
 
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
                     'uuid' => $author->getUuid(),
                     'name' => $author->getName(),
                     'public_key' => $author->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference']
+                    'uuid' => $message->getConference()->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' => (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' => (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -321,22 +321,22 @@ class MessengerController extends AbstractController
 
         foreach ($messages as $message) {
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
-                    'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName(),
-                    'public_key' => $message[0]->getAuthor()->getPublicKey()
+                    'uuid' => $message->getAuthor()->getUuid(),
+                    'name' => $message->getAuthor()->getName(),
+                    'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference']
+                    'uuid' => $message->getConference()->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' => (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' => (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -373,25 +373,25 @@ class MessengerController extends AbstractController
         $json = [];
 
         foreach ($messages as $message) {
-            $author = $message[0]->getAuthor();
+            $author = $message->getAuthor();
 
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
                     'uuid' => $author->getUuid(),
                     'name' => $author->getName(),
                     'public_key' => $author->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference']
+                    'uuid' => $message->getConference()->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' => (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' => (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -431,22 +431,22 @@ class MessengerController extends AbstractController
 
         foreach ($messages as $message) {
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
-                    'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName(),
-                    'public_key' => $message[0]->getAuthor()->getPublicKey()
+                    'uuid' => $message->getAuthor()->getUuid(),
+                    'name' => $message->getAuthor()->getName(),
+                    'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference']
+                    'uuid' => $message->getConference()->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' =>  (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' =>  (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -486,22 +486,22 @@ class MessengerController extends AbstractController
 
         foreach ($messages as $message) {
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
-                    'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName(),
-                    'public_key' => $message[0]->getAuthor()->getPublicKey()
+                    'uuid' => $message->getAuthor()->getUuid(),
+                    'name' => $message->getAuthor()->getName(),
+                    'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference']
+                    'uuid' => $message->getConference()->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' =>  (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' =>  (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -544,23 +544,23 @@ class MessengerController extends AbstractController
 
         foreach ($messages as $message) {
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
-                    'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName(),
-                    'public_key' => $message[0]->getAuthor()->getPublicKey()
+                    'uuid' => $message->getAuthor()->getUuid(),
+                    'name' => $message->getAuthor()->getName(),
+                    'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference'],
+                    'uuid' => $message->getConference()->getUuid(),
                     'participant' => $participant->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' => (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' => (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -603,26 +603,26 @@ class MessengerController extends AbstractController
         $json = [];
 
         foreach ($messages as $message) {
-            $author = $message[0]->getAuthor();
+            $author = $message->getAuthor();
 
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
                     'uuid' => $author->getUuid(),
                     'name' => $author->getName(),
                     'public_key' => $author->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference'],
+                    'uuid' => $message->getConference()->getUuid(),
                     'participant' => $participant->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' => (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' => (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -668,23 +668,23 @@ class MessengerController extends AbstractController
 
         foreach ($messages as $message) {
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
-                    'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName(),
-                    'public_key' => $message[0]->getAuthor()->getPublicKey()
+                    'uuid' => $message->getAuthor()->getUuid(),
+                    'name' => $message->getAuthor()->getName(),
+                    'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference'],
+                    'uuid' => $message->getConference()->getUuid(),
                     'participant' => $participant->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' =>  (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' =>  (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -730,23 +730,23 @@ class MessengerController extends AbstractController
 
         foreach ($messages as $message) {
             $json[] = [
-                'uuid' => $message[0]->getUuid(),
+                'uuid' => $message->getUuid(),
                 'author' => [
-                    'uuid' => $message[0]->getAuthor()->getUuid(),
-                    'name' => $message[0]->getAuthor()->getName(),
-                    'public_key' => $message[0]->getAuthor()->getPublicKey()
+                    'uuid' => $message->getAuthor()->getUuid(),
+                    'name' => $message->getAuthor()->getName(),
+                    'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => [
-                    'uuid' => $message['conference'],
+                    'uuid' => $message->getConference()->getUuid(),
                     'participant' => $participant->getUuid()
                 ],
-                'readed' => $message[0]->getReaded(),
-                'readedAt' => ($message[0]->getReadedAt()) ? (float) $message[0]->getReadedAt()->format('U.u') : $message[0]->getReadedAt(),
-                'date' =>  (float) $message[0]->getDate()->format('U.u'),
-                'type' => $message[0]->getType(),
-                'content' => $message[0]->getContent(),
-                'consumed' => $message[0]->getConsumed(),
-                'edited' => $message[0]->getEdited()
+                'readed' => $message->getReaded(),
+                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'date' =>  (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
             ];
         }
 
@@ -833,6 +833,7 @@ class MessengerController extends AbstractController
 
 
         $message = new Message();
+        $message->setConference($conference);
         $message->setAuthor($sender);
         $message->setType('text/plain');
         $message->setContent($data['text']);
@@ -840,13 +841,11 @@ class MessengerController extends AbstractController
         $this->em->persist($message);
 
         $senderMessageReference = new MessageReference();
-        $senderMessageReference->setConference($conference);
         $senderMessageReference->setUser($sender);
         $senderMessageReference->setMessage($message);
         $this->em->persist($senderMessageReference);
         
         $receiverMessageReference = new MessageReference();
-        $receiverMessageReference->setConference($conference);
         $receiverMessageReference->setUser($reciever);
         $receiverMessageReference->setMessage($message);
         $this->em->persist($receiverMessageReference);

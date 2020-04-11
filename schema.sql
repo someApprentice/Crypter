@@ -75,7 +75,8 @@ CREATE TABLE public.message (
     content text NOT NULL,
     consumed boolean,
     edited boolean,
-    readed_at timestamp with time zone
+    readed_at timestamp with time zone,
+    conference uuid NOT NULL
 );
 
 
@@ -143,7 +144,6 @@ COMMENT ON COLUMN public.message_attachment.src IS 'MUST contain either url to f
 
 CREATE TABLE public.message_reference (
     uuid uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    conference uuid NOT NULL,
     "user" uuid NOT NULL,
     message uuid NOT NULL
 );
@@ -279,11 +279,11 @@ ALTER TABLE ONLY public.message_attachment
 
 
 --
--- Name: message_reference message_reference_conference_fkey; Type: FK CONSTRAINT; Schema: public; Owner: crypter
+-- Name: message message_conference_fkey; Type: FK CONSTRAINT; Schema: public; Owner: crypter
 --
 
-ALTER TABLE ONLY public.message_reference
-    ADD CONSTRAINT message_reference_conference_fkey FOREIGN KEY (conference) REFERENCES public.conference(uuid);
+ALTER TABLE ONLY public.message
+    ADD CONSTRAINT message_conference_fkey FOREIGN KEY (conference) REFERENCES public.conference(uuid);
 
 
 --

@@ -58,11 +58,10 @@ class ConferenceRepository extends ServiceEntityRepository
     {
         $dql = '
             SELECT
-                m,
-                IDENTITY(mr.conference) AS conference
+                m
             FROM Crypter\Entity\Message m
             JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
-            WHERE mr.conference = :conference AND mr.user = :user
+            WHERE m.conference = :conference AND mr.user = :user
             ORDER BY m.date DESC
         ';
 
@@ -79,12 +78,11 @@ class ConferenceRepository extends ServiceEntityRepository
     {
         $dql = '
             SELECT
-                m,
-                IDENTITY(mr.conference) AS conference
+                m
             FROM Crypter\Entity\Message m
             JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
             WHERE
-                mr.conference = :conference
+                m.conference = :conference
                 AND mr.user = :user
                 AND m.readed = FALSE
                 AND m.author != :user
@@ -104,12 +102,11 @@ class ConferenceRepository extends ServiceEntityRepository
     {
         $dql = '
             SELECT
-                m,
-                IDENTITY(mr.conference) AS conference
+                m
             FROM Crypter\Entity\Message m
             JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
             WHERE
-                mr.conference = :conference
+                m.conference = :conference
                 AND mr.user = :user
                 AND m.date < :date
             ORDER BY m.date DESC
@@ -128,12 +125,11 @@ class ConferenceRepository extends ServiceEntityRepository
     {
         $dql = '
             SELECT
-                m,
-                IDENTITY(mr.conference) AS conference
+                m
             FROM Crypter\Entity\Message m
             JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
             WHERE
-                mr.conference = :conference
+                m.conference = :conference
                 AND mr.user = :user
                 AND m.date > :date
             ORDER BY m.date ASC

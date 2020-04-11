@@ -6,6 +6,6 @@ export interface Conference {
   updated: number,
   count: number,
   unread: number,
-  participant?: User
+  participant?: User,
   participants?: User[]
 }

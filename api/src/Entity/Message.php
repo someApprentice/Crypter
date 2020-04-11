@@ -22,6 +22,12 @@ class Message
     private $uuid;
 
     /**
+     * @ORM\ManyToOne(targetEntity="Crypter\Entity\Conference")
+     * @ORM\JoinColumn(name="conference", referencedColumnName="uuid", nullable=false)
+     */
+    private $conference;
+
+    /**
      * @ORM\ManyToOne(targetEntity="Crypter\Entity\User")
      * @ORM\JoinColumn(name="`author`", referencedColumnName="uuid", nullable=false)
      */
@@ -76,6 +82,18 @@ class Message
     public function getUuid(): ?string
     {
         return $this->uuid;
+    }
+
+    public function getConference(): ?Conference
+    {
+        return $this->conference;
+    }
+
+    public function setConference(?Conference $conference): self
+    {
+        $this->conference = $conference;
+
+        return $this;
     }
 
     public function getAuthor(): ?User
