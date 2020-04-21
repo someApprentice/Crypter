@@ -175,7 +175,15 @@ class Messenger():
                 'name':  message.author.name
             },
             'conference': {
-                'uuid': str(conference_reference.conference.uuid)
+                'uuid': str(conference_reference.conference.uuid),
+                'updated': conference_reference.conference.updated.timestamp(),
+                'count': conference_reference.count,
+                'unread': conference_reference.unread,
+                'participant': {
+                    'uuid': str(conference_reference.participant.uuid),
+                    'name': conference_reference.participant.name
+                },
+                'participants': []
             },
             'readed': message.readed,
             'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
@@ -197,7 +205,7 @@ class Messenger():
             'participants': []
         }
 
-        for participant in message_reference.conference.participants:
+        for participant in message.conference.participants:
             result['conference']['participants'].append(
                 {
                     'uuid': str(participant.uuid),
@@ -267,7 +275,7 @@ class Messenger():
         # TODO: check for blacklist
 
         conference = database.session.query(Conference).join(Conference_Reference).filter(and_(Conference_Reference.conference_uuid == Conference.uuid, Conference_Reference.user_uuid == sender.uuid, Conference_Reference.participant_uuid == receiver.uuid)).one_or_none()
-        
+
         if not conference:
             conference = Conference(uuid=uuid4())
             sender_conference_reference = Conference_Reference(user=sender, conference=conference, participant=receiver)
@@ -335,7 +343,7 @@ class Messenger():
             'uuid': str(conference.uuid),
             'updated': conference.updated.timestamp(),
             'count': sender_conference_reference.count,
-            'unread': sender_conference_reference.unread, 
+            'unread': sender_conference_reference.unread,
             'participant': {
                 'uuid': str(receiver.uuid),
                 'name': receiver.name
@@ -380,7 +388,14 @@ class Messenger():
                 'name':  sender.name
             },
             'conference': {
-                'uuid': str(conference.uuid)
+                'uuid': str(conference.uuid),
+                'updated': conference.updated.timestamp(),
+                'count': sender_conference_reference.count,
+                'unread': sender_conference_reference.unread,
+                'participant': {
+                    'uuid': str(receiver.uuid),
+                    'name': receiver.name
+                }
             },
             'readed': message.readed,
             'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,

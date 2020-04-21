@@ -29,7 +29,7 @@ class MessengerSession(ApplicationSession):
             'errors': result['errors']
         }
 
-        response['message']['conference']['participant'] = result['conference']['participant']['uuid']
+        response['message']['conference']['participant'] = result['conference']['participant']
 
         if response['errors']:
             return response
@@ -38,7 +38,7 @@ class MessengerSession(ApplicationSession):
             if conference_reference['user'] == result['data']['to']:
                 m = copy.deepcopy(result['message'])
 
-                m['conference']['participant'] = conference_reference['participant']['uuid']
+                m['conference']['participant'] = conference_reference['participant']
 
                 p = self.publish(f"private.message.to.{result['data']['to']}", m)
 
