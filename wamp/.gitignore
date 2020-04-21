@@ -6,3 +6,5 @@ __pycache__/
 /.env.*.local
 
 venv/
+
+node.pid
