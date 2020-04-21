@@ -2,7 +2,7 @@ import { environment } from '../../../environments/environment';
 
 import { Injectable, OnDestroy } from '@angular/core';
 
-import { Observable, from, zip } from 'rxjs';
+import { Observable, from, of, zip } from 'rxjs';
 import { delayWhen, shareReplay, switchMap, map, filter } from 'rxjs/operators';
 
 import RxDB, { RxDatabase, RxCollection, RxDocument } from 'rxdb';
@@ -12,16 +12,16 @@ import * as PouchdbAdapterIdb from 'pouchdb-adapter-idb';
 RxDB.plugin(PouchdbAdapterIdb);
 
 import { UserDocument } from './documents/user.document';
-import { ConferenceDocument } from './documents/conference.document';
-import { MessageDocument } from './documents/message.document';
+import { ConferenceDocument, ConferenceDocType } from './documents/conference.document';
+import { MessageDocument, MessageDocType } from './documents/message.document';
 
 import { UserCollection } from './collections/user.collection';
 import { ConferencesCollection } from './collections/conference.collection';
 import { MessagesCollection } from './collections/messages.collection';
 
 import userSchema from './schemas/user.schema';
-import conferenceSchema from './schemas/conferences.schema';
-import messagesSchema from './schemas/messages.schema';
+import conferenceSchema from './schemas/conference.schema';
+import messageSchema from './schemas/message.schema';
 
 import { User } from '../../models/User';
 import { Conference } from '../../models/Conference';
@@ -58,7 +58,7 @@ export class DatabaseService implements OnDestroy {
         }),
         db.collection({
           name: 'messages',
-          schema: messagesSchema
+          schema: messageSchema
         })
       )
     ),
@@ -88,8 +88,24 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  upsertUser(user: User): Observable<UserDocument> {
-    return this.$.pipe(switchMap(db => from(db.users.atomicUpsert(user))));
+  upsertUser(user: User): Observable<User> {
+    return this.$.pipe(
+      switchMap(db => from(db.users.atomicUpsert(user))),
+      map((document: UserDocument) => {
+        let user: User = {
+          uuid: document.uuid,
+          email: document.email,
+          name: document.name,
+          jwt: document.jwt,
+          last_seen: document.last_seen,
+          public_key: document.public_key,
+          private_key: document.private_key,
+          revocation_certificate: document.revocation_certificate
+        };
+
+        return user;
+      })
+    );
   }
 
   getConferences(): Observable<Conference[]> {
@@ -99,22 +115,33 @@ export class DatabaseService implements OnDestroy {
     // then transfrom every ConferenceDocument into Conference instance
     return this.$.pipe(
       switchMap(db => db.conferences.find().sort({ updated: -1 }).$),
-      map((documents: ConferenceDocument[]) => {
-        let conferences: Conference[] = [];
-
-        for (let document of documents) {
-          let conference: Conference = {
-            uuid: document.uuid,
-            updated: document.updated,
-            count: document.count,
-            unread: document.unread,
-            participant: document.participant
-          }
-
-          conferences.push(conference);
+      switchMap((documents: ConferenceDocument[]) => {
+        if (documents.length === 0) {
+          return of([] as Conference[]);
         }
 
-        return conferences;
+        let participants$ = zip(...documents.map(d => from(d.populate('participant'))));
+
+        return zip(of(documents), participants$).pipe(
+          map(([ documents, participants ]) => {
+            let conferences: Conference[] = documents.map((document, key) => {
+              let conference: Conference = {
+                uuid: document.uuid,
+                updated: document.updated,
+                count: document.count,
+                unread: document.unread,
+                participant: {
+                  uuid: participants[key].uuid,
+                  name: participants[key].name,
+                }
+              }
+
+              return conference;
+            });
+
+            return conferences;
+          })
+        );
       })
     );
   }
@@ -123,40 +150,88 @@ export class DatabaseService implements OnDestroy {
     return this.$.pipe(
       switchMap(db => db.conferences.findOne().where('uuid').eq(uuid).$),
       filter(document => !!document),
-      map((document: ConferenceDocument) => {
-        let conference: Conference = {
-          uuid: document.uuid,
-          updated: document.updated,
-          count: document.count,
-          unread: document.unread,
-          participant: document.participant
-        };
+      switchMap((document: ConferenceDocument) => {
+        let participant$ = from(document.populate('participant'));
 
-        return conference;
+        return zip(of(document), participant$).pipe(
+          map(([ document, participant ]) => {
+            let conference: Conference = {
+              uuid: document.uuid,
+              updated: document.updated,
+              count: document.count,
+              unread: document.unread,
+              participant: {
+                uuid: participant.uuid,
+                name: participant.name,
+              }
+            };
+
+            return conference;
+          })
+        );
       })
     );
   }
 
   getConferenceByParticipant(uuid: string): Observable<Conference> {
     return this.$.pipe(
-      switchMap(db => db.conferences.findOne().where('participant.uuid').eq(uuid).$),
+      switchMap(db => db.conferences.findOne().where('participant').eq(uuid).$),
       filter(document => !!document),
-      map((document: ConferenceDocument) => {
-        let conference: Conference = {
-          uuid: document.uuid,
-          updated: document.updated,
-          count: document.count,
-          unread: document.unread,
-          participant: document.participant
-        };
+      switchMap((document: ConferenceDocument) => {
+        let participant$ = from(document.populate('participant'));
 
-        return conference;
+        return zip(of(document), participant$).pipe(
+          map(([ document, participant ]) => {
+            let conference: Conference = {
+              uuid: document.uuid,
+              updated: document.updated,
+              count: document.count,
+              unread: document.unread,
+              participant: {
+                uuid: participant.uuid,
+                name: participant.name,
+              }
+            };
+
+            return conference;
+          })
+        );
       })
     );
   }
 
-  upsertConference(conference: Conference): Observable<ConferenceDocument> {
-    return this.$.pipe(switchMap(db => from(db.conferences.atomicUpsert(conference))));
+  upsertConference(conference: Conference): Observable<Conference> {
+    let document: ConferenceDocType = {
+      uuid: conference.uuid,
+      updated: conference.updated,
+      count: conference.count,
+      unread: conference.unread,
+      participant: conference.participant.uuid
+    };
+
+    return this.$.pipe(
+      switchMap(db => from(db.conferences.atomicUpsert(document))),
+      switchMap((document: ConferenceDocument) => {
+        let participant$ = from(document.populate('participant'));
+
+        return zip(of(document), participant$).pipe(
+          map(([ document, participant ]) => {
+            let conference: Conference = {
+              uuid: document.uuid,
+              updated: document.updated,
+              count: document.count,
+              unread: document.unread,
+              participant: {
+                uuid: participant.uuid,
+                name: participant.name,
+              }
+            };
+
+            return conference;
+          })
+        );
+      })
+    );
   }
 
   getMessages(): Observable<Message[]> {
@@ -166,72 +241,132 @@ export class DatabaseService implements OnDestroy {
     // then transfrom every MessageDocument into Message instance
     return this.$.pipe(
       switchMap(db => db.messages.find().sort({ date: -1 }).$),
-      map((documents: MessageDocument[]) => {
-        let messages: Message[] = [];
-
-        for (let document of documents) {
-          let message: Message = {
-            uuid: document.uuid,
-            author: {
-              uuid: document.author.uuid,
-              name: document.author.name
-            },
-            conference: {
-              uuid: document.conference.uuid
-            },
-            readed: document.readed,
-            readedAt: document.readedAt,
-            type: document.type,
-            date: document.date,
-            content: document.content,
-            consumed: document.consumed,
-            edited: document.edited
-          };
-
-          if ('participant' in document.conference) {
-            message['conference']['participant'] = document.conference.participant;
-          }
-
-          messages.push(message);
+      switchMap((documents: MessageDocument[]) => {
+        if (documents.length === 0) {
+          return of([] as Message[]);
         }
 
-        return messages;
+        let conferences$ = zip(...documents.map(d => from(d.populate('conference'))));
+        let authors$ = zip(...documents.map(d => from(d.populate('author'))));
+
+        return zip(of(documents), conferences$, authors$).pipe(
+          switchMap(([ documents, conferences, authors ]) => {
+            let participants$ = zip(...conferences.map((d: ConferenceDocument) => from(d.populate('participant'))));
+
+            return zip(of(documents), of(conferences), of(authors), participants$ as Observable<UserDocument[]>); 
+          }),
+          map(([ documents, conferences, authors, participants ]) => {
+            conferences = conferences.map((document: ConferenceDocument, key: number) => {
+              let conference: Conference = {
+                uuid: document.uuid,
+                updated: document.updated,
+                count: document.count,
+                unread: document.unread,
+                participant: {
+                  uuid: participants[key].uuid,
+                  name: participants[key].name,
+                }
+              };
+
+              return conference;
+            });
+
+            let messages: Message[] = documents.map((document, key) => {
+              let message: Message = {
+                uuid: document.uuid,
+                conference: conferences[key],
+                author: {
+                  uuid: authors[key].uuid,
+                  name: authors[key].name,
+                },
+                readed: document.readed,
+                readedAt: document.readedAt,
+                type: document.type,
+                date: document.date,
+                content: document.content,
+                consumed: document.consumed,
+                edited: document.edited
+              }
+
+              return message;
+            });
+
+            return messages;
+          })
+        );
       })
     );
   }
 
   getMessagesByParticipant(uuid: string, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
     return this.$.pipe(
-      switchMap(
-        db => db.messages.find({ 'conference.participant': uuid })
-        .sort({ date: -1 })
-        .limit(limit)
-        .$
-      ),
-      map((documents: MessageDocument[]) => {
-        let messages: Message[] = [];
-
-        for (let document of documents) {
-          let message: Message = {
-            uuid: document.uuid,
-            author: {
-              uuid: document.author.uuid,
-              name: document.author.name
-            },
-            conference: document.conference,
-            readed: document.readed,
-            readedAt: document.readedAt,
-            type: document.type,
-            date: document.date,
-            content: document.content,
-            consumed: document.consumed,
-            edited: document.edited
-          };
-
-          messages.push(message);
+      switchMap(db => db.conferences.findOne().where('participant').eq(uuid).$),
+      filter(document => !!document),
+      switchMap((document: ConferenceDocument) => {
+        return this.$.pipe(
+          switchMap(
+            db => db.messages.find({ 'conference': document.uuid })
+            .sort({ date: -1 })
+            .limit(limit)
+            .$
+          )
+        )
+      }),
+      switchMap((documents: MessageDocument[]) => {
+        if (documents.length === 0) {
+          return of([] as Message[]);
         }
 
-        return messages;
+        let conferences$ = zip(...documents.map(d => from(d.populate('conference'))));
+        let authors$ = zip(...documents.map(d => from(d.populate('author'))));
+
+        return zip(of(documents), conferences$, authors$).pipe(
+          switchMap(([ documents, conferences, authors ]) => {
+            let participants$ = zip(...conferences.map((d: ConferenceDocument) => from(d.populate('participant'))));
+
+            return zip(of(documents), of(conferences), of(authors), participants$ as Observable<UserDocument[]>); 
+          }),
+          map(([ documents, conferences, authors, participants ]) => {
+            conferences = conferences.map((document: ConferenceDocument, key: number) => {
+              let conference: Conference = {
+                uuid: document.uuid,
+                updated: document.updated,
+                count: document.count,
+                unread: document.unread,
+                participant: {
+                  uuid: participants[key].uuid,
+                  name: participants[key].name,
+                  public_key: participants[key].public_key
+                }
+              };
+
+              return conference;
+            });
+
+            let messages: Message[] = documents.map((document, key) => {
+              let message: Message = {
+                uuid: document.uuid,
+                conference: conferences[key],
+                author: {
+                  uuid: authors[key].uuid,
+                  name: authors[key].name,
+                  public_key: authors[key].public_key
+                },
+                readed: document.readed,
+                readedAt: document.readedAt,
+                type: document.type,
+                date: document.date,
+                content: document.content,
+                consumed: document.consumed,
+                edited: document.edited
+              }
+
+              return message;
+            });
+
+            return messages;
+          })
+        );
       })
     );
   }
@@ -239,76 +374,146 @@ export class DatabaseService implements OnDestroy {
 
   getOldMessagesByParticipant(uuid: string, timestamp: number, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
     return this.$.pipe(
-      switchMap(
-        db => from(
-          db.messages.find({ $and: [{ 'conference.participant': { $eq: uuid } }, { date: { $lt: timestamp } }] })
-          .sort({ date: -1 })
-          .limit(limit)
-          .$
+      switchMap(db => from(db.conferences.findOne().where('participant').eq(uuid).exec())),
+      filter(document => !!document),
+      switchMap((document: ConferenceDocument) => {
+        return this.$.pipe(
+          switchMap(
+            db => db.messages.find({ $and: [{ 'conference': { $eq: document.uuid } }, { date: { $lt: timestamp } }] })
+            .sort({ date: -1 })
+            .limit(limit)
+            .$
+          )
         )
-      ),
-      map((documents: MessageDocument[]) => {
-        let messages: Message[] = [];
-
-        for (let document of documents) {
-          let message: Message = {
-            uuid: document.uuid,
-            author: {
-              uuid: document.author.uuid,
-              name: document.author.name
-            },
-            conference: document.conference,
-            readed: document.readed,
-            readedAt: document.readedAt,
-            type: document.type,
-            date: document.date,
-            content: document.content,
-            consumed: document.consumed,
-            edited: document.edited
-          };
-
-          messages.push(message);
+      }),
+      switchMap((documents: MessageDocument[]) => {
+        if (documents.length === 0) {
+          return of([] as Message[]);
         }
 
-        return messages;
+        let conferences$ = zip(...documents.map(d => from(d.populate('conference'))));
+        let authors$ = zip(...documents.map(d => from(d.populate('author'))));
+
+        return zip(of(documents), conferences$, authors$).pipe(
+          switchMap(([ documents, conferences, authors ]) => {
+            let participants$ = zip(...conferences.map((d: ConferenceDocument) => from(d.populate('participant'))));
+
+            return zip(of(documents), of(conferences), of(authors), participants$ as Observable<UserDocument[]>); 
+          }),
+          map(([ documents, conferences, authors, participants ]) => {
+            conferences = conferences.map((document: ConferenceDocument, key: number) => {
+              let conference: Conference = {
+                uuid: document.uuid,
+                updated: document.updated,
+                count: document.count,
+                unread: document.unread,
+                participant: {
+                  uuid: participants[key].uuid,
+                  name: participants[key].name,
+                  public_key: participants[key].public_key
+                }
+              };
+
+              return conference;
+            });
+
+            let messages: Message[] = documents.map((document, key) => {
+              let message: Message = {
+                uuid: document.uuid,
+                conference: conferences[key],
+                author: {
+                  uuid: authors[key].uuid,
+                  name: authors[key].name,
+                  public_key: authors[key].public_key
+                },
+                readed: document.readed,
+                readedAt: document.readedAt,
+                type: document.type,
+                date: document.date,
+                content: document.content,
+                consumed: document.consumed,
+                edited: document.edited
+              }
+
+              return message;
+            });
+
+            return messages;
+          })
+        );
       })
     );
   }
 
   getNewMessagesByParticipant(uuid: string, timestamp: number, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
     return this.$.pipe(
-      switchMap(
-        db => from(
-          db.messages.find({ $and: [{ 'conference.participant': { $eq: uuid } }, { date: { $gt: timestamp } }] })
-          .sort({ date: 1 })
-          .limit(limit)
-          .$
+      switchMap(db => from(db.conferences.findOne().where('participant').eq(uuid).exec())),
+      filter(document => !!document),
+      switchMap((document: ConferenceDocument) => {
+        return this.$.pipe(
+          switchMap(
+            db => db.messages.find({ $and: [{ 'conference': { $eq: document.uuid } }, { date: { $gt: timestamp } }] })
+            .sort({ date: 1 })
+            .limit(limit)
+            .$     
+          )
         )
-      ),
-      map((documents: MessageDocument[]) => {
-        let messages: Message[] = [];
-
-        for (let document of documents) {
-          let message: Message = {
-            uuid: document.uuid,
-            author: {
-              uuid: document.author.uuid,
-              name: document.author.name
-            },
-            conference: document.conference,
-            readed: document.readed,
-            readedAt: document.readedAt,
-            type: document.type,
-            date: document.date,
-            content: document.content,
-            consumed: document.consumed,
-            edited: document.edited
-          };
-
-          messages.push(message);
+      }),
+      switchMap((documents: MessageDocument[]) => {
+        if (documents.length === 0) {
+          return of([] as Message[]);
         }
 
-        return messages;
+        let conferences$ = zip(...documents.map(d => from(d.populate('conference'))));
+        let authors$ = zip(...documents.map(d => from(d.populate('author'))));
+
+        return zip(of(documents), conferences$, authors$).pipe(
+          switchMap(([ documents, conferences, authors ]) => {
+            let participants$ = zip(...conferences.map((d: ConferenceDocument) => from(d.populate('participant'))));
+
+            return zip(of(documents), of(conferences), of(authors), participants$ as Observable<UserDocument[]>); 
+          }),
+          map(([ documents, conferences, authors, participants ]) => {
+            conferences = conferences.map((document: ConferenceDocument, key: number) => {
+              let conference: Conference = {
+                uuid: document.uuid,
+                updated: document.updated,
+                count: document.count,
+                unread: document.unread,
+                participant: {
+                  uuid: participants[key].uuid,
+                  name: participants[key].name,
+                  public_key: participants[key].public_key
+                }
+              };
+
+              return conference;
+            });
+
+            let messages: Message[] = documents.map((document, key) => {
+              let message: Message = {
+                uuid: document.uuid,
+                conference: conferences[key],
+                author: {
+                  uuid: authors[key].uuid,
+                  name: authors[key].name,
+                  public_key: authors[key].public_key
+                },
+                readed: document.readed,
+                readedAt: document.readedAt,
+                type: document.type,
+                date: document.date,
+                content: document.content,
+                consumed: document.consumed,
+                edited: document.edited
+              }
+
+              return message;
+            });
+
+            return messages;
+          })
+        );
       })
     );
   }
@@ -321,34 +526,64 @@ export class DatabaseService implements OnDestroy {
         .limit(limit)
         .$
       ),
-      map((documents: MessageDocument[]) => {
-        let messages: Message[] = [];
-
-        for (let document of documents) {
-          let message: Message = {
-            uuid: document.uuid,
-            author: {
-              uuid: document.author.uuid,
-              name: document.author.name
-            },
-            conference: document.conference,
-            readed: document.readed,
-            readedAt: document.readedAt,
-            type: document.type,
-            date: document.date,
-            content: document.content,
-            consumed: document.consumed,
-            edited: document.edited
-          };
-
-          messages.push(message);
+      switchMap((documents: MessageDocument[]) => {
+        if (documents.length === 0) {
+          return of([] as Message[]);
         }
 
-        return messages;
+        let conferences$ = zip(...documents.map(d => from(d.populate('conference'))));
+        let authors$ = zip(...documents.map(d => from(d.populate('author'))));
+
+        return zip(of(documents), conferences$, authors$).pipe(
+          switchMap(([ documents, conferences, authors ]) => {
+            let participants$ = zip(...conferences.map((d: ConferenceDocument) => from(d.populate('participant'))));
+
+            return zip(of(documents), of(conferences), of(authors), participants$ as Observable<UserDocument[]>); 
+          }),
+          map(([ documents, conferences, authors, participants ]) => {
+            conferences = conferences.map((document: ConferenceDocument, key: number) => {
+              let conference: Conference = {
+                uuid: document.uuid,
+                updated: document.updated,
+                count: document.count,
+                unread: document.unread,
+                participant: {
+                  uuid: participants[key].uuid,
+                  name: participants[key].name,
+                  public_key: participants[key].public_key
+                }
+              };
+
+              return conference;
+            });
+
+            let messages: Message[] = documents.map((document, key) => {
+              let message: Message = {
+                uuid: document.uuid,
+                conference: conferences[key],
+                author: {
+                  uuid: authors[key].uuid,
+                  name: authors[key].name,
+                  public_key: authors[key].public_key
+                },
+                readed: document.readed,
+                readedAt: document.readedAt,
+                type: document.type,
+                date: document.date,
+                content: document.content,
+                consumed: document.consumed,
+                edited: document.edited
+              }
+
+              return message;
+            });
+
+            return messages;
+          })
+        );
       })
     );
   }
-
 
   getOldMessagesByConference(uuid: string, timestamp: number, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
     return this.$.pipe(
@@ -360,30 +595,61 @@ export class DatabaseService implements OnDestroy {
           .$
         )
       ),
-      map((documents: MessageDocument[]) => {
-        let messages: Message[] = [];
-
-        for (let document of documents) {
-          let message: Message = {
-            uuid: document.uuid,
-            author: {
-              uuid: document.author.uuid,
-              name: document.author.name
-            },
-            conference: document.conference,
-            readed: document.readed,
-            readedAt: document.readedAt,
-            type: document.type,
-            date: document.date,
-            content: document.content,
-            consumed: document.consumed,
-            edited: document.edited
-          };
-
-          messages.push(message);
+      switchMap((documents: MessageDocument[]) => {
+        if (documents.length === 0) {
+          return of([] as Message[]);
         }
 
-        return messages;
+        let conferences$ = zip(...documents.map(d => from(d.populate('conference'))));
+        let authors$ = zip(...documents.map(d => from(d.populate('author'))));
+
+        return zip(of(documents), conferences$, authors$).pipe(
+          switchMap(([ documents, conferences, authors ]) => {
+            let participants$ = zip(...conferences.map((d: ConferenceDocument) => from(d.populate('participant'))));
+
+            return zip(of(documents), of(conferences), of(authors), participants$ as Observable<UserDocument[]>); 
+          }),
+          map(([ documents, conferences, authors, participants ]) => {
+            conferences = conferences.map((document: ConferenceDocument, key: number) => {
+              let conference: Conference = {
+                uuid: document.uuid,
+                updated: document.updated,
+                count: document.count,
+                unread: document.unread,
+                participant: {
+                  uuid: participants[key].uuid,
+                  name: participants[key].name,
+                  public_key: participants[key].public_key
+                }
+              };
+
+              return conference;
+            });
+
+            let messages: Message[] = documents.map((document, key) => {
+              let message: Message = {
+                uuid: document.uuid,
+                conference: conferences[key],
+                author: {
+                  uuid: authors[key].uuid,
+                  name: authors[key].name,
+                  public_key: authors[key].public_key
+                },
+                readed: document.readed,
+                readedAt: document.readedAt,
+                type: document.type,
+                date: document.date,
+                content: document.content,
+                consumed: document.consumed,
+                edited: document.edited
+              }
+
+              return message;
+            });
+
+            return messages;
+          })
+        );
       })
     );
   }
@@ -391,43 +657,127 @@ export class DatabaseService implements OnDestroy {
   getNewMessagesByConference(uuid: string, timestamp: number, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
     return this.$.pipe(
       switchMap(
-        db => from(
-          db.messages.find({ $and: [{ conference: { $eq: uuid } }, { date: { $gt: timestamp } }] })
+        db => db.messages.find({ $and: [{ conference: { $eq: uuid } }, { date: { $gt: timestamp } }] })
           .sort({ date: 1 })
           .limit(limit)
           .$
-        )
       ),
-      map((documents: MessageDocument[]) => {
-        let messages: Message[] = [];
-
-        for (let document of documents) {
-          let message: Message = {
-            uuid: document.uuid,
-            author: {
-              uuid: document.author.uuid,
-              name: document.author.name
-            },
-            conference: document.conference,
-            readed: document.readed,
-            readedAt: document.readedAt,
-            type: document.type,
-            date: document.date,
-            content: document.content,
-            consumed: document.consumed,
-            edited: document.edited
-          };
-
-          messages.push(message);
+      switchMap((documents: MessageDocument[]) => {
+        if (documents.length === 0) {
+          return of([] as Message[]);
         }
 
-        return messages;
+        let conferences$ = zip(...documents.map(d => from(d.populate('conference'))));
+        let authors$ = zip(...documents.map(d => from(d.populate('author'))));
+
+        return zip(of(documents), conferences$, authors$).pipe(
+          switchMap(([ documents, conferences, authors ]) => {
+            let participants$ = zip(...conferences.map((d: ConferenceDocument) => from(d.populate('participant'))));
+
+            return zip(of(documents), of(conferences), of(authors), participants$ as Observable<UserDocument[]>); 
+          }),
+          map(([ documents, conferences, authors, participants ]) => {
+            conferences = conferences.map((document: ConferenceDocument, key: number) => {
+              let conference: Conference = {
+                uuid: document.uuid,
+                updated: document.updated,
+                count: document.count,
+                unread: document.unread,
+                participant: {
+                  uuid: participants[key].uuid,
+                  name: participants[key].name,
+                  public_key: participants[key].public_key
+                }
+              };
+
+              return conference;
+            });
+
+            let messages: Message[] = documents.map((document, key) => {
+              let message: Message = {
+                uuid: document.uuid,
+                conference: conferences[key],
+                author: {
+                  uuid: authors[key].uuid,
+                  name: authors[key].name,
+                  public_key: authors[key].public_key
+                },
+                readed: document.readed,
+                readedAt: document.readedAt,
+                type: document.type,
+                date: document.date,
+                content: document.content,
+                consumed: document.consumed,
+                edited: document.edited
+              }
+
+              return message;
+            });
+
+            return messages;
+          })
+        );
       })
     );
   }
 
-  upsertMessage(message: Message): Observable<MessageDocument> {
-    return this.$.pipe(switchMap(db => from(db.messages.atomicUpsert(message))));
+  upsertMessage(message: Message): Observable<Message> {
+    let document: MessageDocType = {
+      uuid: message.uuid,
+      conference: message.conference.uuid,
+      author: message.author.uuid,
+      readed: message.readed,
+      readedAt: message.readedAt,
+      type: message.type,
+      date: message.date,
+      content: message.content,
+      consumed: message.consumed,
+      edited: message.edited
+    };
+
+    return this.$.pipe(
+      switchMap(db => from(db.messages.atomicUpsert(document))),
+      switchMap((document: MessageDocument) => {
+        let conference$ = from(document.populate('conference'));
+        let author$ = from(document.populate('author'));
+
+        return zip(of(document), conference$, author$).pipe(
+          switchMap(([ document, conference, author ]) => {
+            let participant$ = from(conference.populate('participant'));
+
+            return zip(of(document), of(conference), of(author), participant$ as Observable<User>);
+          }),
+          map(([document, conference, author, participant ]) => {
+            let message: Message = {
+              uuid: document.uuid,
+              conference: {
+                uuid: conference.uuid,
+                updated: conference.updated,
+                count: conference.count,
+                unread: conference.unread,
+                participant: {
+                  uuid: participant.uuid,
+                  name: participant.name
+                }
+              },
+              author: {
+                uuid: author.uuid,
+                name: author.name
+              },
+              readed: document.readed,
+              readedAt: document.readedAt,
+              type: document.type,
+              date: document.date,
+              content: document.content,
+              consumed: document.consumed,
+              edited: document.edited
+            };
+
+            return message;
+          })
+        );
+      })
+    );
   }
 
   ngOnDestroy() {

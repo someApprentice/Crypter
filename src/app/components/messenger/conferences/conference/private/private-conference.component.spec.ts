@@ -178,7 +178,10 @@ describe('PrivateConferenceComponent', () => {
           "name":"Alice"
         },
         "conference": {
-          "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87"
+          "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
+          "updated": 1559016403,
+          "count": 2,
+          "unread": 2,
         },
         "readed":false,
         "date":1559016403,
@@ -194,7 +197,10 @@ describe('PrivateConferenceComponent', () => {
           "name":"Bob"
         },
         "conference": {
-          "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87"
+          "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
+          "updated": 1559016403,
+          "count": 2,
+          "unread": 2,
         },
         "readed":false,
         "date":1559016403,

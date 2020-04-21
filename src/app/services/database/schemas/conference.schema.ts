@@ -1,8 +1,8 @@
 import { RxJsonSchema } from 'rxdb';
 
-import { Conference } from '../../../models/Conference';
+import { ConferenceDocType } from './../documents/conference.document';
 
-const conferenceSchema: RxJsonSchema<Conference> = {
+const conferenceSchema: RxJsonSchema<ConferenceDocType> = {
   version: 0,
   type: 'object',
   properties: {
@@ -21,16 +21,8 @@ const conferenceSchema: RxJsonSchema<Conference> = {
       type: 'number'
     },
     participant: {
-      type: 'object',
-      properties: {
-        uuid: {
-          type: 'string'
-        },
-        name: {
-          type: 'string'
-        }
-      },
-      required: ['uuid', 'name']
+      ref: 'users',
+      type: 'string'
     }
   },
   required: ['uuid', 'updated', 'count', 'unread']

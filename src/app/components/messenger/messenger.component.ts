@@ -135,8 +135,18 @@ export class MessengerComponent implements OnInit, OnDestroy {
     this.authService.user.last_seen = last_seen;
 
     this.wamp.topic(`conference.updated.for.${this.authService.user.uuid}`).pipe(
-      takeUntil(this.unsubscribe$)
-    ).subscribe(this.onConference.bind(this));
+      takeUntil(this.unsubscribe$),
+      delayWhen((e: EventMessage) => {
+        let user: User = e.args[0].participant;
+
+        return this.databaseService.upsertUser(e.args[0].participant);
+      }),
+      switchMap((e: EventMessage) => {
+        let conference: Conference = e.args[0];
+
+        return this.databaseService.upsertConference(conference);
+      })
+    ).subscribe();
 
     let user$ = this.databaseService.getUser(this.authService.user.uuid);
 

@@ -1,12 +1,10 @@
 import { User } from './User';
+import { Conference } from './Conference';
 
 export interface Message {
   uuid: string,
+  conference: Conference,
   author: User,
-  conference: {
-    uuid: string,
-    participant?: string
-  },
   readed: boolean,
   readedAt?: string
   type: string,

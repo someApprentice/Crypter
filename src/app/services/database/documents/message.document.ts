@@ -1,5 +1,16 @@
 import { RxDocument } from 'rxdb';
 
-import { Message } from '../../../models/Message';
+export type MessageDocType = {
+  uuid: string,
+  conference: string,
+  author: string,
+  readed: boolean,
+  readedAt?: string
+  type: string,
+  date: number,
+  content: string,
+  consumed?: boolean,
+  edited?: boolean
+};
 
-export type MessageDocument = RxDocument<Message>
+export type MessageDocument = RxDocument<MessageDocType>;

@@ -18,8 +18,6 @@ import { MessengerService } from '../../../messenger.service';
 import { AuthService } from '../../../../auth/auth.service';
 
 import { DatabaseService } from '../../../../../services/database/database.service';
-import { ConferenceDocument } from '../../../../../services/database/documents/conference.document';
-import { MessageDocument } from '../../../../../services/database/documents/message.document';
 
 import { User } from '../../../../../models/User';
 import { Conference } from '../../../../../models/Conference';
@@ -88,6 +86,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
     // Get uuid from route params
     // Then get participant User from API
+    //   If it's a browser
+    //     Push it into indexeDB
     // Then get Conference from API
     //   If it's a browser
     //     Push it into indexeDB
@@ -110,6 +110,13 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         this.isParticipantLoading = true;
 
         return this.authService.getUser(uuid);
+      }),
+      switchMap((participant: User) => {
+        if (isPlatformBrowser(this.platformId)) {
+          return this.databaseService.upsertUser(participant);
+        }
+
+        return of(participant);
       }),
       tap((participant: User) => {
         this.isParticipantLoading = false;
@@ -276,6 +283,10 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       this.messengerService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
         tap(() => this.isOldMessagesLoading = true),
         switchMap((messages: Message[]) => {
+          if (messages.length === 0) {
+            return of(messages);
+          }
+
           let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.user.private_key)));
 
           return zip(from(messages), decrypted$).pipe(
@@ -367,6 +378,10 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
       this.messengerService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
         switchMap((messages: Message[]) => {
+          if (messages.length === 0) {
+            return of([] as Message[]);
+          }
+
           let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.user.private_key)));
 
           return zip(from(messages), decrypted$).pipe(

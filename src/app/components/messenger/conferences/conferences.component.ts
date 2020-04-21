@@ -4,7 +4,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
-import { Subject, from, throwError } from 'rxjs';
+import { Subject, from, of, zip, throwError } from 'rxjs';
 import { map, switchMap, takeUntil } from 'rxjs/operators';
 
 import { MessengerService } from '../messenger.service';
@@ -52,40 +52,38 @@ export class ConferencesComponent implements OnInit, OnDestroy {
       this.isConferencesLoading = true;
     }
 
-    // get Conferences from api
-    // if it's a browser push them into indexeDB
-    // if it's a server push them into conferences array
-    this.messengerService.getConferences().subscribe(
+    // Get Conferences from api
+    // Then if it's a browser push participants into indexeDB
+    // Then if it's a browser push conferences into indexeDB
+    this.messengerService.getConferences().pipe(
+      switchMap((conferences: Conference[]) => {
+        if (isPlatformBrowser(this.platformId)) {
+          return zip(...conferences.map(c => this.databaseService.upsertUser(c['participant']))).pipe(
+            switchMap(() => of(conferences))
+          );
+        }
+
+        return of(conferences);
+      }),
+      switchMap((conferences: Conference[]) => {
+        if (isPlatformBrowser(this.platformId)) {
+          return zip(...conferences.map(c => this.databaseService.upsertConference(c))).pipe(
+            switchMap(() => of(conferences))
+          );
+        }
+
+        return of(conferences);
+      })
+    ).subscribe(
       (conferences: Conference[]) => {
-        for (let conference of conferences) {
-          if (isPlatformBrowser(this.platformId)) {
-            let c = <Conference> {
-              uuid: conference.uuid,
-              updated: conference.updated,
-              count: conference.count,
-              unread: conference.unread,
-              participant: conference.participant
-            };
+        this.conferences = conferences;
 
-            this.databaseService.upsertConference(c).subscribe();
-          }
-        }
-
-        if (isPlatformServer(this.platformId)) {
-          this.conferences = conferences;
-
-          this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
-        }
+        this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
 
         this.state.set(CONFERENCES_STATE_KEY, conferences as Conference[]);
 
         this.isConferencesLoading = false;
-      },
-      // err => {
-      //   if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
-      //     this.error = err.message;
-      //   }
-      // }
+      }
     );
 
     if (isPlatformBrowser(this.platformId)) {
@@ -107,12 +105,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
           this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
 
           this.isConferencesLoading = false;
-        },
-        // err => {
-        //   if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
-        //     this.error = err.message;
-        //   }
-        // }
+        }
       );
     }
   }
