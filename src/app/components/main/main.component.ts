@@ -8,7 +8,7 @@ import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../auth/auth.service';
 import { StorageService } from '../../services/storage/storage.service';
 
-import { User } from '../../models/User';
+import { User } from '../../models/user.model';
 
 @Component({
   selector: 'app-main',

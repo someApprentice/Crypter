@@ -24,9 +24,9 @@ import { CrypterService } from '../../services/crypter.service';
 import { DatabaseService } from '../../services/database/database.service';
 import { AuthService } from '../auth/auth.service';
 
-import { User } from '../../models/User';
-import { Conference } from '../../models/Conference';
-import { Message } from '../../models/Message';
+import { User } from '../../models/user.model';
+import { Conference } from '../../models/conference.model';
+import { Message } from '../../models/message.model';
 
 @Component({
   selector: 'app-messenger',

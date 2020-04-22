@@ -23,8 +23,8 @@ import { MessengerComponent } from '../messenger.component';
 import { ConferencesComponent } from './conferences.component';
 
 
-import { Conference } from '../../../models/Conference';
-import { Message } from '../../../models/Message';
+import { Conference } from '../../../models/conference.model';
+import { Message } from '../../../models/message.model';
 
 describe('ConferencesComponent', () => {
   let httpTestingController: HttpTestingController;

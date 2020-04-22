@@ -3,7 +3,7 @@ import { TestBed, async, inject } from '@angular/core/testing';
 import { Router } from '@angular/router';
 
 import { AuthService } from './auth.service';
-import { User } from '../../models/User';
+import { User } from '../../models/user.model';
 
 import { AuthGuard } from './auth.guard';
 

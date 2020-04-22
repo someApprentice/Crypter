@@ -6,8 +6,8 @@ import { debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs/operato
 
 import { MessengerService } from '../messenger.service';
 
-import { User } from '../../../models/User';
-import { Message } from '../../../models/Message';
+import { User } from '../../../models/user.model';
+import { Message } from '../../../models/message.model';
 
 @Component({
   selector: 'app-search-user',

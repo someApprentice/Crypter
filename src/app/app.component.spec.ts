@@ -12,7 +12,7 @@ import { of } from 'rxjs';
 
 import { AuthService } from './components/auth/auth.service';
 
-import { User } from './models/User';
+import { User } from './models/user.model';
 
 
 import { AppComponent } from './app.component';

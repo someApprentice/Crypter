@@ -7,7 +7,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 
 import { Router } from '@angular/router';
 
-import { User } from '../../../models/User'
+import { User } from '../../../models/user.model'
 
 import { LogoutComponent } from './logout.component';
 

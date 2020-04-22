@@ -7,9 +7,9 @@ import { first, catchError } from 'rxjs/operators';
 
 import { AuthService } from '../auth/auth.service';
 
-import { User } from '../../models/User';
-import { Conference } from '../../models/Conference';
-import { Message } from '../../models/Message';
+import { User } from '../../models/user.model';
+import { Conference } from '../../models/conference.model';
+import { Message } from '../../models/message.model';
 
 @Injectable({
   providedIn: 'root'

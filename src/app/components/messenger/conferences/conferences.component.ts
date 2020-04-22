@@ -13,8 +13,8 @@ import { DatabaseService } from '../../../services/database/database.service';
 import { ConferenceDocument } from '../../../services/database/documents/conference.document';
 import { MessageDocument } from '../../../services/database/documents/message.document';
 
-import { Conference } from '../../../models/Conference';
-import { Message } from '../../../models/Message';
+import { Conference } from '../../../models/conference.model';
+import { Message } from '../../../models/message.model';
 
 const CONFERENCES_STATE_KEY = makeStateKey('conferences');
 

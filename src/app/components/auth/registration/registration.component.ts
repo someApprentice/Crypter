@@ -8,7 +8,7 @@ import { debounceTime, take, map, switchMap, tap, takeUntil } from 'rxjs/operato
 import { CrypterService } from '../../../services/crypter.service';
 import { AuthService } from '../auth.service';
 
-import { User } from '../../../models/User';
+import { User } from '../../../models/user.model';
 
 @Component({
   selector: 'app-registration',

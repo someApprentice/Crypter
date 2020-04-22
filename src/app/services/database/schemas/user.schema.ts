@@ -1,6 +1,6 @@
 import { RxJsonSchema } from 'rxdb';
 
-import { User } from '../../../models/User';
+import { User } from '../../../models/user.model';
 
 const userSchema: RxJsonSchema<User> = {
   version: 0,

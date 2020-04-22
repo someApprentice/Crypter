@@ -23,9 +23,9 @@ import userSchema from './schemas/user.schema';
 import conferenceSchema from './schemas/conference.schema';
 import messageSchema from './schemas/message.schema';
 
-import { User } from '../../models/User';
-import { Conference } from '../../models/Conference';
-import { Message } from '../../models/Message';
+import { User } from '../../models/user.model';
+import { Conference } from '../../models/conference.model';
+import { Message } from '../../models/message.model';
 
 type Collections = {
   users: UserCollection,
