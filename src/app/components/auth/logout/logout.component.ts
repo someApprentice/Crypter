@@ -28,9 +28,16 @@ export class LogoutComponent {
     this.pending = true;
 
     this.authService.logout().pipe(
+      tap(() => this.authService.user = undefined),
       tap(() => this.pending = false)
     ).subscribe(
       d => {
+        localStorage.removeItem('uuid');
+        localStorage.removeItem('email');
+        localStorage.removeItem('name');
+        localStorage.removeItem('hash');
+        localStorage.removeItem('last_seen');
+
         this.router.navigate(['']);
       },
       err => {

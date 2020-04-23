@@ -25,14 +25,14 @@ describe('StorageService', () => {
 
     let jwt = 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY';
 
-    localStorage.setItem('jwt', jwt);
+    localStorage.setItem('hash', jwt);
 
     service = TestBed.get(StorageService);
 
     // is it strict enough to revise instance of LocalStorage?
     expect(service.storage).toEqual(jasmine.any(Storage));
 
-    expect(service.storage.jwt).toEqual(jwt);
+    expect(service.storage.hash).toEqual(jwt);
   });
 
   it('should provide StorageWrapper and retrive somve value of it', () => {
@@ -41,7 +41,7 @@ describe('StorageService', () => {
     TestBed.configureTestingModule({
       providers: [ 
         { provide: PLATFORM_ID, useValue: 'server' },
-        { provide: REQUEST, useValue: { cookies: { jwt }  } }
+        { provide: REQUEST, useValue: { cookies: { hash: jwt }  } }
       ]
     });
 
@@ -49,6 +49,6 @@ describe('StorageService', () => {
 
     expect(service.storage).toEqual(jasmine.any(StorageWrapper));
 
-    expect(service.storage.jwt).toEqual(jwt);
+    expect(service.storage.hash).toEqual(jwt);
   }) 
 });

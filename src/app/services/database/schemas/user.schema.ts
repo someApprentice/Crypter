@@ -16,7 +16,7 @@ const userSchema: RxJsonSchema<User> = {
     name: {
       type: 'string'
     },
-    jwt: {
+    hash: {
       type: 'string'
     },
     last_seen: {

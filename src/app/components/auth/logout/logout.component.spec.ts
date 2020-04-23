@@ -24,14 +24,14 @@ describe('LogoutComponent', () => {
     uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     email: 'tester@crypter.com',
     name: 'Tester',
-    jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
+    hash: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
   };
 
   beforeEach(async(() => {
     localStorage.setItem('uuid', user.uuid);
     localStorage.setItem('email', user.email);
     localStorage.setItem('name', user.name);
-    localStorage.setItem('jwt', user.jwt);
+    localStorage.setItem('hash', user.hash);
 
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
@@ -55,14 +55,14 @@ describe('LogoutComponent', () => {
     localStorage.removeItem('uuid');
     localStorage.removeItem('email');
     localStorage.removeItem('name');
-    localStorage.removeItem('jwt');
+    localStorage.removeItem('hash');
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should logout by setting localStorage and navigate to root url', () => {
+  it('should logout by setting authService.user and localStorage and navigate to root url', () => {
     let formDe = fixture.debugElement.query(By.css('form'));
 
     formDe.triggerEventHandler('ngSubmit', new Event('submit'));
@@ -72,14 +72,16 @@ describe('LogoutComponent', () => {
 
     expect(req.request.method).toEqual('POST');
     expect(req.request.headers.has('Authorization')).toBeTruthy();
-    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${user.jwt}`);
+    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${user.hash}`);
 
     req.flush('OK');
+
+    // expect(authService.user).toBeUndefined();
 
     expect(localStorage.getItem('uuid')).toBeNull();
     expect(localStorage.getItem('email')).toBeNull();
     expect(localStorage.getItem('name')).toBeNull();
-    expect(localStorage.getItem('jwt')).toBeNull();
+    expect(localStorage.getItem('hash')).toBeNull();
 
     expect(router.navigate).toHaveBeenCalledWith(['']);
   });
@@ -100,7 +102,7 @@ describe('LogoutComponent', () => {
 
     expect(req.request.method).toEqual('POST');
     expect(req.request.headers.has('Authorization')).toBeTruthy();
-    // expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${user.jwt}`);
+    // expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${user.hash}`);
 
     // Create mock ErrorEvent, raised when something goes wrong at the network level.
     // Connection timeout, DNS error, offline, etc

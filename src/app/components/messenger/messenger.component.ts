@@ -11,8 +11,8 @@ import {
 } from '@angular/animations';
 
 
-import { Subject, from, of, zip, throwError } from 'rxjs';
-import { tap, map, switchMap, mergeMap, delayWhen, shareReplay, takeUntil } from 'rxjs/operators';
+import { Subject, from, of, concat, zip, throwError } from 'rxjs';
+import { tap, map, reduce, switchMap, mergeMap, delayWhen, shareReplay, takeUntil } from 'rxjs/operators';
 
 import { SessionData } from 'thruway.js';
 
@@ -81,8 +81,6 @@ import { Message } from '../../models/message.model';
   providers: [ DatabaseService, WampService ]
 })
 export class MessengerComponent implements OnInit, OnDestroy {
-  @Input() user?: User;
-
   private unsubscribe$ = new Subject<void>();
 
   private wamp: WampService;
@@ -103,11 +101,17 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      if (this.user) {
-        this.databaseService.upsertUser(this.user).subscribe();
+      // Populate IndexeDB
+      // The private_key is only has after the User authenticated and
+      // decrypted it with a password
+      // Otherwise the User will be populated from IndexeDB
+      // see operations below
+      if ('private_key' in this.authService.user) {
+        this.databaseService.upsertUser(this.authService.user).subscribe();
       }
 
       this.databaseService.user$ = this.databaseService.getUser(this.authService.user.uuid).pipe(
+        takeUntil(this.unsubscribe$),
         shareReplay(1)
       );
 
@@ -118,7 +122,25 @@ export class MessengerComponent implements OnInit, OnDestroy {
       this.wamp.onOpen.pipe(
         takeUntil(this.unsubscribe$),
         tap(this.onOpen.bind(this)),
-        switchMap((session: SessionData) => this.messengerService.getReadedMessages(session.welcomeMsg.details.authextra.user.last_seen)) // update messages readed while client was offline
+        switchMap((session: SessionData) => {
+          // update readed messages while client was offline
+          return this.messengerService.getReadedMessages(session.welcomeMsg.details.authextra.user.last_seen).pipe(
+            switchMap((messages: Message[]) => zip(of(messages), this.databaseService.user$)),
+            switchMap(([ messages, user ]) => {
+              let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, user.private_key)));
+
+              return zip(from(messages), decrypted$).pipe(
+                reduce((acc, [ message, decrypted ]) => {
+                  message.content = decrypted;
+
+                  acc.push(message);
+
+                  return acc;
+                }, [])
+              )
+            })
+          )
+        })
       ).subscribe(messages => {
         for (let message of messages) {
           this.databaseService.upsertMessage(message).subscribe();
@@ -134,6 +156,8 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
     this.authService.user.last_seen = last_seen;
 
+    // TODO: upsert User in IndexeDB
+
     this.wamp.topic(`conference.updated.for.${this.authService.user.uuid}`).pipe(
       takeUntil(this.unsubscribe$),
       delayWhen((e: EventMessage) => {
@@ -148,14 +172,12 @@ export class MessengerComponent implements OnInit, OnDestroy {
       })
     ).subscribe();
 
-    let user$ = this.databaseService.getUser(this.authService.user.uuid);
-
     this.wamp.topic(`private.message.to.${this.authService.user.uuid}`).pipe(
       takeUntil(this.unsubscribe$),
       mergeMap((e: EventMessage) => {
         let message: Message = e.args[0];
 
-        return zip(of(message), user$)
+        return zip(of(message), this.databaseService.user$)
       }),
       switchMap(([ message, user ]) => {
         let decrypted$ = this.crypterService.decrypt(message.content, user.private_key);
@@ -175,7 +197,7 @@ export class MessengerComponent implements OnInit, OnDestroy {
       mergeMap((e: EventMessage) => {
         let message: Message = e.args[0];
 
-        return zip(of(message), user$)
+        return zip(of(message), this.databaseService.user$)
       }),
       switchMap(([ message, user ]) => {
         let decrypted$ = this.crypterService.decrypt(message.content, user.private_key);
@@ -191,38 +213,6 @@ export class MessengerComponent implements OnInit, OnDestroy {
     ).subscribe();
 
     return session;
-  }
-
-  onConference(e: EventMessage) {
-    let conference: Conference = {
-      uuid: e.args[0].uuid,
-      updated: e.args[0].updated,
-      count: e.args[0].count,
-      unread: e.args[0].unread,
-      participant: e.args[0].participant
-    };
-
-    this.databaseService.upsertConference(conference).subscribe();
-  }
-
-  onMessage(e: EventMessage) { 
-    let message: Message = {
-      uuid: e.args[0].uuid,
-      author: {
-        uuid: e.args[0].author.uuid,
-        name: e.args[0].author.name
-      },
-      conference: e.args[0].conference,
-      readed: e.args[0].readed,
-      readedAt: e.args[0].readedAt,
-      type: e.args[0].type,
-      date: e.args[0].date,
-      content: e.args[0].content,
-      consumed: e.args[0].consumed,
-      edited: e.args[0].edited
-    };
-
-    this.databaseService.upsertMessage(message).subscribe();
   }
 
   prepareRoute(outlet: RouterOutlet) {

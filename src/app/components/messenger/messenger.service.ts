@@ -28,7 +28,7 @@ export class MessengerService {
   getConferences(): Observable<Conference[]> {
     return this.http.get<Conference[]>(
       '/api/messenger/conferences',
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` })}
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` })}
     ).pipe(
       first()
     );
@@ -37,7 +37,7 @@ export class MessengerService {
   getConference(uuid: string): Observable<Conference> {
     return this.http.get<Conference>(
       `/api/messenger/conference/${uuid}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -46,7 +46,7 @@ export class MessengerService {
   getConferenceByParticipant(uuid: string): Observable<Conference|null> {
     return this.http.get<Conference>(
       `/api/messenger/conference_by_participant/${uuid}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first(),
       catchError(err => {
@@ -62,7 +62,7 @@ export class MessengerService {
   getReadedMessages(timestamp: number): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/readed_messages/?timestamp=${timestamp}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -71,7 +71,7 @@ export class MessengerService {
   getMessages(): Observable<Message[]> {
     return this.http.get<Message[]>(
       '/api/messenger/messages',
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -80,7 +80,7 @@ export class MessengerService {
   getMessagesByConference(uuid: string): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/messages/${uuid}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -89,7 +89,7 @@ export class MessengerService {
   getUnreadMessagesByConference(uuid: string, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/unread_messages/${uuid}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -98,7 +98,7 @@ export class MessengerService {
   getOldMessagesByConference(uuid: string, timestamp: number, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/old_messages/${uuid}?timestamp=${timestamp}&limit=${limit}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -107,7 +107,7 @@ export class MessengerService {
   getNewMessagesByConference(uuid: string, timestamp: number, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/new_messages/${uuid}?timestamp=${timestamp}&limit=${limit}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -116,7 +116,7 @@ export class MessengerService {
   getMessagesByParticipant(uuid: string): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/messages_by_participant/${uuid}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -125,7 +125,7 @@ export class MessengerService {
   getUnreadMessagesByParticipant(uuid: string, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/unread_messages_by_participant/${uuid}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -134,7 +134,7 @@ export class MessengerService {
   getOldMessagesByParticipant(uuid: string, timestamp: number, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/old_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );
@@ -143,7 +143,7 @@ export class MessengerService {
   getNewMessagesByParticipant(uuid: string, timestamp: number, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/new_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.jwt}` }) }
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()
     );

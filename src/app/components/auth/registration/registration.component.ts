@@ -112,26 +112,27 @@ export class RegistrationComponent implements OnInit, OnDestroy {
           key.publicKeyArmored,
           key.privateKeyArmored,
           key.revocationCertificate
+        ).pipe(
+          switchMap((user: User) => {
+            return zip(of(user), this.crypterService.decryptPrivateKey(user.private_key, password));
+          }),
+          map(([user, decryptedPrivateKey]) => {
+            user.private_key = decryptedPrivateKey;
+
+            return user;
+          })
         )
       }),
-      switchMap((user: User) => {
-        return zip(of(user), this.crypterService.decryptPrivateKey(user.private_key, password));
-      }),
-      map(([user, decryptedPrivateKey]) => {
-        user.private_key = decryptedPrivateKey;
-
-        return user;
-      }),
-      tap((user: User) => {
-        this.authService.user = user;
-
-        let route = this.router.config.find(r => r.path === redirect);
-
-        route.data['user'] = user;
-      }),
+      tap((user: User) => this.authService.user = user),
       tap(() => this.pending = false)
     ).subscribe(
-      d => {
+      (user: User) => {
+        localStorage.setItem('uuid', user.uuid);
+        localStorage.setItem('email', user.email);
+        localStorage.setItem('name', user.name);
+        localStorage.setItem('hash', user.hash);
+        localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+
         this.router.navigate([redirect]);
       },
       err => {

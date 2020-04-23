@@ -15,7 +15,7 @@ export class WampService extends Client {
             authextra: {
                 //'super' must be called before accessing 'this' in the constructor of a derived class.
                 //'Bearer token': this.token
-                'Bearer token': localStorage.jwt
+                'Bearer token': localStorage.hash
             }
         });
     }

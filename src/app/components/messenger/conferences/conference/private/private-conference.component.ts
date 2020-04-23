@@ -470,7 +470,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       let data = {
         'by': this.authService.user.uuid,
         'message': message.uuid,
-        'Bearer token': this.authService.user.jwt
+        'Bearer token': this.authService.user.hash
       };
 
       this.wamp.call('read', [data]).pipe(

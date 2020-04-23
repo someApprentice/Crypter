@@ -68,7 +68,7 @@ class AuthControllerTest extends WebTestCase
         $this->assertArrayHasKey('uuid', $data);
         $this->assertArrayHasKey('email', $data);
         $this->assertArrayHasKey('name', $data);
-        $this->assertArrayHasKey('jwt', $data);
+        $this->assertArrayHasKey('hash', $data);
         $this->assertArrayHasKey('public_key', $data);
         $this->assertArrayHasKey('private_key', $data);
         $this->assertArrayHasKey('revocation_certificate', $data);
@@ -76,7 +76,7 @@ class AuthControllerTest extends WebTestCase
         $this->assertNotNull($cookies->get('uuid'));
         $this->assertNotNull($cookies->get('email'));
         $this->assertNotNull($cookies->get('name'));
-        $this->assertNotNull($cookies->get('jwt'));
+        $this->assertNotNull($cookies->get('hash'));
 
 
         $client->request(
@@ -250,7 +250,7 @@ class AuthControllerTest extends WebTestCase
         $this->assertArrayHasKey('uuid', $data);
         $this->assertArrayHasKey('email', $data);
         $this->assertArrayHasKey('name', $data);
-        $this->assertArrayHasKey('jwt', $data);
+        $this->assertArrayHasKey('hash', $data);
         $this->assertArrayHasKey('last_seen', $data);
         $this->assertArrayHasKey('public_key', $data);
         $this->assertArrayHasKey('private_key', $data);
@@ -259,7 +259,7 @@ class AuthControllerTest extends WebTestCase
         $this->assertNotNull($cookies->get('uuid'));
         $this->assertNotNull($cookies->get('email'));
         $this->assertNotNull($cookies->get('name'));
-        $this->assertNotNull($cookies->get('jwt'));
+        $this->assertNotNull($cookies->get('hash'));
 
         $this->assertTrue($client->getResponse()->isSuccessful());
 
@@ -269,7 +269,7 @@ class AuthControllerTest extends WebTestCase
             $parameters = [],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$data['jwt']}"
+                'HTTP_AUTHORIZATION' => "Bearer {$data['hash']}"
             ]
         );
 
@@ -341,7 +341,7 @@ class AuthControllerTest extends WebTestCase
             $parameters = [],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$data['jwt']}"
+                'HTTP_AUTHORIZATION' => "Bearer {$data['hash']}"
             ]
         );
 
@@ -350,7 +350,7 @@ class AuthControllerTest extends WebTestCase
         $this->assertNull($cookies->get('uuid'));
         $this->assertNull($cookies->get('email'));
         $this->assertNull($cookies->get('name'));
-        $this->assertNull($cookies->get('jwt'));
+        $this->assertNull($cookies->get('hash'));
 
         $this->assertTrue($client->getResponse()->isSuccessful());
     }

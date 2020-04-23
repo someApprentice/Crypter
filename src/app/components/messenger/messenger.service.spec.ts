@@ -27,7 +27,7 @@ describe('MessengerService', () => {
         uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         email: 'tester@crypter.com',
         name: 'Tester',
-        jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
+        hash: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
       }
     };
 
@@ -103,7 +103,7 @@ describe('MessengerService', () => {
 
     expect(req.request.method).toEqual('GET');
     expect(req.request.headers.has('Authorization')).toBeTruthy();
-    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${authService.user.jwt}`);
+    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${authService.user.hash}`);
 
     req.flush(conferences);
   });
@@ -138,7 +138,7 @@ describe('MessengerService', () => {
 
     expect(req.request.method).toEqual('GET');
     expect(req.request.headers.has('Authorization')).toBeTruthy();
-    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${authService.user.jwt}`);
+    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${authService.user.hash}`);
 
     req.flush(conference);
   });
@@ -193,7 +193,7 @@ describe('MessengerService', () => {
 
     expect(req.request.method).toEqual('GET');
     expect(req.request.headers.has('Authorization')).toBeTruthy();
-    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${authService.user.jwt}`);
+    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${authService.user.hash}`);
 
     req.flush(messages);
   });
@@ -248,7 +248,7 @@ describe('MessengerService', () => {
 
     expect(req.request.method).toEqual('GET');
     expect(req.request.headers.has('Authorization')).toBeTruthy();
-    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${authService.user.jwt}`);
+    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${authService.user.hash}`);
 
     req.flush(messages);
   });

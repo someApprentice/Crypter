@@ -15,12 +15,12 @@ export class AuthService {
   user?: User;
 
   constructor(private http: HttpClient, private storageService: StorageService) {
-    if ('jwt' in this.storageService.storage) {
+    if ('hash' in this.storageService.storage) {
       this.user = <User> {
         uuid: this.storageService.storage.uuid,
         email: this.storageService.storage.email,
         name: this.storageService.storage.name,
-        jwt: this.storageService.storage.jwt,
+        hash: this.storageService.storage.hash,
         last_seen: this.storageService.storage.last_seen
       };
     }
@@ -42,29 +42,13 @@ export class AuthService {
         withCredentials: true
       }
     ).pipe(
-      first(),
-      tap((user: User) => this.user = user),
-      tap((user: User) => {
-        localStorage.setItem('uuid', user.uuid);
-        localStorage.setItem('email', user.email);
-        localStorage.setItem('name', user.name);
-        localStorage.setItem('jwt', user.jwt);
-        localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-      })
+      first()
     );
   }
 
   login(email: string, password: string): Observable<User> {
     return this.http.post<User>('/api/auth/login', { email, password }, { withCredentials: true }).pipe(
-      first(),
-      tap((user: User) => this.user = user),
-      tap((user: User) => {
-        localStorage.setItem('uuid', user.uuid);
-        localStorage.setItem('email', user.email);
-        localStorage.setItem('name', user.name);
-        localStorage.setItem('jwt', user.jwt);
-        localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-      })
+      first()
     );
   }
 
@@ -74,20 +58,12 @@ export class AuthService {
       '/api/auth/logout',
       {},
       {
-        headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.jwt}` }),
+        headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.hash}` }),
         withCredentials: true, responseType: 'text' as 'json'
       }
     ).pipe(
       first(),
-      map(d => true),
-      tap(d => this.user = undefined),
-      tap(d => {
-        localStorage.removeItem('uuid');
-        localStorage.removeItem('email');
-        localStorage.removeItem('name');
-        localStorage.removeItem('jwt');
-        localStorage.removeItem('last_seen');
-      })
+      map(d => true)
     )
   }
 
@@ -107,7 +83,7 @@ export class AuthService {
   }
 
   getUser(uuid: string):Observable<User> {
-    return this.http.get<User>(`/api/auth/user/${uuid}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.jwt}` }) }).pipe(
+    return this.http.get<User>(`/api/auth/user/${uuid}`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.hash}` }) }).pipe(
       first()
     );
   }

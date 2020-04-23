@@ -67,7 +67,7 @@ export class MessageFormComponent implements OnInit, OnDestroy {
           let data = {
             'user': this.authService.user.uuid,
             'to': this.to.uuid,
-            'Bearer token': this.authService.user.jwt
+            'Bearer token': this.authService.user.hash
           }
 
           return this.wamp.call('write', [data]);
@@ -87,7 +87,7 @@ export class MessageFormComponent implements OnInit, OnDestroy {
     // And only after that reset form and emit event 
     this.crypterService.encrypt(text, [ this.from.public_key, this.to.public_key  ]).pipe(
       map(encrypted => {
-        return { 'to': this.to.uuid, 'text': encrypted, 'Bearer token': this.authService.user.jwt  };
+        return { 'to': this.to.uuid, 'text': encrypted, 'Bearer token': this.authService.user.hash  };
       }),
       switchMap(data => this.wamp.call('send', [data])),
       switchMap(res => (Object.keys(res.args[0].errors).length > 0) ? throwError(JSON.stringify(res.args[0].errors)) : of(res)),

@@ -64,7 +64,7 @@ describe('RegistrationComponent', () => {
     localStorage.removeItem('uuid');
     localStorage.removeItem('email');
     localStorage.removeItem('name');
-    localStorage.removeItem('jwt');
+    localStorage.removeItem('hash');
   });
 
   it('should create', () => {
@@ -186,7 +186,7 @@ describe('RegistrationComponent', () => {
     expect(document.activeElement).toBe(nameInput);
   });
 
-  it('should registrate and login by setting localStorage and navigate to root url', () => {
+  it('should registrate and log in by setting authService.user property and localStorage and navigate to root url', () => {
     let email = 'tester@crypter.com';
     let name = "Tester";
     let password = 'secret';
@@ -216,15 +216,17 @@ describe('RegistrationComponent', () => {
       uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       email,
       name: 'Tester',
-      jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
+      hash: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
     };
 
     req.flush(user);
 
+    // expect(authService.user).not.toBeUndefined();
+
     expect(localStorage.getItem('uuid')).toEqual(user.uuid);
     expect(localStorage.getItem('email')).toEqual(user.email);
     expect(localStorage.getItem('name')).toEqual(user.name);
-    expect(localStorage.getItem('jwt')).toEqual(user.jwt);
+    expect(localStorage.getItem('hash')).toEqual(user.hash);
 
     expect(navigateSpy).toHaveBeenCalledWith(['']);
   });

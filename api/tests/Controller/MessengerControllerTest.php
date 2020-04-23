@@ -108,7 +108,7 @@ class MessengerControllerTest extends WebTestCase
             ],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$this->alice['jwt']}",
+                'HTTP_AUTHORIZATION' => "Bearer {$this->alice['hash']}",
                 'CONTENT_TYPE' => 'application/json'
             ]
         );
@@ -121,7 +121,7 @@ class MessengerControllerTest extends WebTestCase
             ],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['jwt']}",
+                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['hash']}",
                 'CONTENT_TYPE' => 'application/json'
             ]
         );
@@ -135,7 +135,7 @@ class MessengerControllerTest extends WebTestCase
             ],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$this->tester['jwt']}",
+                'HTTP_AUTHORIZATION' => "Bearer {$this->tester['hash']}",
                 'CONTENT_TYPE' => 'application/json'
             ]
         );
@@ -148,7 +148,7 @@ class MessengerControllerTest extends WebTestCase
             ],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['jwt']}",
+                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['hash']}",
                 'CONTENT_TYPE' => 'application/json'
             ]
         );
@@ -170,7 +170,7 @@ class MessengerControllerTest extends WebTestCase
             $parameters = [],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['jwt']}",
+                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['hash']}",
             ]
         );
 
@@ -193,7 +193,7 @@ class MessengerControllerTest extends WebTestCase
             $parameters = [],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['jwt']}",
+                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['hash']}",
             ]
         );
 
@@ -214,7 +214,7 @@ class MessengerControllerTest extends WebTestCase
             $parameters = [],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['jwt']}",
+                'HTTP_AUTHORIZATION' => "Bearer {$this->bob['hash']}",
             ]
         );
 
@@ -231,7 +231,7 @@ class MessengerControllerTest extends WebTestCase
                 $parameters = [],
                 $files = [],
                 $server = [
-                    'HTTP_AUTHORIZATION' => "Bearer {$this->bob['jwt']}",
+                    'HTTP_AUTHORIZATION' => "Bearer {$this->bob['hash']}",
                 ]
             );
 
@@ -255,7 +255,7 @@ class MessengerControllerTest extends WebTestCase
             $parameters = [],
             $files = [],
             $server = [
-                'HTTP_AUTHORIZATION' => "Bearer {$this->alice['jwt']}",
+                'HTTP_AUTHORIZATION' => "Bearer {$this->alice['hash']}",
             ]
         );
 
@@ -272,7 +272,7 @@ class MessengerControllerTest extends WebTestCase
                 $parameters = [],
                 $files = [],
                 $server = [
-                    'HTTP_AUTHORIZATION' => "Bearer {$this->tester['jwt']}",
+                    'HTTP_AUTHORIZATION' => "Bearer {$this->tester['hash']}",
                 ]
             );
 

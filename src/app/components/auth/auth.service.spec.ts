@@ -56,7 +56,7 @@ describe('AuthService', () => {
         uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         email: 'tester@crypter.com',
         name: 'Tester',
-        jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
+        hash: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
       }
     );
 
@@ -65,7 +65,7 @@ describe('AuthService', () => {
     expect(service.user).not.toBeUndefined();
   });
 
-  it('should registrate, retrive User and set User property', () => {
+  it('should registrate and return User', () => {
     let email = 'tester@crypter.com';
     let name = 'Tester';
     let password = 'password';
@@ -77,14 +77,13 @@ describe('AuthService', () => {
       uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       email,
       name,
-      jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY',
+      hash: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY',
       public_key: publicKey,
       private_key: privateKey,
       revocation_certificate: revocationCertificate
     }
 
     service.registrate(email, name, password, publicKey, privateKey, revocationCertificate).subscribe(d => {
-      expect(service.user).not.toBeUndefined();
       expect(d).toEqual(user);
     });
 
@@ -95,7 +94,7 @@ describe('AuthService', () => {
     req.flush(user);
   });
 
-  it('should login, retrive User and set User property', () => {
+  it('should login and return User', () => {
     let email = 'tester@crypter.com';
     let password = 'password';
 
@@ -103,11 +102,10 @@ describe('AuthService', () => {
       uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       email,
       name,
-      jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
+      hash: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
     }
 
     service.login(email, password).subscribe(d => {
-      expect(service.user).not.toBeUndefined();
       expect(d).toEqual(user);
     });
 
@@ -118,20 +116,19 @@ describe('AuthService', () => {
     req.flush(user);
   });
 
-  it('should logout, retrive true and set User property to undefined', () => {
+  it('should logout and return true', () => {
     storageService.storage = new StorageWrapper(
       {
         uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         email: 'tester@crypter.com',
         name: 'Tester',
-        jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
+        hash: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
       }
     );
 
     service = new AuthService(httpClient, storageService);
 
     service.logout().subscribe(d => {
-      expect(service.user).toBeUndefined();
       expect(d).toEqual(true);
     });
 
@@ -139,7 +136,7 @@ describe('AuthService', () => {
 
     expect(req.request.method).toEqual('POST');
     expect(req.request.headers.has('Authorization')).toBeTruthy();
-    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${storageService.storage.jwt}`);
+    expect(req.request.headers.get('Authorization')).toEqual(`Bearer ${storageService.storage.hash}`);
 
     req.flush('OK');
   });

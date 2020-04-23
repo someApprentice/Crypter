@@ -471,7 +471,7 @@ EOT;
                 $uri = "/api/messenger/message/{$bob['uuid']}",
                 $options = [
                     'headers' => [
-                        'Authorization' => "Bearer {$alice['jwt']}",
+                        'Authorization' => "Bearer {$alice['hash']}",
                         'CONTENT_TYPE' => 'application/json'
                     ],
                     'json' => [
@@ -480,7 +480,7 @@ EOT;
                 ],
                 // $files = [],
                 // $server = [
-                //     'HTTP_AUTHORIZATION' => "Bearer {$alice['jwt']}",
+                //     'HTTP_AUTHORIZATION' => "Bearer {$alice['hash']}",
                 //     'CONTENT_TYPE' => 'application/json'
                 // ]
             );
@@ -505,7 +505,7 @@ EOT;
                 $uri = "/api/messenger/message/{$bob['uuid']}",
                 $options = [
                     'headers' => [
-                        'Authorization' => "Bearer {$tester['jwt']}",
+                        'Authorization' => "Bearer {$tester['hash']}",
                         'CONTENT_TYPE' => 'application/json'
                     ],
                     'json' => [
@@ -514,7 +514,7 @@ EOT;
                 ],
                 // $files = [],
                 // $server = [
-                //     'HTTP_AUTHORIZATION' => "Bearer {$tester['jwt']}",
+                //     'HTTP_AUTHORIZATION' => "Bearer {$tester['hash']}",
                 //     'CONTENT_TYPE' => 'application/json'
                 // ]
             );

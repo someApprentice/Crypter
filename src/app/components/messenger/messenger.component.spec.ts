@@ -50,7 +50,7 @@ describe('MessengerComponent', () => {
         uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         email: 'alice@crypter.com',
         name: 'Alice',
-        jwt: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
+        hash: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY'
       }
     };
 

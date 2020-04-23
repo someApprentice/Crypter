@@ -89,7 +89,7 @@ class AuthController extends AbstractController
             'uuid' => $uuid,
             'email' => $email,
             'name' => $name,
-            'jwt' => $jwt,
+            'hash' => $jwt,
             'last_seen' => $lastSeen,
             'public_key' => $publicKey,
             'private_key' => $privateKey,
@@ -100,7 +100,7 @@ class AuthController extends AbstractController
         $response->headers->setCookie(new Cookie('uuid', $uuid, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('email', $email, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('name', $name, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
-        $response->headers->setCookie(new Cookie('jwt', $jwt, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+        $response->headers->setCookie(new Cookie('hash', $jwt, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('last_seen', $lastSeen, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
 
         return $response;
@@ -165,7 +165,7 @@ class AuthController extends AbstractController
             'uuid' => $uuid,
             'email' => $email,
             'name' => $name,
-            'jwt' => $jwt,
+            'hash' => $jwt,
             'last_seen' => $lastSeen,
             'public_key' => $publicKey,
             'private_key' => $privateKey,
@@ -176,7 +176,7 @@ class AuthController extends AbstractController
         $response->headers->setCookie(new Cookie('uuid', $uuid, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('email', $email, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('name', $name, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
-        $response->headers->setCookie(new Cookie('jwt', $jwt, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+        $response->headers->setCookie(new Cookie('hash', $jwt, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('last_seen', $lastSeen, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
 
         return $response;
