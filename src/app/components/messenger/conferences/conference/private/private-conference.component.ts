@@ -6,8 +6,8 @@ import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
-import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, throwError } from 'rxjs';
-import { switchMap, delayWhen, map, tap, first, delay, reduce, debounceTime, distinctUntilChanged,  takeUntil } from 'rxjs/operators';
+import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, timer, throwError } from 'rxjs';
+import { switchMap, delayWhen, map, tap, first, reduce, filter, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
 import { CrypterService } from '../../../../../services/crypter.service';
 
@@ -59,7 +59,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   messages: Message[] = [];
 
   writing$ = new Subject<string>();
-  writing: User|null = null;
+  writing: boolean = false;
   
   error?: string;
 
@@ -136,33 +136,27 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         if (isPlatformBrowser(this.platformId)) {
           this.writing$.pipe(
             takeUntil(this.unsubscribe$),
+            filter((value: string) => !!value),
             debounceTime(333),
             distinctUntilChanged(),
-            switchMap(() => {
-              let data = {
+            switchMap(() => this.wamp.call('write', [{
                 'user': this.authService.user.uuid,
                 'to': this.participant.uuid,
                 'Bearer token': this.authService.user.hash
-              };
-
-              return this.wamp.call('write', [data]);
-            })
+              }])
+            )
           ).subscribe();
 
           this.wamp.topic(`writing.for.${this.authService.user.uuid}`).pipe(
             takeUntil(this.unsubscribe$),
             tap((e: EventMessage) => {
               if (e.args[0].user.uuid === this.participant.uuid) {
-                this.writing = <User> {
-                  uuid: e.args[0].user.uuid,
-                  name: e.args[0].user.name
-                }
+                this.writing = true;
               }
             }),
-            delay(2300)
-          ).subscribe(() => {
-            this.writing = null;
-          });
+            switchMap(() => timer(2333)),
+            tap(() => this.writing = false)
+          ).subscribe();
         }
       }),
       switchMap((participant: User) => this.messengerService.getConferenceByParticipant(participant.uuid)),
