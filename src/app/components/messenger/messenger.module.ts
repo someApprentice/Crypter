@@ -11,19 +11,14 @@ import { MessengerRoutingModule } from './messenger-routing.module';
 import { MessengerComponent } from './messenger.component';
 import { ConferencesComponent } from './conferences/conferences.component';
 import { PrivateConferenceComponent } from './conferences/conference/private/private-conference.component';
-import { PublicConferenceComponent } from './conferences/conference/public/public-conference.component';
 import { SearchUserComponent } from './search-user/search-user.component';
-import { MessageFormComponent } from './message-form/message-form.component';
-
 
 @NgModule({
   declarations: [
     MessengerComponent,
     ConferencesComponent,
     PrivateConferenceComponent,
-    PublicConferenceComponent,
-    SearchUserComponent,
-    MessageFormComponent,
+    SearchUserComponent
   ],
   imports: [
     CommonModule,

@@ -1,4 +1,5 @@
 import { Component, Injector, Inject, ViewChild, ViewChildren, ElementRef, QueryList, HostListener, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { PLATFORM_ID } from '@angular/core';
@@ -6,7 +7,7 @@ import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
 import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, throwError } from 'rxjs';
-import { switchMap, delayWhen, map, tap, first, delay, reduce, takeUntil } from 'rxjs/operators';
+import { switchMap, delayWhen, map, tap, first, delay, reduce, debounceTime, distinctUntilChanged,  takeUntil } from 'rxjs/operators';
 
 import { CrypterService } from '../../../../../services/crypter.service';
 
@@ -33,6 +34,12 @@ const MESSAGES_STATE_KEY = makeStateKey('messages');
   styleUrls: ['./private-conference.component.css']
 })
 export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDestroy {
+  form = new FormGroup({
+    message: new FormControl('', [
+      Validators.required
+    ])
+  });
+
   @ViewChild('scroller') private scroller: ElementRef;
   previousScrollTop: number = 0;
   previousScrollHeight: number = 0;
@@ -51,6 +58,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   conference?: Conference;
   messages: Message[] = [];
 
+  writing$ = new Subject<string>();
   writing: User|null = null;
   
   error?: string;
@@ -126,6 +134,21 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         this.state.set(PARTICIPANT_STATE_KEY, participant as User);
 
         if (isPlatformBrowser(this.platformId)) {
+          this.writing$.pipe(
+            takeUntil(this.unsubscribe$),
+            debounceTime(333),
+            distinctUntilChanged(),
+            switchMap(() => {
+              let data = {
+                'user': this.authService.user.uuid,
+                'to': this.participant.uuid,
+                'Bearer token': this.authService.user.hash
+              };
+
+              return this.wamp.call('write', [data]);
+            })
+          ).subscribe();
+
           this.wamp.topic(`writing.for.${this.authService.user.uuid}`).pipe(
             takeUntil(this.unsubscribe$),
             tap((e: EventMessage) => {
@@ -457,12 +480,79 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     }
   }
 
-  onSent(message: Message) {
-    // needs to define whether or not the scroll was
-    // at the bottom before messages bound into template
-    this.previousScrollTop = this.scroller.nativeElement.scrollTop;
-    this.previousScrollHeight = this.scroller.nativeElement.scrollHeight;
-    this.previousOffsetHeight = this.scroller.nativeElement.offsetHeight;
+  onSubmit(e: Event) {
+    e.preventDefault()
+
+    let text = this.form.get('message').value
+
+    if (this.form.valid)
+      this.send(text);
+  }
+
+  onEnter(e: KeyboardEvent) {
+    if (e.key == "Enter" && !e.shiftKey) {      
+      e.preventDefault();
+
+      let text = this.form.get('message').value
+
+      if (this.form.valid)
+        this.send(text);
+    }
+  }
+
+  onWriting(value: string) {
+    this.writing$.next(value);
+  }
+
+  send(text: string) {
+    this.form.get('message').reset();
+
+    // Encrypt message
+    // Then send message to the wamp service
+    // Then handle response errors
+    // Then upsert conference
+    // Then upsert message
+    // And only after that reset form and emit event 
+    this.crypterService.encrypt(text, [ this.user.public_key, this.participant.public_key  ]).pipe(
+      map(encrypted => {
+        return { 'to': this.participant.uuid, 'text': encrypted, 'Bearer token': this.authService.user.hash  };
+      }),
+      switchMap(data => this.wamp.call('send', [data])),
+      switchMap(res => (Object.keys(res.args[0].errors).length > 0) ? throwError(JSON.stringify(res.args[0].errors)) : of(res)),
+      delayWhen(res => {
+        let conference: Conference = {
+          uuid: res.args[0].conference.uuid,
+          updated: res.args[0].conference.updated,
+          count: res.args[0].conference.count,
+          unread: res.args[0].conference.unread,
+          participant: res.args[0].conference.participant
+        };
+
+        return this.databaseService.upsertConference(conference);
+      }),
+      delayWhen(res => {
+        let message: Message = res.args[0].message;
+
+        message.content = text;
+
+        return this.databaseService.upsertMessage(message);
+      })
+    ).subscribe(
+      res => {
+        let message: Message = res.args[0].message;
+
+        // needs to define whether or not the scroll was
+        // at the bottom before messages bound into template
+        this.previousScrollTop = this.scroller.nativeElement.scrollTop;
+        this.previousScrollHeight = this.scroller.nativeElement.scrollHeight;
+        this.previousOffsetHeight = this.scroller.nativeElement.offsetHeight;
+      },
+      err => {
+        if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
+          this.error = err.message;
+        }
+      }
+    );
   }
 
   read(message: Message):void {

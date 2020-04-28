@@ -72,5 +72,28 @@
         </ul>
     </div>
 
-    <app-message-form [from]="user" [to]="participant" (sent)=onSent($event)></app-message-form>
+    <form [formGroup]="form" #messageForm="ngForm" (ngSubmit)="onSubmit($event)" class="message-form d-flex flex-row flex-nowrap align-items-center d-xl-block mx-2 my-2 mx-xl-5 clearfix">
+      <textarea
+        formControlName="message"
+        name="message"
+        (keydown)="onEnter($event)"
+        (input)="onWriting(form.get('message').value)"
+        class="form-control"
+        required
+        autofocus
+      >
+      </textarea>
+
+      <button
+        type="submit"
+        name="send"
+        [disabled]="!form.valid || !user || !participant"
+        class="btn btn-outline-primary float-xl-right mt-xl-1 mx-xl-0 mx-1"
+      >
+        <span class="d-none d-xl-inline mr-1">Send</span>
+        <span class="glyphicon glyphicon-send"></span>
+      </button>
+
+      {{ error }}
+    </form>
 </div>
