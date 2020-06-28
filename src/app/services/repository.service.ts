@@ -15,6 +15,12 @@ import { User } from '../models/user.model';
 import { Conference } from '../models/conference.model';
 import { Message } from '../models/message.model';
 
+// The purpose of this repository is to encapsulate the logic of getting records from either API or IndexeDB.
+// Most of the methods get records stright from IndexeDB if the application is synchronized
+// and fallback on API in case the count of records < BATCH_SIZE, to get rest of them.
+// And otherwise, if the application is not synchronized, these methods get at least a last records
+// from IndexeDB and fallback on API, to get a fresh records.
+
 @Injectable()
 export class RepositoryService implements OnDestroy {
   private unsubscribe$ = new Subject<void>();
@@ -27,7 +33,7 @@ export class RepositoryService implements OnDestroy {
   ) { }
 
   synchronize(): Observable<void> {
-    // Get a timestamp from the last record, or at least from the user.last_seen property 
+    // Get a timestamp from the last record
     // Then get the updates older than that timestamp
     return zip(
       this.databaseService.getConferences(Date.now() / 1000, 1).pipe(first()),
@@ -109,10 +115,6 @@ export class RepositoryService implements OnDestroy {
   }
 
   getConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
-    // If IndexeDB is synchronized get Conferences straight from idb
-    //   and fallback on API in case the count of Conferences < BATCH_SIZE to get rest of them
-    // Otherwise get at least last Conferences from idb
-    //   and fallback on API to get a fresh records
     return this.databaseService.isSynchronized$.pipe(
       first(),
       switchMap((isSynchronized: boolean) => {
