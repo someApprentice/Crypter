@@ -16,10 +16,10 @@ import { Conference } from '../models/conference.model';
 import { Message } from '../models/message.model';
 
 // The purpose of this repository is to encapsulate the logic of getting records from either API or IndexeDB.
-// Most of the methods get records stright from IndexeDB if the application is synchronized
+// Most of the methods get records straight from IndexeDB, if the application is synchronized
 // and fallback on API in case the count of records < BATCH_SIZE, to get rest of them.
-// And otherwise, if the application is not synchronized, these methods get at least a last records
-// from IndexeDB and fallback on API, to get a fresh records.
+// And otherwise, if the application is not synchronized, these methods get at least a last records from IndexeDB
+// and fallback on API, to get a fresh records.
 
 @Injectable()
 export class RepositoryService implements OnDestroy {

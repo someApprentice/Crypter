@@ -1,3 +1,5 @@
+import { environment } from '../../../../../../environments/environment';
+
 import { Component, Injector, Inject, ViewChild, ViewChildren, ElementRef, QueryList, HostListener, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -106,7 +108,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           if (!conference)
             return of([] as Message[]);
 
-          if (conference.unread > DatabaseService.BATCH_SIZE) 
+          if (conference.unread > environment.batch_size) 
             return this.messengerService.getUnreadMessagesByParticipant(conference.participant.uuid);
 
           return this.messengerService.getMessagesByParticipant(conference.participant.uuid);
@@ -150,7 +152,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
               return of([] as Message[]);
 
             if (!!this.messages.length) {
-              // muttable js behavior mutates Messages objects in template
+              // decryption mutates Message objects in template
               // and breaks scroll down on initialization that triggers on a first change
               let clone = JSON.parse(JSON.stringify(this.messages));
 
@@ -175,7 +177,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
             this.isMessagesLoading = true;
 
-            if (conference.unread > DatabaseService.BATCH_SIZE)
+            if (conference.unread > environment.batch_size)
               return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
 
             return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
@@ -250,7 +252,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
             this.isMessagesLoading = true;
 
-            if (conference.unread > DatabaseService.BATCH_SIZE)
+            if (conference.unread > environment.batch_size)
               return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
 
             return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
