@@ -1,6 +1,8 @@
 export const environment = {
   production: false,
-  test: true
+  test: true,
+  socket_url: 'http://localhost',
+  socket_path: '/ws'
 };
 
 // ignore zone.js errors 

@@ -1,3 +1,5 @@
+import { environment } from '../../environments/environment';
+
 import { Injectable, OnDestroy } from '@angular/core';
 
 import { Observable, Subject, of, fromEvent, zip } from 'rxjs';
@@ -17,7 +19,7 @@ import { Message } from '../models/message.model';
 export class SocketService implements OnDestroy {
   private unsubscribe$ = new Subject<void>();
 
-  public socket = io('http://localhost', { path: '/ws' });
+  public socket = io(environment.socket_url, { path: environment.socket_path });
 
   public connected$: Observable<unknown> = fromEvent(this.socket, 'connect').pipe(
     takeUntil(this.unsubscribe$),

@@ -4,7 +4,9 @@
 
 export const environment = {
   production: false,
-  test: false
+  test: false,
+  socket_url: 'http://localhost',
+  socket_path: '/ws'
 };
 
 /*
