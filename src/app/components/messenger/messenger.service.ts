@@ -1,3 +1,5 @@
+import { environment } from '../../../environments/environment';
+
 import { Injectable } from '@angular/core';
 
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
@@ -15,8 +17,6 @@ import { Message } from '../../models/message.model';
   providedIn: 'root'
 })
 export class MessengerService {
-  static readonly BATCH_SIZE = 20;
-
   constructor(private http: HttpClient, private authService: AuthService) { }
 
   searchUsers(name: string): Observable<User[]> {
@@ -25,7 +25,7 @@ export class MessengerService {
     );
   }
 
-  getConferences(timestamp: number = Date.now() / 1000, limit: number = MessengerService.BATCH_SIZE): Observable<Conference[]> {
+  getConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
     return this.http.get<Conference[]>(
       `/api/messenger/conferences?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` })}
@@ -34,7 +34,7 @@ export class MessengerService {
     );
   }
 
-  getOldConferences(timestamp: number = Date.now() / 1000, limit: number = MessengerService.BATCH_SIZE): Observable<Conference[]> {
+  getOldConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
     return this.http.get<Conference[]>(
       `/api/messenger/old_conferences?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` })}
@@ -43,7 +43,7 @@ export class MessengerService {
     );
   }
 
-  getNewConferences(timestamp: number = Date.now() / 1000, limit: number = MessengerService.BATCH_SIZE): Observable<Conference[]> {
+  getNewConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
     return this.http.get<Conference[]>(
       `/api/messenger/new_conferences?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` })}
@@ -94,7 +94,7 @@ export class MessengerService {
     );
   }
 
-  getMessagesByConference(uuid: string, timestamp: number = Date.now() / 1000, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+  getMessagesByConference(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/messages/${uuid}?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
@@ -103,7 +103,7 @@ export class MessengerService {
     );
   }
 
-  getUnreadMessagesByConference(uuid: string, timestamp: number = 0, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+  getUnreadMessagesByConference(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/unread_messages/${uuid}?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
@@ -112,7 +112,7 @@ export class MessengerService {
     );
   }
 
-  getOldMessagesByConference(uuid: string, timestamp: number = Date.now() / 1000, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+  getOldMessagesByConference(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/old_messages/${uuid}?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
@@ -121,7 +121,7 @@ export class MessengerService {
     );
   }
 
-  getNewMessagesByConference(uuid: string, timestamp: number = 0, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+  getNewMessagesByConference(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/new_messages/${uuid}?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
@@ -130,7 +130,7 @@ export class MessengerService {
     );
   }
 
-  getMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+  getMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
@@ -139,7 +139,7 @@ export class MessengerService {
     );
   }
 
-  getUnreadMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+  getUnreadMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/unread_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
@@ -148,7 +148,7 @@ export class MessengerService {
     );
   }
 
-  getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+  getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/old_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
@@ -157,7 +157,7 @@ export class MessengerService {
     );
   }
 
-  getNewMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = MessengerService.BATCH_SIZE): Observable<Message[]> {
+  getNewMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/new_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }

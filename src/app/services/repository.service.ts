@@ -1,3 +1,5 @@
+import { environment } from '../../environments/environment';
+
 import { Injectable, OnDestroy } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -106,7 +108,7 @@ export class RepositoryService implements OnDestroy {
     );
   }
 
-  getConferences(timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Conference[]> {
+  getConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
     // If IndexeDB is synchronized get Conferences straight from idb
     //   and fallback on API in case the count of Conferences < BATCH_SIZE to get rest of them
     // Otherwise get at least last Conferences from idb
@@ -169,7 +171,7 @@ export class RepositoryService implements OnDestroy {
     );
   }
 
-  getOldConferences(timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Conference[]> {
+  getOldConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
     return this.databaseService.isSynchronized$.pipe(
       first(),
       switchMap((isSynchronized: boolean) => {
@@ -256,7 +258,7 @@ export class RepositoryService implements OnDestroy {
     );
   }
 
-  getMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.databaseService.isSynchronized$.pipe(
       first(),
       switchMap((isSynchronized: boolean) => {
@@ -339,7 +341,7 @@ export class RepositoryService implements OnDestroy {
     );
   }
 
-  getUnreadMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getUnreadMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.databaseService.isSynchronized$.pipe(
       first(),
       switchMap((isSynchronized: boolean) => {
@@ -419,7 +421,7 @@ export class RepositoryService implements OnDestroy {
     );
   }
 
-  getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.databaseService.isSynchronized$.pipe(
       first(),
       switchMap((isSynchronized: boolean) => {
@@ -504,7 +506,7 @@ export class RepositoryService implements OnDestroy {
     );
   }
 
-  getNewMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getNewMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.databaseService.isSynchronized$.pipe(
       first(),
       switchMap((isSynchronized: boolean) => {

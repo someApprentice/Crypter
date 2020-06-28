@@ -15,11 +15,13 @@ use Symfony\Bridge\Doctrine\RegistryInterface;
  */
 class ConferenceRepository extends ServiceEntityRepository
 {
-    const BATCH_SIZE = 20;
+    protected $BATCH_SIZE;
 
-    public function __construct(RegistryInterface $registry)
+    public function __construct(RegistryInterface $registry, $BATCH_SIZE)
     {
         parent::__construct($registry, Conference::class);
+
+        $this->BATCH_SIZE = $BATCH_SIZE;
     }
 
     public function getConferenceByParticipant(User $sender, User $participant)
@@ -54,8 +56,11 @@ class ConferenceRepository extends ServiceEntityRepository
         return $participants;
     }
 
-    public function getMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE): array
+    public function getMessages(Conference $conference, User $user, \DateTime $date, int $limit = 0): array
     {
+        if ($limit === 0)
+            $limit = $this->BATCH_SIZE;
+
         $dql = '
             SELECT
                 m
@@ -77,8 +82,11 @@ class ConferenceRepository extends ServiceEntityRepository
         return $messages;
     }
 
-    public function getUnreadMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE): array
+    public function getUnreadMessages(Conference $conference, User $user, \DateTime $date, int $limit = 0): array
     {
+        if ($limit === 0)
+            $limit = $this->BATCH_SIZE;
+
         $dql = '
             SELECT
                 m
@@ -102,8 +110,11 @@ class ConferenceRepository extends ServiceEntityRepository
         return $messages;
     }
 
-    public function getOldMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE)
+    public function getOldMessages(Conference $conference, User $user, \DateTime $date, int $limit = 0)
     {
+        if ($limit === 0)
+            $limit = $this->BATCH_SIZE;
+
         $dql = '
             SELECT
                 m
@@ -125,8 +136,11 @@ class ConferenceRepository extends ServiceEntityRepository
         return $messages;
     }
 
-    public function getNewMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE)
+    public function getNewMessages(Conference $conference, User $user, \DateTime $date, int $limit = 0)
     {
+        if ($limit === 0)
+            $limit = $this->BATCH_SIZE;
+
         $dql = '
             SELECT
                 m

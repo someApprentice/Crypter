@@ -69,7 +69,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::now();
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -120,7 +120,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::now();
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -171,7 +171,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::now();
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -431,7 +431,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::now();
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -498,7 +498,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::createFromTimestampMs(0);
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -567,7 +567,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::now();
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -634,7 +634,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::createFromTimestampMs(0);
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -702,7 +702,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::now();
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -778,7 +778,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::createFromTimestampMs(0);
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -853,7 +853,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::now();
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 
@@ -926,7 +926,7 @@ class MessengerController extends AbstractController
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::createFromTimestampMs(0);
-        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->em->getRepository(Conference::class)::BATCH_SIZE;
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
 
         $user = $this->getUser();
 

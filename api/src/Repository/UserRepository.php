@@ -14,15 +14,20 @@ use Symfony\Bridge\Doctrine\RegistryInterface;
  */
 class UserRepository extends ServiceEntityRepository
 {
-    const BATCH_SIZE = 20;
+    protected $BATCH_SIZE;
 
-    public function __construct(RegistryInterface $registry)
+    public function __construct(RegistryInterface $registry, $BATCH_SIZE)
     {
         parent::__construct($registry, User::class);
+
+        $this->BATCH_SIZE = $BATCH_SIZE;
     }
 
-    public function getConferences(User $user, \DateTime $date, int $limit = self::BATCH_SIZE): array
+    public function getConferences(User $user, \DateTime $date, int $limit = 0): array
     {
+        if ($limit === 0)
+            $limit = $this->BATCH_SIZE;
+
         $dql = '
             SELECT
                 c,
@@ -44,8 +49,11 @@ class UserRepository extends ServiceEntityRepository
         return $conferences;
     }
 
-    public function getOldConferences(User $user, \DateTime $date, int $limit = self::BATCH_SIZE): array
+    public function getOldConferences(User $user, \DateTime $date, int $limit = 0): array
     {
+        if ($limit === 0)
+            $limit = $this->BATCH_SIZE;
+
         $dql = '
             SELECT
                 c,
@@ -67,8 +75,11 @@ class UserRepository extends ServiceEntityRepository
         return $conferences;
     }
 
-    public function getNewConferences(User $user, \DateTime $date, int $limit = self::BATCH_SIZE): array
+    public function getNewConferences(User $user, \DateTime $date, int $limit = 0): array
     {
+        if ($limit === 0)
+            $limit = $this->BATCH_SIZE;
+
         $dql = '
             SELECT
                 c,

@@ -38,8 +38,6 @@ type Collections = {
 
 @Injectable()
 export class DatabaseService implements OnDestroy {
-  static readonly BATCH_SIZE = 20;
-
   private unsubscribe$ = new Subject<void>();
 
   public isSynchronized$ = new BehaviorSubject<boolean>(false);
@@ -464,7 +462,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getConferences(timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Conference[]> {
+  getConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
     return this.$.pipe(
       switchMap(
         db => db.conferences.find({ updated: { $lt: timestamp } })
@@ -499,7 +497,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getOldConferences(timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Conference[]> {
+  getOldConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
     return this.$.pipe(
       switchMap(
         db => db.conferences.find({ updated: { $lt: timestamp } })
@@ -720,7 +718,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getMessages(timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getMessages(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(
         db => db.messages.find({ date: { $lt: timestamp } })
@@ -777,7 +775,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getUnreadMessages(timestamp: number = 0, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getUnreadMessages(timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(
         db => db.messages.find({
@@ -839,7 +837,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(db => db.conferences.findOne().where('participant').eq(uuid).$),
       switchMap((document: ConferenceDocument|null) => {
@@ -907,7 +905,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getUnreadMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getUnreadMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(db => from(db.conferences.findOne().where('participant').eq(uuid).exec())),
       switchMap((document: ConferenceDocument|null) => {
@@ -976,7 +974,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(db => from(db.conferences.findOne().where('participant').eq(uuid).exec())),
       switchMap((document: ConferenceDocument|null) => {
@@ -1041,7 +1039,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getNewMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getNewMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(db => from(db.conferences.findOne().where('participant').eq(uuid).exec())),
       switchMap((document: ConferenceDocument|null) => {
@@ -1106,7 +1104,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getMessagesByConference(uuid: string, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getMessagesByConference(uuid: string, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(
         db => db.messages.find().where('conference').eq(uuid)
@@ -1163,7 +1161,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getUnreadMessagesByConference(uuid: string, timestamp: number = 0, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getUnreadMessagesByConference(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(
         db => from(
@@ -1226,7 +1224,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getOldMessagesByConference(uuid: string, timestamp: number = Date.now() / 1000, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getOldMessagesByConference(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(
         db => from(
@@ -1285,7 +1283,7 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
-  getNewMessagesByConference(uuid: string, timestamp: number = 0, limit: number = DatabaseService.BATCH_SIZE): Observable<Message[]> {
+  getNewMessagesByConference(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(
         db => db.messages.find({ $and: [{ conference: { $eq: uuid } }, { date: { $gt: timestamp } }] })
