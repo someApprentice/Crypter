@@ -16,13 +16,7 @@ class ExceptionListener
     {
         $exception = $event->getException();
 
-        // throw $exception;
-
         $response = new Response("'Internal Server Error': {$exception->getMessage()}", Response::HTTP_INTERNAL_SERVER_ERROR);
-
-        if ($exception instanceof UniqueConstraintViolationException) {
-            $response = new Response('Bad Request', Response::HTTP_BAD_REQUEST);
-        }
 
         if ($exception instanceof UnexpectedValueException or $exception instanceof SignatureInvalidException) {
             $response = Response('Unauthorized', Response::HTTP_UNAUTHORIZED, ['WWW-Authenticate' => 'Bearer']);

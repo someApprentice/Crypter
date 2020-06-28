@@ -485,6 +485,8 @@ EOT;
                 // ]
             );
 
+            sleep(1);
+
             $progress->advance();            
         }
 
@@ -518,6 +520,8 @@ EOT;
                 //     'CONTENT_TYPE' => 'application/json'
                 // ]
             );
+
+            sleep(1);
 
             $progress->advance();
         }

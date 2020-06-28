@@ -1,6 +1,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "skipLibCheck": true, // ERROR in node_modules/rxdb/dist/typings/plugins/key-compression.d.ts(18,9): error TS1086: An accessor cannot be declared in an ambient context.
     "strict": true,
     "strictNullChecks": false,
     "strictPropertyInitialization": false,
@@ -29,5 +30,5 @@
   "exclude": [
     "./api",
     "./wamp"
-  ],
+  ]
 }

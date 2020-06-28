@@ -67,7 +67,8 @@ class Messenger():
 
         result['user'] = {
             'uuid': str(user.uuid),
-            'name': user.name
+            'name': user.name,
+            'public_key': user.public_key
         }
         result['conference'] = {
             'uuid': str(conference.uuid),
@@ -79,7 +80,8 @@ class Messenger():
             result['conference']['participants'].append(
                 {
                     'uuid': str(participant.uuid),
-                    'name': participant.name
+                    'name': participant.name,
+                    'public_key': participant.public_key
                 }
             )
 
@@ -172,7 +174,8 @@ class Messenger():
             'uuid': str(message.uuid),
             'author': {
                 'uuid': str(message.author.uuid),
-                'name':  message.author.name
+                'name':  message.author.name,
+                'public_key': message.author.public_key
             },
             'conference': {
                 'uuid': str(conference_reference.conference.uuid),
@@ -181,7 +184,8 @@ class Messenger():
                 'unread': conference_reference.unread,
                 'participant': {
                     'uuid': str(conference_reference.participant.uuid),
-                    'name': conference_reference.participant.name
+                    'name': conference_reference.participant.name,
+                    'public_key': conference_reference.participant.public_key
                 },
                 'participants': []
             },
@@ -200,7 +204,8 @@ class Messenger():
             'unread': conference_reference.unread,
             'participant': {
                 'uuid': str(conference_reference.participant.uuid),
-                'name': conference_reference.participant.name
+                'name': conference_reference.participant.name,
+                'public_key': conference_reference.participant.public_key
             },
             'participants': []
         }
@@ -209,7 +214,8 @@ class Messenger():
             result['conference']['participants'].append(
                 {
                     'uuid': str(participant.uuid),
-                    'name': participant.name
+                    'name': participant.name,
+                    'public_key': participant.public_key
                 }
             )
 
@@ -224,7 +230,8 @@ class Messenger():
                     'unread': conference_reference.unread,
                     'participant': {
                         'uuid': str(conference_reference.participant.uuid),
-                        'name': conference_reference.participant.name
+                        'name': conference_reference.participant.name,
+                        'public_key': conference_reference.participant.public_key
                     }
                 },
             )
@@ -346,16 +353,19 @@ class Messenger():
             'unread': sender_conference_reference.unread,
             'participant': {
                 'uuid': str(receiver.uuid),
-                'name': receiver.name
+                'name': receiver.name,
+                'public_key': receiver.public_key
             },
             'participants': [
                 {
                     'uuid': str(sender.uuid),
-                    'name': sender.name
+                    'name': sender.name,
+                    'public_key': sender.public_key
                 },
                 {
                     'uuid': str(receiver.uuid),
-                    'name': receiver.name
+                    'name': receiver.name,
+                    'public_key': receiver.public_key
                 }
             ]
         }
@@ -367,7 +377,8 @@ class Messenger():
                 'unread': sender_conference_reference.unread,
                 'participant': {
                     'uuid': str(receiver.uuid),
-                    'name': receiver.name
+                    'name': receiver.name,
+                    'public_key': receiver.public_key
                 }
             },
             {
@@ -377,7 +388,8 @@ class Messenger():
                 'unread': receiver_conference_reference.unread,
                 'participant': {
                     'uuid': str(sender.uuid),
-                    'name': sender.name
+                    'name': sender.name,
+                    'public_key': sender.public_key
                 },
             }
         ]
@@ -385,7 +397,8 @@ class Messenger():
             'uuid': str(message.uuid),
             'author': {
                 'uuid': str(sender.uuid),
-                'name':  sender.name
+                'name':  sender.name,
+                'public_key': sender.public_key
             },
             'conference': {
                 'uuid': str(conference.uuid),
@@ -394,7 +407,8 @@ class Messenger():
                 'unread': sender_conference_reference.unread,
                 'participant': {
                     'uuid': str(receiver.uuid),
-                    'name': receiver.name
+                    'name': receiver.name,
+                    'public_key': receiver.public_key
                 }
             },
             'readed': message.readed,

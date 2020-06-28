@@ -19,7 +19,7 @@ class Conference(Base):
     updated =  Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.datetime.utcnow)
 
     # user = relationship("User", back_populates="conference")
-    
+
     participants = relationship("User",
         secondary="join(User, Participant, User.uuid == Participant.user_uuid)",
         primaryjoin="Participant.conference_uuid == Conference.uuid",

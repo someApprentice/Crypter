@@ -4,14 +4,14 @@ import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
-import { Subject, from, of, zip, throwError } from 'rxjs';
-import { map, switchMap, takeUntil } from 'rxjs/operators';
-
-import { MessengerService } from '../messenger.service';
+import { Observable, Subject, of, concat } from 'rxjs';
+import { map, tap, first, switchMap, delayWhen, takeUntil } from 'rxjs/operators';
 
 import { DatabaseService } from '../../../services/database/database.service';
-import { ConferenceDocument } from '../../../services/database/documents/conference.document';
-import { MessageDocument } from '../../../services/database/documents/message.document';
+import { MessengerService } from '../messenger.service';
+import { RepositoryService } from '../../../services/repository.service';
+
+import { SocketService } from '../../../services/socket.service'
 
 import { Conference } from '../../../models/conference.model';
 import { Message } from '../../../models/message.model';
@@ -27,12 +27,15 @@ export class ConferencesComponent implements OnInit, OnDestroy {
   searching: boolean = false;
 
   isConferencesLoading: boolean = false;
+  isOldConferencesLoading: boolean = false;
 
   conferences: Conference[] = [];
 
   private unsubscribe$ = new Subject<void>();
   
   private databaseService: DatabaseService;
+  private repositoryService: RepositoryService;
+  private socketService: SocketService;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -42,76 +45,89 @@ export class ConferencesComponent implements OnInit, OnDestroy {
   ) {
     if (isPlatformBrowser(this.platformId)) {
       this.databaseService = injector.get(DatabaseService);
+      this.repositoryService = injector.get(RepositoryService);
+      this.socketService = injector.get(SocketService);
     }
   }
 
   ngOnInit() {
-    this.conferences = this.state.get(CONFERENCES_STATE_KEY, [] as Conference[]);
+    if (isPlatformServer(this.platformId)) {
+      this.messengerService.getConferences().subscribe((conferences: Conference[]) => {
+        this.state.set(CONFERENCES_STATE_KEY, conferences as Conference[]);
 
-    if (this.conferences.length === 0) {
-      this.isConferencesLoading = true;
-    }
-
-    // Get Conferences from api
-    // Then if it's a browser push participants into indexeDB
-    // Then if it's a browser push conferences into indexeDB
-    this.messengerService.getConferences().pipe(
-      switchMap((conferences: Conference[]) => {
-        if (isPlatformBrowser(this.platformId)) {
-          return zip(...conferences.map(c => this.databaseService.upsertUser(c['participant']))).pipe(
-            switchMap(() => of(conferences))
-          );
-        }
-
-        return of(conferences);
-      }),
-      switchMap((conferences: Conference[]) => {
-        if (isPlatformBrowser(this.platformId)) {
-          return zip(...conferences.map(c => this.databaseService.upsertConference(c))).pipe(
-            switchMap(() => of(conferences))
-          );
-        }
-
-        return of(conferences);
-      })
-    ).subscribe(
-      (conferences: Conference[]) => {
         this.conferences = conferences;
 
         this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
-
-        this.state.set(CONFERENCES_STATE_KEY, conferences as Conference[]);
-
-        this.isConferencesLoading = false;
-      }
-    );
+      });
+    }
 
     if (isPlatformBrowser(this.platformId)) {
-      // if conference doesn't exists in a conferences array, push it, otherwise update entry
-      // and then sort conferences in case if some of conferences have been pushed before query
-      // (for example before request from api)
-      this.databaseService.getConferences().pipe(takeUntil(this.unsubscribe$)).subscribe(
-        (conferences: Conference[]) => {
+      this.conferences = this.state.get(CONFERENCES_STATE_KEY, [] as Conference[]);
+
+      this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
+
+      // In case Conferences already loaded from server-side-rendering
+      if (!!this.conferences.length)
+        this.databaseService.bulkUpsertConferences(this.conferences).subscribe();
+
+      if (!this.conferences.length) {
+        this.isConferencesLoading = true;
+
+        this.repositoryService.getConferences().pipe(
+          takeUntil(this.unsubscribe$)
+        ).subscribe((conferences: Conference[]) => {
           this.conferences = conferences.reduce((acc, cur) => {
             if (acc.find((c: Conference) => c.uuid === cur.uuid)) {
               acc[acc.findIndex((c: Conference) => c.uuid === cur.uuid)] = cur;
-              
+
               return acc;
             }
-            
+
             return [ ...acc, cur ];
           }, this.conferences);
 
           this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
 
           this.isConferencesLoading = false;
-        }
-      );
+        });
+      }
+
+      this.socketService.conferenceUpdated$.pipe(
+        takeUntil(this.unsubscribe$),
+      ).subscribe((conference: Conference) => {
+        if (this.conferences.find(c => c.uuid === conference.uuid))
+          return this.conferences[this.conferences.findIndex(c => c.uuid === conference.uuid)] = conference;
+
+        return this.conferences.unshift(conference);
+      });
     }
   }
 
   onSearch(searching: boolean): void {
     this.searching = searching;
+  }
+
+  onScrollDown(timestamp: number): void {
+    if (this.isOldConferencesLoading)
+      return;
+
+    this.isOldConferencesLoading = true;
+
+    this.repositoryService.getOldConferences(timestamp).subscribe((conferences: Conference[]) => {
+      this.conferences = conferences.reduce((acc, cur) => {
+        if (acc.find((c: Conference) => c.uuid === cur.uuid)) {
+          acc[acc.findIndex((c: Conference) => c.uuid === cur.uuid)] = cur;
+
+          return acc;
+        }
+
+        return [ ...acc, cur ];
+      }, this.conferences);
+
+      this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
+
+      this.isOldConferencesLoading = false;
+    });
   }
 
   ngOnDestroy() {

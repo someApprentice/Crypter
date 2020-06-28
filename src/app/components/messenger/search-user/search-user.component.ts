@@ -32,7 +32,7 @@ export class SearchUserComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.users$ = this.searchTerms.pipe(
-      debounceTime(300),
+      debounceTime(333),
       distinctUntilChanged(),
       tap(() => {
         this.isUsersLoading = true

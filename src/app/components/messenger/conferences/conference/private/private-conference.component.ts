@@ -7,18 +7,15 @@ import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
 import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, timer, throwError } from 'rxjs';
-import { switchMap, delayWhen, map, tap, first, reduce, filter, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { switchMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
 
 import { CrypterService } from '../../../../../services/crypter.service';
 
-import { WampService } from '../../../../../services/wamp.service'
-import { EventMessage } from 'thruway.js/src/Messages/EventMessage'
-
-import { MessengerService } from '../../../messenger.service';
-
 import { AuthService } from '../../../../auth/auth.service';
-
 import { DatabaseService } from '../../../../../services/database/database.service';
+import { MessengerService } from '../../../messenger.service';
+import { RepositoryService } from '../../../../../services/repository.service';
+import { SocketService } from '../../../../../services/socket.service'
 
 import { User } from '../../../../../models/user.model';
 import { Conference } from '../../../../../models/conference.model';
@@ -41,9 +38,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   });
 
   @ViewChild('scroller') private scroller: ElementRef;
-  previousScrollTop: number = 0;
-  previousScrollHeight: number = 0;
-  previousOffsetHeight: number = 0;
+  isScrolledDown: boolean = false;
 
   isParticipantLoading: boolean = false;
 
@@ -53,7 +48,6 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   @ViewChildren('messagesList') private messagesList: QueryList<ElementRef>;
 
-  user?: User;
   participant? : User;
   conference?: Conference;
   messages: Message[] = [];
@@ -63,13 +57,12 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   
   error?: string;
 
-  subscriptions: { [key: string]: Subscription } = { };
-
   private unsubscribe$ = new Subject<void>();
 
-  private wamp: WampService;
-  private databaseService: DatabaseService;
   private document: Document;
+  private databaseService: DatabaseService;
+  private repositoryService: RepositoryService;
+  private socketService: SocketService;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -81,214 +74,276 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     private injector: Injector,
   ) {
     if (isPlatformBrowser(this.platformId)) {
-      this.wamp = injector.get(WampService);
-      this.databaseService = injector.get(DatabaseService);
       this.document = injector.get(DOCUMENT);
+      this.databaseService = injector.get(DatabaseService);
+      this.repositoryService = injector.get(RepositoryService);
+      this.socketService = injector.get(SocketService);
     }
   }
 
   ngOnInit() {
-    this.participant = this.state.get(PARTICIPANT_STATE_KEY, undefined);
-    this.conference = this.state.get(CONFERENCE_STATE_KEY, undefined);
-    this.messages = this.state.get(MESSAGES_STATE_KEY, [] as Message[]);
+    if (isPlatformServer(this.platformId)) {
+      this.route.params.pipe(
+        first(),
+        map(params => params['uuid']),
+        switchMap((uuid: string) => this.authService.getUser(uuid).pipe(
+          tap((participant: User) => {
+            this.participant = participant;
 
-    // Get uuid from route params
-    // Then get participant User from API
-    //   If it's a browser
-    //     Push it into indexeDB
-    // Then get Conference from API
-    //   If it's a browser
-    //     Push it into indexeDB
-    //     And subscribe to writing event
-    // Wait until logged in User to fetch from IndexeDB
-    // Then get Messages from API
-    //   And if count of unread messages > BATCH_SIZE get batch of new messages
-    //   Else get last batch of messages
-    // Then if it's a browser push them into IndexeDB
-    // And then, if it's a browser
-    //   Subscribe to the conference from IndexeDB
-    //   Then
-    //    If messages = 0 subscribe to the last messages
-    //    Else subscribe to the initial messagesList changes
-    //      to detect whether or not scroller has a overflow
-    //      and if it isn't so subscribe to the last messages
-    this.subscriptions['this.messengerService.getMessagesBy'] = this.route.params.pipe(
-      map(params => params['uuid']),
-      switchMap((uuid: string) => {
-        this.isParticipantLoading = true;
+            this.state.set(PARTICIPANT_STATE_KEY, participant as User);
+          })
+        )),
+        switchMap((participant: User) => this.messengerService.getConferenceByParticipant(participant.uuid).pipe(
+          tap((conference: Conference|null) => {
+            if (conference) {
+              this.conference = conference;
 
-        return this.authService.getUser(uuid);
-      }),
-      switchMap((participant: User) => {
-        if (isPlatformBrowser(this.platformId)) {
-          return this.databaseService.upsertUser(participant);
-        }
+              this.state.set(CONFERENCE_STATE_KEY, conference as Conference);
+            }
+          })
+        )),
+        switchMap((conference: Conference|null) => {
+          if (!conference)
+            return of([] as Message[]);
 
-        return of(participant);
-      }),
-      tap((participant: User) => {
-        this.isParticipantLoading = false;
-
-        this.participant = participant;
-
-        this.state.set(PARTICIPANT_STATE_KEY, participant as User);
-
-        if (isPlatformBrowser(this.platformId)) {
-          this.writing$.pipe(
-            takeUntil(this.unsubscribe$),
-            filter((value: string) => !!value),
-            debounceTime(333),
-            distinctUntilChanged(),
-            switchMap(() => this.wamp.call('write', [{
-                'user': this.authService.user.uuid,
-                'to': this.participant.uuid,
-                'Bearer token': this.authService.user.hash
-              }])
-            )
-          ).subscribe();
-
-          this.wamp.topic(`writing.for.${this.authService.user.uuid}`).pipe(
-            takeUntil(this.unsubscribe$),
-            tap((e: EventMessage) => {
-              if (e.args[0].user.uuid === this.participant.uuid) {
-                this.writing = true;
-              }
-            }),
-            switchMap(() => timer(2333)),
-            tap(() => this.writing = false)
-          ).subscribe();
-        }
-      }),
-      switchMap((participant: User) => this.messengerService.getConferenceByParticipant(participant.uuid)),
-      switchMap((conference: Conference|null) => {
-        if (conference) {
-          if (isPlatformBrowser(this.platformId)) {
-            let c = <Conference> {
-              uuid: conference.uuid,
-              updated: conference.updated,
-              count: conference.count,
-              unread: conference.unread,
-              participant: conference.participant
-            };
-
-            this.databaseService.upsertConference(c).subscribe();
-          }
-
-          this.conference = conference;
-
-          this.state.set(CONFERENCE_STATE_KEY, conference as Conference);
-
-          if (this.messages.length === 0) {
-            this.isMessagesLoading = true;
-          }
-
-          if (conference.unread > MessengerService.BATCH_SIZE) {
+          if (conference.unread > DatabaseService.BATCH_SIZE) 
             return this.messengerService.getUnreadMessagesByParticipant(conference.participant.uuid);
-          }
 
           return this.messengerService.getMessagesByParticipant(conference.participant.uuid);
-        }
-
-        return of([] as Message[]);
-      }),
-      delayWhen((messages: Message[]) => {
-        if (isPlatformBrowser(this.platformId)) {
-          return this.databaseService.user$.pipe(
-            tap((user: User) => this.user = user)
-          );
-        }
-
-        return of(messages);
-      }),
-      switchMap((messages: Message[]) => {
-        if (isPlatformBrowser(this.platformId)) {
-          let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.user.private_key)));
-
-          return zip(from(messages), decrypted$).pipe(
-            reduce((acc, [ message, decrypted ]) => {
-              message.content = decrypted;
-
-              acc.push(message);
-
-              return acc;
-            }, [])
-          );
-        }
-
-        return of(messages);
-      }),
-      tap(() => this.isMessagesLoading = false)
-    )
-    .subscribe(
-      (messages: Message[]) => {
-        if (isPlatformBrowser(this.platformId)) {
-          for (let message of messages) {
-            this.databaseService.upsertMessage(message).subscribe();
-          }
-        }
-
+        })
+      ).subscribe((messages: Message[]) => {
         this.messages = messages;
 
         this.messages.sort((a: Message, b: Message) => a.date - b.date);
 
         this.state.set(MESSAGES_STATE_KEY, messages as Message[]);
+      });
+    }
 
-        // How to properly switch to this observables on browser condition?
-        if (isPlatformBrowser(this.platformId)) {
-          this.databaseService.getConferenceByParticipant(this.participant.uuid).pipe(
-            takeUntil(this.unsubscribe$)
-          ).subscribe(
-            (conference: Conference) => {
-              this.conference = conference;
+    if (isPlatformBrowser(this.platformId)) {
+      this.participant = this.state.get(PARTICIPANT_STATE_KEY, undefined);
+      this.conference = this.state.get(CONFERENCE_STATE_KEY, undefined);
+      this.messages = this.state.get(MESSAGES_STATE_KEY, [] as Message[]);
+
+      if (this.participant) {
+        this.databaseService.upsertUser(this.participant).subscribe();
+
+        of(this.participant).pipe(
+          switchMap((participant: User) => {
+            // In case Conference already loaded from server-side-rendering
+            // Or already came from socket subscription
+            if (this.conference)
+              return of(this.conference);
+
+            return this.repositoryService.getConferenceByParticipant(participant.uuid).pipe(
+              tap((conference: Conference|null) => {
+                if (conference)
+                  this.conference = conference;
+              })
+            );
+          }),
+          switchMap((conference: Conference|null) => {
+            if (!conference)
+              return of([] as Message[]);
+
+            if (!conference.count)
+              return of([] as Message[]);
+
+            if (!!this.messages.length) {
+              // muttable js behavior mutates Messages objects in template
+              // and breaks scroll down on initialization that triggers on a first change
+              let clone = JSON.parse(JSON.stringify(this.messages));
+
+              return of(clone).pipe(
+                delayWhen(() => this.databaseService.user$),
+                switchMap((messages: Message[]) => {
+                  let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
+
+                  return zip(from(messages), decrypted$).pipe(
+                    reduce((acc, [ message, decrypted ]) => {
+                      message.content = decrypted;
+
+                      return [ ...acc, message ];
+                    }, [] as Message[])
+                  );
+                }),
+                // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
+                // Let me know if you know a solution how to avoid this
+                tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages))
+              );
             }
-          );
 
-          if (this.messages.length === 0) {
-            // will be cleaned after refactoring
-            this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).pipe(
+            this.isMessagesLoading = true;
+
+            if (conference.unread > DatabaseService.BATCH_SIZE)
+              return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
+
+            return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
+          }),
+          takeUntil(this.unsubscribe$)
+        ).subscribe((messages: Message[]) => {
+          // scroll down on init
+          if (!!messages.length) {
+            this.messagesList.changes.pipe(
+              first((ql: QueryList<ElementRef>) => !!ql.length),
               takeUntil(this.unsubscribe$)
-            ).subscribe((messages: Message[]) => {
-              this.messages = messages.reduce((acc, cur) => {
-                if (acc.find((m: Message) => m.uuid === cur.uuid)) {
-                  acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+            ).subscribe((ql: QueryList<ElementRef>) => {
+              if (!!this.messages.length) {
+                let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.readed);
 
-                  return acc;
+                if (unreadMessages.length === 0) {
+                  this.messagesList.last.nativeElement.scrollIntoView();
                 }
 
-                return [ ...acc, cur ];
-              }, this.messages);
+                if (!!unreadMessages.length) {
+                  let firstUnreadMessage = this.messagesList.find(el => el.nativeElement.getAttribute('data-uuid') === unreadMessages[0].uuid);
 
-              this.messages.sort((a: Message, b: Message) => a.date - b.date);
-            });
-          }
-
-          if (this.messages.length > 0) {
-            this.messagesList.changes.pipe(
-              first()
-            ).subscribe((ql: QueryList<ElementRef>) => {
-              if (this.scroller.nativeElement.clientHeight === this.scroller.nativeElement.scrollHeight) {
-                // will be cleaned after refactoring
-                this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).pipe(
-                  takeUntil(this.unsubscribe$)
-                ).subscribe((messages: Message[]) => {
-                  this.messages = messages.reduce((acc, cur) => {
-                    if (acc.find((m: Message) => m.uuid === cur.uuid)) {
-                      acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
-
-                      return acc;
-                    }
-
-                    return [ ...acc, cur ];
-                  }, this.messages);
-
-                  this.messages.sort((a: Message, b: Message) => a.date - b.date);
-                });
+                  firstUnreadMessage.nativeElement.scrollIntoView();
+                }
               }
             });
           }
-        }
+
+          this.messages = messages.reduce((acc, cur) => {
+            if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+              acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+              return acc;
+            }
+
+            return [ ...acc, cur ];
+          }, this.messages);
+
+          this.messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          this.isMessagesLoading = false;
+        });
       }
-    );
+
+      if (!this.participant) {
+        this.route.params.pipe(
+          first(),
+          map(params => params['uuid']),
+          switchMap((uuid: string) => {
+            this.isParticipantLoading = true;
+
+            return this.repositoryService.getUser(uuid).pipe(
+              tap((participant: User) => {
+                this.participant = participant;
+
+                this.isParticipantLoading = false;
+              })
+            );
+          }),
+          switchMap((participant: User) => this.repositoryService.getConferenceByParticipant(participant.uuid).pipe(
+            tap((conference: Conference|null) => {
+              if (conference)
+                this.conference = conference;
+            })
+          )),
+          switchMap((conference: Conference|null) => {
+            if (!conference)
+              return of([] as Message[]);
+
+            if (conference && !conference.count)
+              return of([] as Message[]);
+
+            this.isMessagesLoading = true;
+
+            if (conference.unread > DatabaseService.BATCH_SIZE)
+              return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
+
+            return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
+          }),
+          takeUntil(this.unsubscribe$)
+        ).subscribe((messages: Message[]) => {
+          // scroll down on init
+          if (!!messages.length) {
+            this.messagesList.changes.pipe(
+              first((ql: QueryList<ElementRef>) => !!ql.length),
+              takeUntil(this.unsubscribe$)
+            ).subscribe((ql: QueryList<ElementRef>) => {
+              let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.readed);
+
+              if (unreadMessages.length === 0) {
+                this.messagesList.last.nativeElement.scrollIntoView();
+              }
+
+              if (!!unreadMessages.length) {
+                let firstUnreadMessage = this.messagesList.find(el => el.nativeElement.getAttribute('data-uuid') === unreadMessages[0].uuid);
+
+                firstUnreadMessage.nativeElement.scrollIntoView();
+              }
+            });
+          }
+
+          this.messages = messages.reduce((acc, cur) => {
+            if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+              acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+              return acc;
+            }
+
+            return [ ...acc, cur ];
+          }, this.messages);
+
+          this.messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          this.isMessagesLoading = false;
+        });
+      }
+
+      this.socketService.conferenceUpdated$.pipe(
+        filter((conference: Conference) => conference.participant && conference.participant.uuid === this.participant.uuid),
+        takeUntil(this.unsubscribe$)
+      ).subscribe((conference: Conference) => {
+        this.conference = conference;
+      });
+
+      this.socketService.privateMessage$.pipe(
+        filter((message: Message) =>  (
+          message.author.uuid !== this.authService.user.uuid &&
+          message.conference.participant &&
+          message.conference.participant.uuid === this.participant.uuid
+        )),
+        takeUntil(this.unsubscribe$)
+      ).subscribe((message: Message) => {
+        this.messages.push(message);
+
+        this.messages.sort((a: Message, b: Message) => a.date - b.date);
+      });
+
+      this.socketService.privateMessageRead$.pipe(
+        filter((message: Message) => message.conference.participant && message.conference.participant.uuid === this.participant.uuid),
+        takeUntil(this.unsubscribe$)
+      ).subscribe((message: Message) => {
+        let unread = this.messages.find(m => m.uuid == message.uuid);
+
+        if (unread) {
+          // abusing muttable js behavior
+          unread.readed = message.readed;
+          unread.readedAt = message.readedAt;
+        }
+      });
+
+      this.writing$.pipe(
+        filter((value: string) => !!value),
+        // Commented out for achieving smoother notification
+        // Uncomment if you experiencing overload issues
+        // debounceTime(333),
+        distinctUntilChanged(),
+        exhaustMap(() => this.socketService.emit('wrote.to.user', { 'to': this.participant.uuid })),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
+
+      this.socketService.wroteToUser$.pipe(
+        filter((user: User) => user.uuid === this.participant.uuid),
+        tap((user: User) => this.writing = true),
+        switchMap(() => timer(2333)),
+        tap(() => this.writing = false),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
+    }
   }
 
   onScrollUp(timestamp: number) {
@@ -297,132 +352,25 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     }
 
     if (!this.isOldMessagesLoading) {
-      this.messengerService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
-        tap(() => this.isOldMessagesLoading = true),
-        switchMap((messages: Message[]) => {
-          if (messages.length === 0) {
-            return of(messages);
-          }
+      this.isOldMessagesLoading = true;
 
-          let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.user.private_key)));
-
-          return zip(from(messages), decrypted$).pipe(
-            reduce((acc, [ message, decrypted ]) => {
-              message.content = decrypted;
-
-              acc.push(message);
-
-              return acc;
-            }, [])
-          );
-        }),
-        tap((messages: Message[]) => {
-          for (let message of messages) {
-            this.databaseService.upsertMessage(message).subscribe();
-          }
-
-          return messages;
-        }),
-        switchMap(() => {
-          return this.databaseService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
-            takeUntil(this.unsubscribe$)
-          )
-        })
+      this.repositoryService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+        takeUntil(this.unsubscribe$)
       ).subscribe((messages: Message[]) => {
-          messages.sort((a: Message, b: Message) => b.date - a.date);
-
-          // scroll to the last obtained message in case if a scroll was at the very top
-          if (!(`this.messagesList.changes-${timestamp}` in this.subscriptions) && messages.length > 0) {
-            this.subscriptions[`this.messagesList.changes-${timestamp}`] = this.messagesList.changes.pipe(
-              takeUntil(this.unsubscribe$),
-              first()
-            ).subscribe((ql: QueryList<ElementRef>) => {
-              if (this.scroller.nativeElement.scrollTop === 0 && messages.length > 0) {
-                let lastMessage = ql.find(el => el.nativeElement.id === messages[0].uuid);
-
-                lastMessage.nativeElement.scrollIntoView();
-              }
-            });
-          }
-
-          this.messages = messages.reduce((acc, cur) => {
-            if (acc.find((m: Message) => m.uuid === cur.uuid)) {
-              acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
-
-              return acc;
-            }
-
-            return [ ...acc, cur ];
-          }, this.messages);
-
-          this.messages.sort((a: Message, b: Message) => a.date - b.date);
-
-          this.isOldMessagesLoading = false;
-      });
-    }
-
-    // needs to define whether or not the scroll was
-    // at the bottom before messages bound into template
-    this.previousScrollTop = this.scroller.nativeElement.scrollTop;
-    this.previousScrollHeight = this.scroller.nativeElement.scrollHeight;
-    this.previousOffsetHeight = this.scroller.nativeElement.offsetHeight;
-  }
-
-  onScrollDown(timestamp: number) {
-    if (this.conference.unread === 0) {
-      // will be cleaned after refactoring
-      if (!('this.databaseService.getMessagesByParticipant' in this.subscriptions)) {
-        this.subscriptions['this.databaseService.getMessagesByParticipant'] = this.databaseService.getMessagesByParticipant(this.participant.uuid).pipe(
-          takeUntil(this.unsubscribe$)
-        ).subscribe((messages: Message[]) => {
-          this.messages = messages.reduce((acc, cur) => {
-            if (acc.find((m: Message) => m.uuid === cur.uuid)) {
-              acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
-
-              return acc;
-            }
-
-            return [ ...acc, cur ];
-          }, this.messages);
-
-          this.messages.sort((a: Message, b: Message) => a.date - b.date);
-        });
-      }
-    }
-
-    if (this.conference.unread > 0) {
-      this.isNewMessagesLoading = true;
-
-      this.messengerService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
-        switchMap((messages: Message[]) => {
-          if (messages.length === 0) {
-            return of([] as Message[]);
-          }
-
-          let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.user.private_key)));
-
-          return zip(from(messages), decrypted$).pipe(
-            reduce((acc, [ message, decrypted ]) => {
-              message.content = decrypted;
-
-              acc.push(message);
-
-              return acc;
-            }, [])
-          );
-        }),
-        tap((messages: Message[]) => {
-          for (let message of messages) {
-            this.databaseService.upsertMessage(message).subscribe();
-          }
-        }),
-        switchMap((messages: Message[]) => {
-          return this.databaseService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+        // scroll to the last obtained message in case if a scroll was at the very top
+        if (!!messages.length) {
+          this.messagesList.changes.pipe(
+            first((ql: QueryList<ElementRef>) => ql.first.nativeElement.getAttribute('data-uuid') === messages[0].uuid),
             takeUntil(this.unsubscribe$)
-          )
-        }),
-        tap(() => this.isNewMessagesLoading = false)
-      ).subscribe((messages: Message[]) => {
+          ).subscribe((ql: QueryList<ElementRef>) => {
+            if (this.scroller.nativeElement.scrollTop === 0) {
+              let lastMessage = ql.find(el => el.nativeElement.getAttribute('data-uuid') === messages[messages.length - 1].uuid);
+
+              lastMessage.nativeElement.scrollIntoView();
+            }
+          });
+        }
+
         this.messages = messages.reduce((acc, cur) => {
           if (acc.find((m: Message) => m.uuid === cur.uuid)) {
             acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -434,20 +382,64 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         }, this.messages);
 
         this.messages.sort((a: Message, b: Message) => a.date - b.date);
-      });
 
-      // needs to define whether or not the scroll was
-      // at the bottom before messages bound into template
-      this.previousScrollTop = this.scroller.nativeElement.scrollTop;
-      this.previousScrollHeight = this.scroller.nativeElement.scrollHeight;
-      this.previousOffsetHeight = this.scroller.nativeElement.offsetHeight;
+        this.isOldMessagesLoading = false;
+      });
     }
+  }
+
+  onScrollDown(timestamp: number) {
+    if (this.conference.unread === 0 && this.isScrolledDown) {
+      return;
+    }
+
+    if (!this.isNewMessagesLoading) {
+      this.isNewMessagesLoading = true;
+
+      this.repositoryService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+        takeUntil(this.unsubscribe$)
+      ).subscribe((messages: Message[]) => {
+        // scroll to the first obtained message in case if a scroll was at the very bottom
+        if (!!messages.length) {
+          this.messagesList.changes.pipe(
+            first((ql: QueryList<ElementRef>) => !!ql.find(el => el.nativeElement.getAttribute('data-uuid') === messages[0].uuid)),
+            takeUntil(this.unsubscribe$)
+          ).subscribe((ql: QueryList<ElementRef>) => {
+            if (this.isScrolledDown) {
+              let firstMessage = ql.find(el => el.nativeElement.getAttribute('data-uuid') === messages[0].uuid);
+
+              firstMessage.nativeElement.scrollIntoView({ block: 'end' });
+            }
+          });
+        }
+
+        this.messages = messages.reduce((acc, cur) => {
+          if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+            acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+            return acc;
+          }
+
+          return [ ...acc, cur ];
+        }, this.messages);
+
+        this.messages.sort((a: Message, b: Message) => a.date - b.date);
+
+        this.isNewMessagesLoading = false;
+      });
+    }
+  }
+
+  onScroll(e: Event) {
+    let scrollerEl = this.scroller.nativeElement;
+
+    this.isScrolledDown = scrollerEl.scrollTop + scrollerEl.offsetHeight === scrollerEl.scrollHeight;
   }
 
   public onIntersection({ target, visible }: { target: Element; visible: boolean }): void {
     if (isPlatformBrowser(this.platformId)) {
       if (visible && this.document.hasFocus() && !this.document.hidden) {
-        let message = this.messages.find(m => m.uuid == target.id);
+        let message = this.messages.find(m => m.uuid == target.getAttribute('data-uuid'));
 
         this.read(message);
       }
@@ -467,7 +459,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         el.offsetTop - scrollerEl.offsetTop + el.offsetHeight <= scrollerEl.scrollTop + scrollerEl.offsetHeight &&
         el.offsetLeft - scrollerEl.offsetLeft + el.offsetWidth <= scrollerEl.scrollLeft + scrollerEl.offsetWidth
       ) {
-        let message = this.messages.find(m => m.uuid == el.id);
+        let message = this.messages.find(m => m.uuid == el.getAttribute('data-uuid'));
 
         this.read(message);
       }
@@ -501,103 +493,83 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   send(text: string) {
     this.form.get('message').reset();
 
+    // Wait unit User initialize from IndexeDB
     // Encrypt message
-    // Then send message to the wamp service
+    // Then send message to the ws service
     // Then handle response errors
+    // Then push message to the template
     // Then upsert conference
     // Then upsert message
-    // And only after that reset form and emit event 
-    this.crypterService.encrypt(text, [ this.user.public_key, this.participant.public_key  ]).pipe(
+    this.databaseService.user$.pipe(
+      first(),
+      switchMap(() => this.crypterService.encrypt(text, [ this.authService.user.public_key, this.participant.public_key  ])),
       map(encrypted => {
-        return { 'to': this.participant.uuid, 'text': encrypted, 'Bearer token': this.authService.user.hash  };
+        return { 'to': this.participant.uuid, 'text': encrypted  };
       }),
-      switchMap(data => this.wamp.call('send', [data])),
-      switchMap(res => (Object.keys(res.args[0].errors).length > 0) ? throwError(JSON.stringify(res.args[0].errors)) : of(res)),
-      delayWhen(res => {
-        let conference: Conference = {
-          uuid: res.args[0].conference.uuid,
-          updated: res.args[0].conference.updated,
-          count: res.args[0].conference.count,
-          unread: res.args[0].conference.unread,
-          participant: res.args[0].conference.participant
-        };
-
-        return this.databaseService.upsertConference(conference);
-      }),
-      delayWhen(res => {
-        let message: Message = res.args[0].message;
+      switchMap(data => this.socketService.emit('private.message.sent', data)),
+      switchMap(data => 'errors' in data ? throwError(JSON.stringify(data.errors)) : of(data)),
+      map(data => {
+        let message: Message = data.message;
 
         message.content = text;
 
-        return this.databaseService.upsertMessage(message);
-      })
-    ).subscribe(
-      res => {
-        let message: Message = res.args[0].message;
+        return message;
+      }),
+      tap((message: Message) => {
+        this.messages.push(message);
 
-        // needs to define whether or not the scroll was
-        // at the bottom before messages bound into template
-        this.previousScrollTop = this.scroller.nativeElement.scrollTop;
-        this.previousScrollHeight = this.scroller.nativeElement.scrollHeight;
-        this.previousOffsetHeight = this.scroller.nativeElement.offsetHeight;
-      },
-      err => {
-        if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
-          this.error = err.message;
-        }
-      }
-    );
+        this.messages.sort((a: Message, b: Message) => a.date - b.date);
+      }),
+      switchMap((message: Message) => this.databaseService.upsertMessage(message))
+    ).subscribe();
   }
 
   read(message: Message):void {
-    if (message && message.author.uuid != this.authService.user.uuid && !message.readed) {
-      let data = {
-        'by': this.authService.user.uuid,
-        'message': message.uuid,
-        'Bearer token': this.authService.user.hash
-      };
+    if (message && message.author.uuid !== this.authService.user.uuid && !message.readed) {
+      this.socketService.emit('private.message.read', { message: message.uuid }).pipe(
+        switchMap(data => 'errors' in data ? throwError(JSON.stringify(data.errors)) : of(data)),
+        tap(
+          data => {
+            let m: Message = data['message'];
 
-      this.wamp.call('read', [data]).pipe(
-        // Handle errors
-        switchMap(res => (Object.keys(res.args[0].errors).length > 0) ? throwError(JSON.stringify(res.args[0].errors)) : of(res)),
-      ).subscribe(
-        res => {
-          let m: Message = res.args[0].message;
-
-          // No need to update message in IndexeDB since Messenger do this on the background
-          // Update message in document to shortcut IndexeDB
-          message.readed = m.readed;
-          message.readedAt = m.readedAt;
-        },
-        err => {
-          if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
-            this.error = err.message;
+            // abusing muttable js behavior
+            message.readed = m.readed;
+            message.readedAt = m.readedAt;
+          },
+          err => {
+            if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
+              this.error = err.message;
+            }
           }
-        }
-      );
+        ),
+        switchMap(data => {
+          return concat(this.databaseService.readMessage(data['message']).pipe(
+            // fixes in case Message doesn't exist in iDB yet
+            switchMap((message: Message|null) => !!message ? of(message) : throwError(new Error('Message does not exist in IndexeDB'))),
+            retry()
+          ));
+        })
+      ).subscribe();
     }
   }
 
   ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
-      // scroll down on init
-      if (this.messages.length > 0 && this.messages.filter(m => m.author.uuid !== this.authService.user.uuid  && !m.readed).length === 0) {
-        let lastMessage = this.messagesList.find(el => el.nativeElement.id === this.messages[this.messages.length - 1].uuid);
-
-        lastMessage.nativeElement.scrollIntoView();
-      }
-
       // autoscroll on new message
       this.messagesList.changes.pipe(
         takeUntil(this.unsubscribe$)
       ).subscribe((ql: QueryList<ElementRef>) => {
-        let scrollerEl: HTMLElement = this.scroller.nativeElement;
+        if (this.isScrolledDown) {
+          let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.readed);
 
-        if (this.previousScrollTop + this.previousOffsetHeight == this.previousScrollHeight) {
-          if (this.messages.length > 0 && this.messages.filter(m => m.author.uuid !== this.authService.user.uuid  && !m.readed).length === 0) {
-            let lastMessage = this.messagesList.find(el => el.nativeElement.id === this.messages[this.messages.length - 1].uuid);
+          if (!!this.messages.length && !unreadMessages.length) {
+            this.messagesList.last.nativeElement.scrollIntoView();
+          }
 
-            lastMessage.nativeElement.scrollIntoView();
+          if (unreadMessages.length === 1) {
+            let firstUnreadMessage = this.messagesList.find(el => el.nativeElement.getAttribute('data-uuid') === unreadMessages[0].uuid);
+
+            firstUnreadMessage.nativeElement.scrollIntoView();
           }
         }
       });
@@ -611,10 +583,5 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
     this.unsubscribe$.next();
     this.unsubscribe$.complete();
-
-    // will be cleaned after rafactroing
-    for (let key in this.subscriptions) {
-      this.subscriptions[key].unsubscribe();
-    }
   }
 }

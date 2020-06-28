@@ -13,15 +13,10 @@ import { RouterTestingModule } from '@angular/router/testing';
 
 import { BrowserTransferStateModule } from '@angular/platform-browser';
 
-import { Client } from 'thruway.js';
-import { ResultMessage } from 'thruway.js/src/Messages/ResultMessage';
-import { WelcomeMessage } from 'thruway.js/src/Messages/WelcomeMessage';
-
 import { DatabaseService } from '../../../services/database/database.service';
 
 import { MessengerComponent } from '../messenger.component';
 import { ConferencesComponent } from './conferences.component';
-
 
 import { Conference } from '../../../models/conference.model';
 import { Message } from '../../../models/message.model';

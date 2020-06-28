@@ -18,10 +18,6 @@ import { Router, ActivatedRoute, Data, UrlSegment } from '@angular/router';
 
 import { AuthService } from '../../../../auth/auth.service';
 
-import { Client } from 'thruway.js';
-import { ResultMessage } from 'thruway.js/src/Messages/ResultMessage';
-import { WelcomeMessage } from 'thruway.js/src/Messages/WelcomeMessage';
-
 import { DatabaseService } from '../../../../../services/database/database.service';
 
 
@@ -35,7 +31,7 @@ describe('PrivateConferenceComponent', () => {
   let activatedRoute: ActivatedRoute;
   let httpTestingController: HttpTestingController;
 
-  let wampService: Client;
+  // let wampService: Client;
   let databaseService: DatabaseService;
 
   let authServiceStub: Partial<AuthService>;
@@ -90,25 +86,25 @@ describe('PrivateConferenceComponent', () => {
       url: of<UrlSegment[]>([ new UrlSegment('conference', { uuid: conference.uuid }) ])
     }
 
-    function wampClientFactory() {
-      const resultMessage = new ResultMessage(null, {}, [ message ], {});
+    // function wampClientFactory() {
+    //   const resultMessage = new ResultMessage(null, {}, [ message ], {});
 
-      const messages = cold('--w-r|', {w: new WelcomeMessage(12345, {}), r: resultMessage});
-      const subscriptions = '^---!';
-      const expected = '----(d|)';
+    //   const messages = cold('--w-r|', {w: new WelcomeMessage(12345, {}), r: resultMessage});
+    //   const subscriptions = '^---!';
+    //   const expected = '----(d|)';
 
-      const observer = new Subscriber(
-        // (msg: any) => {
-        //   resultMessage['_requestId'] = msg.requestId;
-        //   recordWampMessage(msg);
-        // }
-      );
+    //   const observer = new Subscriber(
+    //     // (msg: any) => {
+    //     //   resultMessage['_requestId'] = msg.requestId;
+    //     //   recordWampMessage(msg);
+    //     // }
+    //   );
 
-      const ws = Subject.create(observer, messages);
-      ws.onOpen = new Subject();
+    //   const ws = Subject.create(observer, messages);
+    //   ws.onOpen = new Subject();
 
-      const client = new Client(ws, 'realm1', {});
-    }
+    //   const client = new Client(ws, 'realm1', {});
+    // }
 
     TestBed.configureTestingModule({
       declarations: [ PrivateConferenceComponent ],
@@ -125,7 +121,7 @@ describe('PrivateConferenceComponent', () => {
       ],
       providers: [
         { provide: AuthService, useValue: authServiceStub },
-        { provide: Client, useFactory: wampClientFactory },
+        // { provide: Client, useFactory: wampClientFactory },
         { provide: ActivatedRoute, useValue: activatedRouteStub},
         DatabaseService
       ]

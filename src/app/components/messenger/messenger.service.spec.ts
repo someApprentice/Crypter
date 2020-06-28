@@ -95,7 +95,7 @@ describe('MessengerService', () => {
       }
     ];
 
-    service.getConferences().subscribe(d => {
+    service.getConferences(Date.now() / 1000).subscribe(d => {
       expect(d).toEqual(conferences);
     });
 
@@ -240,7 +240,7 @@ describe('MessengerService', () => {
       }
     ];
 
-    service.getMessagesByConference("14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87").subscribe(d => {
+    service.getMessagesByConference("14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87", Date.now() / 1000).subscribe(d => {
       expect(d).toEqual(messages);
     });
 

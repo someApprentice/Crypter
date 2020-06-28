@@ -1,5 +1,5 @@
 <div class="conversation">
-    <header class="d-flex justify-content-between align-items-center shadow p-xl-2 bg-white rounded">
+    <header class="d-flex position-relative justify-content-between align-items-center shadow p-xl-2 bg-white">
         <a [routerLink]="['/']" class="btn btn-light btn-sm" role="button"><span class="glyphicon glyphicon-chevron-left"></span> Back</a>
 
         <div class="name d-flex flex-column align-items-center align-self-center">
@@ -31,6 +31,8 @@
             (scrolled)="onScrollDown(this.messages[this.messages.length - 1].date)"
             [scrollWindow]="false"
 
+            (scroll)="onScroll($event)"
+
             class="wrapper overflow-auto"
         >
             <div *ngIf="isOldMessagesLoading" class="spinner text-center pt-2">
@@ -42,7 +44,7 @@
 
                 #messagesList
 
-                [id]="message.uuid"
+                [attr.data-uuid]="message.uuid"
 
                 inViewport
                 [inViewportOptions]="{ threshold: [0] }"
@@ -54,15 +56,13 @@
                     <div class="title clearfix">
                         <span class="author float-left font-weight-bold font-italic"><a>{{ message.author.name }}</a></span>
                         <span class="date float-right">
-                            <i *ngIf="message.author.uuid == authService.user.uuid && !message.readed" class="material-icons px-1">done</i>
-                            <i *ngIf="message.author.uuid == authService.user.uuid && message.readed" class="material-icons px-1">done_all</i>
-                            <a>{{ message.date * 1000 | date:'short' }}</a>
+                          <i *ngIf="message.author.uuid == authService.user.uuid && !message.readed" class="material-icons px-1">done</i>
+                          <i *ngIf="message.author.uuid == authService.user.uuid && message.readed" class="material-icons px-1">done_all</i>
+                          <a>{{ message.date * 1000 | date:'short' }}</a>
                         </span>
                     </div>
 
-                    <div class="content">
-                        {{ message.content }}
-                    </div>
+                    <div class="content">{{ message.content }}</div>
                 </div>
             </li>
 
@@ -87,7 +87,7 @@
       <button
         type="submit"
         name="send"
-        [disabled]="!form.valid || !user || !participant"
+        [disabled]="!form.valid || !participant"
         class="btn btn-outline-primary float-xl-right mt-xl-1 mx-xl-0 mx-1"
       >
         <span class="d-none d-xl-inline mr-1">Send</span>

@@ -13,10 +13,6 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 
 import { BrowserTransferStateModule } from '@angular/platform-browser';
 
-import { Client } from 'thruway.js';
-import { ResultMessage } from 'thruway.js/src/Messages/ResultMessage';
-import { WelcomeMessage } from 'thruway.js/src/Messages/WelcomeMessage';
-
 import { DatabaseService } from '../../services/database/database.service';
 import RxDB, { RxDatabase } from 'rxdb';
 
@@ -32,7 +28,7 @@ import { Message } from '../../models/message.model';
 describe('MessengerComponent', () => {
   let httpTestingController: HttpTestingController;
 
-  let wampService: Client;
+  // let wampService: Client;
   let dataBaseService: DatabaseService;
   let authService: AuthService;
 
@@ -82,40 +78,40 @@ describe('MessengerComponent', () => {
     };
 
     // https://github.com/voryx/thruway.js/blob/master/spec/client/client-spec.ts#L101-L121
-    function wampClientFactory() {
-      const resultMessage = new ResultMessage(null, {}, [ conference ], {});
+    // function wampClientFactory() {
+    //   const resultMessage = new ResultMessage(null, {}, [ conference ], {});
 
-      const messages = cold('--w-r|', {w: new WelcomeMessage(12345, {}), r: resultMessage});
-      const subscriptions = '^---!';
-      const expected = '----(d|)';
+    //   const messages = cold('--w-r|', {w: new WelcomeMessage(12345, {}), r: resultMessage});
+    //   const subscriptions = '^---!';
+    //   const expected = '----(d|)';
 
-      const observer = new Subscriber(
-        // (msg: any) => {
-        //   resultMessage['_requestId'] = msg.requestId;
-        //   recordWampMessage(msg);
-        // }
-      );
+    //   const observer = new Subscriber(
+    //     // (msg: any) => {
+    //     //   resultMessage['_requestId'] = msg.requestId;
+    //     //   recordWampMessage(msg);
+    //     // }
+    //   );
 
-      const ws = Subject.create(observer, messages);
-      ws.onOpen = new Subject();
+    //   const ws = Subject.create(observer, messages);
+    //   ws.onOpen = new Subject();
 
-      const client = new Client(ws, 'realm1', {});
-    }
+    //   const client = new Client(ws, 'realm1', {});
+    // }
 
-    TestBed.configureTestingModule({
-      declarations: [ MessengerComponent ],
-      imports:      [
-        BrowserTransferStateModule,
-        HttpClientTestingModule,
-      ],
-      providers:    [ 
-        { provide: AuthService, useValue: authServiceStub },
-        { provide: Client, useFactory: wampClientFactory }
-      ]
-    })
-    .compileComponents();
+    // TestBed.configureTestingModule({
+    //   declarations: [ MessengerComponent ],
+    //   imports:      [
+    //     BrowserTransferStateModule,
+    //     HttpClientTestingModule,
+    //   ],
+    //   providers:    [ 
+    //     { provide: AuthService, useValue: authServiceStub },
+    //     { provide: Client, useFactory: wampClientFactory }
+    //   ]
+    // })
+    // .compileComponents();
 
-    wampService = TestBed.get(Client);
+    // wampService = TestBed.get(Client);
     dataBaseService = TestBed.get(DatabaseService);
     authService = TestBed.get(AuthService);
 

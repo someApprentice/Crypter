@@ -73,9 +73,8 @@ export class AuthService {
       first(),
       map(d => true),
       catchError(err => {
-        if (err.status === 404) {
+        if (err.status === 404)
           return of(false);
-        }
 
         return throwError(err);
       })

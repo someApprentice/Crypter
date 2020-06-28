@@ -60,11 +60,17 @@
         /* @TODO: Refator this calculation with sass variables; */
         /* screen size - header size - search form size - dialogs bottom margin */
         height: calc(100vh - (40px + (.5rem * 2)) - .5rem);
+
+        border-radius: 0.25rem !important;
     }
 
     .dialogs ul {
         /* @TODO: Refator this calculation with sass variables; */
         /* screen size - header size - search form size - dialogs padding - dialogs bottom margin */
         height: calc(100vh - (40px + (.5rem * 2)) - (38px + (.5rem * 2) + 1px) - (.5rem * 2)  - .5rem);
+    }
+
+    .dialog {
+        border-radius: 0.25rem !important;
     }
 }

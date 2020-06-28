@@ -54,19 +54,22 @@ class ConferenceRepository extends ServiceEntityRepository
         return $participants;
     }
 
-    public function getMessages(Conference $conference, User $user, int $limit = self::BATCH_SIZE): array
+    public function getMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE): array
     {
         $dql = '
             SELECT
                 m
             FROM Crypter\Entity\Message m
             JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
-            WHERE m.conference = :conference AND mr.user = :user
+            WHERE
+                m.conference = :conference
+                AND mr.user = :user
+                AND m.date < :date
             ORDER BY m.date DESC
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
-        $query->setParameters(['conference' => $conference->getUuid(), 'user' => $user->getUuid()]);
+        $query->setParameters(['conference' => $conference->getUuid(), 'user' => $user->getUuid(), 'date' => $date->format('Y-m-d H:i:s.uP')]);
         $query->setMaxResults($limit);
         
         $messages = $query->getResult();
@@ -74,7 +77,7 @@ class ConferenceRepository extends ServiceEntityRepository
         return $messages;
     }
 
-    public function getUnreadMessages(Conference $conference, User $user, int $limit = self::BATCH_SIZE): array
+    public function getUnreadMessages(Conference $conference, User $user, \DateTime $date, int $limit = self::BATCH_SIZE): array
     {
         $dql = '
             SELECT
@@ -86,11 +89,12 @@ class ConferenceRepository extends ServiceEntityRepository
                 AND mr.user = :user
                 AND m.readed = FALSE
                 AND m.author != :user
+                AND m.date > :date
             ORDER BY m.date ASC
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
-        $query->setParameters(['conference' => $conference->getUuid(), 'user' => $user->getUuid()]);
+        $query->setParameters(['conference' => $conference->getUuid(), 'user' => $user->getUuid(), 'date' => $date->format('Y-m-d H:i:s.uP')]);
         $query->setMaxResults($limit);
 
         $messages = $query->getResult();

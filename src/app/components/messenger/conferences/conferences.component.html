@@ -1,7 +1,19 @@
-<div class="dialogs shadow p-xl-2 mb-xl-2">
+<div class="dialogs bg-white shadow p-xl-2 mb-xl-2">
     <app-search-user (searching)="onSearch($event)"></app-search-user>
 
-    <ul *ngIf="!searching" class="overflow-auto">
+    <ul
+      *ngIf="!searching"
+
+      #scroller
+      infiniteScroll
+      [infiniteScrollThrottle]="1000 / 3 * 2"
+      [infiniteScrollUpDistance]="3.3"
+      [infiniteScrollDistance]="3.3"
+      (scrolled)="onScrollDown(this.conferences[this.conferences.length - 1].updated)"
+      [scrollWindow]="false"
+
+      class="overflow-auto"
+    >
         <div *ngIf="isConferencesLoading" class="spinner text-center pt-2">
           <div class="spinner-border text-primary" role="status"></div>
         </div>
@@ -15,5 +27,9 @@
                 </div>
             </a>
         </li>
+
+        <div *ngIf="isOldConferencesLoading" class="spinner text-center">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
     </ul>
 </div>

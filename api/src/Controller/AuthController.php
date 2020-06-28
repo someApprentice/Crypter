@@ -17,6 +17,8 @@ use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Crypter\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+
 use \Firebase\JWT\JWT;
 
 class AuthController extends AbstractController
@@ -76,8 +78,12 @@ class AuthController extends AbstractController
 
         $user->setPassword($this->passwordEncoder->encodePassword($user, $password));
 
-        $this->em->persist($user);
-        $this->em->flush();
+        try {
+            $this->em->persist($user);
+            $this->em->flush();
+        } catch (UniqueConstraintViolationException $e) {
+            return new Response('Bad Request: User with this email already exists', Response::HTTP_BAD_REQUEST);
+        }
 
         $uuid = $user->getUuid();
         $hash = $user->getPassword();
@@ -142,7 +148,6 @@ class AuthController extends AbstractController
         if (count($errors) > 0) {
             return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
         }
-
 
         $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
 
