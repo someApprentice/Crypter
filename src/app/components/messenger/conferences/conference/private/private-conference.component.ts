@@ -304,15 +304,15 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
       this.socketService.privateMessage$.pipe(
         filter((message: Message) =>  (
-          message.author.uuid !== this.authService.user.uuid &&
           message.conference.participant &&
           message.conference.participant.uuid === this.participant.uuid
         )),
         takeUntil(this.unsubscribe$)
       ).subscribe((message: Message) => {
-        this.messages.push(message);
+        if (this.messages.find((m: Message) => m.uuid === message.uuid))
+          return this.messages[this.messages.findIndex((m: Message) => m.uuid === message.uuid)] = message;
 
-        this.messages.sort((a: Message, b: Message) => a.date - b.date);
+        return this.messages.push(message);
       });
 
       this.socketService.privateMessageRead$.pipe(
