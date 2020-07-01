@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 
-import { Observable, from, forkJoin } from 'rxjs';
-import { map, switchMap, delayWhen } from 'rxjs/operators';
+import { Observable, from, concat, zip } from 'rxjs';
+import { map, reduce, switchMap, delayWhen } from 'rxjs/operators';
 
 import { initWorker, key, message, generateKey, encrypt, decrypt, destroyWorker } from 'openpgp';
 
@@ -34,7 +34,8 @@ export class CrypterService implements OnDestroy {
   encrypt(text: string, publicKeys: string[]): Observable<string> {
     let publicKeys$ = publicKeys.map(k => from(key.readArmored(k)));
 
-    return forkJoin(publicKeys$).pipe(
+    return concat(...publicKeys$).pipe(
+      reduce((acc, cur) => [ ...acc, cur ], []),
       map(publicKeys => publicKeys.map(k => k.keys[0])),
       switchMap(publicKeys => {
         let options = {
@@ -53,7 +54,8 @@ export class CrypterService implements OnDestroy {
 
     let privateKeyObj$ = from(key.readArmored(privateKey)).pipe(map(k => k.keys[0]));
 
-    return forkJoin({ message: message$, privateKeys: privateKeyObj$ }).pipe(
+    return zip(message$, privateKeyObj$).pipe(
+      map(([ message, privateKeys ]) => ({ message, privateKeys })),
       switchMap(options => from(decrypt(options))),
       map(decrypted => decrypted.data)
     );
