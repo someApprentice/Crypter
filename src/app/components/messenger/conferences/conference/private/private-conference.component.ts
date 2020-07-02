@@ -57,8 +57,6 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   writing$ = new Subject<string>();
   writing: boolean = false;
   
-  error?: string;
-
   private unsubscribe$ = new Subject<void>();
 
   private document: Document;
@@ -530,20 +528,13 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     if (message && message.author.uuid !== this.authService.user.uuid && !message.readed) {
       this.socketService.emit('private.message.read', { message: message.uuid }).pipe(
         switchMap(data => 'errors' in data ? throwError(JSON.stringify(data.errors)) : of(data)),
-        tap(
-          data => {
-            let m: Message = data['message'];
+        tap(data => {
+          let m: Message = data['message'];
 
-            // abusing muttable js behavior
-            message.readed = m.readed;
-            message.readedAt = m.readedAt;
-          },
-          err => {
-            if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check
-              this.error = err.message;
-            }
-          }
-        ),
+          // abusing muttable js behavior
+          message.readed = m.readed;
+          message.readedAt = m.readedAt;
+        }),
         switchMap(data => this.databaseService.readMessage(data['message']).pipe(
           // fixes in case Message doesn't exist in iDB yet
           switchMap((message: Message|null) => !!message ? of(message) : throwError(new Error('Message does not exist in IndexeDB'))),
