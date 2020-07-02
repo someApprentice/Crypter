@@ -544,13 +544,11 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             }
           }
         ),
-        switchMap(data => {
-          return concat(this.databaseService.readMessage(data['message']).pipe(
-            // fixes in case Message doesn't exist in iDB yet
-            switchMap((message: Message|null) => !!message ? of(message) : throwError(new Error('Message does not exist in IndexeDB'))),
-            retry()
-          ));
-        })
+        switchMap(data => this.databaseService.readMessage(data['message']).pipe(
+          // fixes in case Message doesn't exist in iDB yet
+          switchMap((message: Message|null) => !!message ? of(message) : throwError(new Error('Message does not exist in IndexeDB'))),
+          retry()
+        ))
       ).subscribe();
     }
   }
