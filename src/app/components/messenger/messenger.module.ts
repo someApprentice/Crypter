@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { InfiniteScrollModule } from 'ngx-infinite-scroll';
-import { InViewportModule } from 'ng-in-viewport';
 import { AutofocusModule } from '../../modules/autofocus/autofocus.module';
 
 import { MessengerRoutingModule } from './messenger-routing.module';
@@ -26,7 +25,6 @@ import { SearchUserComponent } from './search-user/search-user.component';
     FormsModule,
     ReactiveFormsModule,
     InfiniteScrollModule,
-    InViewportModule,
     AutofocusModule,
     MessengerRoutingModule
   ],

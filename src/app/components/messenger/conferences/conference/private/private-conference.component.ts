@@ -9,7 +9,7 @@ import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
 import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, timer, throwError } from 'rxjs';
-import { switchMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
+import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
 
 import { CrypterService } from '../../../../../services/crypter.service';
 
@@ -182,13 +182,15 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           }),
           takeUntil(this.unsubscribe$)
         ).subscribe((messages: Message[]) => {
-          // scroll down on init
+          // read & scroll down on init
           if (!!messages.length) {
             this.messagesList.changes.pipe(
               first((ql: QueryList<ElementRef>) => !!ql.length),
               takeUntil(this.unsubscribe$)
             ).subscribe((ql: QueryList<ElementRef>) => {
               if (!!this.messages.length) {
+                this.read$().subscribe();
+
                 let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.readed);
 
                 if (unreadMessages.length === 0) {
@@ -257,12 +259,14 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           }),
           takeUntil(this.unsubscribe$)
         ).subscribe((messages: Message[]) => {
-          // scroll down on init
+          // read & scroll down on init
           if (!!messages.length) {
             this.messagesList.changes.pipe(
               first((ql: QueryList<ElementRef>) => !!ql.length),
               takeUntil(this.unsubscribe$)
             ).subscribe((ql: QueryList<ElementRef>) => {
+              this.read$().subscribe();
+
               let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.readed);
 
               if (unreadMessages.length === 0) {
@@ -436,34 +440,9 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     this.isScrolledDown = scrollerEl.scrollTop + scrollerEl.offsetHeight === scrollerEl.scrollHeight;
   }
 
-  public onIntersection({ target, visible }: { target: Element; visible: boolean }): void {
-    if (isPlatformBrowser(this.platformId)) {
-      if (visible && this.document.hasFocus() && !this.document.hidden) {
-        let message = this.messages.find(m => m.uuid == target.getAttribute('data-uuid'));
-
-        this.read(message);
-      }
-    }
-  }
-
   @HostListener('window:focus', ['$event'])
   onFocus(event: Event): void {
-    let scrollerEl = this.scroller.nativeElement;
-
-    for (let v of this.messagesList.toArray()) {
-      let el = v.nativeElement;
-
-      if (
-        el.offsetTop - scrollerEl.offsetTop >= scrollerEl.scrollTop &&
-        el.offsetLeft - scrollerEl.offsetLeft >= scrollerEl.scrollLeft &&
-        el.offsetTop - scrollerEl.offsetTop + el.offsetHeight <= scrollerEl.scrollTop + scrollerEl.offsetHeight &&
-        el.offsetLeft - scrollerEl.offsetLeft + el.offsetWidth <= scrollerEl.scrollLeft + scrollerEl.offsetWidth
-      ) {
-        let message = this.messages.find(m => m.uuid == el.getAttribute('data-uuid'));
-
-        this.read(message);
-      }
-    }
+    this.read$().subscribe();
   }
 
   onSubmit(e: Event) {
@@ -524,24 +503,35 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     ).subscribe();
   }
 
-  read(message: Message):void {
-    if (message && message.author.uuid !== this.authService.user.uuid && !message.readed) {
-      this.socketService.emit('private.message.read', { message: message.uuid }).pipe(
-        switchMap(data => 'errors' in data ? throwError(JSON.stringify(data.errors)) : of(data)),
-        tap(data => {
-          let m: Message = data['message'];
+  read$(): Observable<any> {
+    let scrollerEl = this.scroller.nativeElement as HTMLElement;
 
-          // abusing muttable js behavior
-          message.readed = m.readed;
-          message.readedAt = m.readedAt;
-        }),
-        switchMap(data => this.databaseService.readMessage(data['message']).pipe(
-          // fixes in case Message doesn't exist in iDB yet
-          switchMap((message: Message|null) => !!message ? of(message) : throwError(new Error('Message does not exist in IndexeDB'))),
-          retry()
-        ))
-      ).subscribe();
-    }
+    return concat(...this.messagesList.toArray()
+      .filter(ref => {
+        let el = ref.nativeElement as HTMLElement;
+
+        return (
+          el.offsetTop - scrollerEl.offsetTop >= scrollerEl.scrollTop &&
+          el.offsetLeft - scrollerEl.offsetLeft >= scrollerEl.scrollLeft &&
+          el.offsetTop - scrollerEl.offsetTop + el.offsetHeight <= scrollerEl.scrollTop + scrollerEl.offsetHeight &&
+          el.offsetLeft - scrollerEl.offsetLeft + el.offsetWidth <= scrollerEl.scrollLeft + scrollerEl.offsetWidth
+        );
+      })
+      .map(ref => {
+        return this.messages.find((m: Message) => m.uuid == ref.nativeElement.getAttribute('data-uuid'));
+      })
+      .filter((m: Message) => m.author.uuid !== this.authService.user.uuid && !m.readed)
+      .map((m: Message) => {
+        return this.socketService.emit('private.message.read', { message: m.uuid }).pipe(
+          switchMap(data => 'errors' in data ? throwError(JSON.stringify(data.errors)) : of(data)),
+            tap(data => {
+            // abusing muttable js behavior
+            m.readed = data['message'].readed;
+            m.readedAt = data['message'].readedAt;
+          })
+        );
+      })
+     );
   }
 
   ngAfterViewInit() {
@@ -564,6 +554,14 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           }
         }
       });
+
+      this.read$().subscribe();
+
+      fromEvent(this.scroller.nativeElement as HTMLElement, 'scroll').pipe(
+        concatMap((e: Event) => this.read$()),
+        retry(),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
     }
   }
 
