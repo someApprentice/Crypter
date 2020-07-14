@@ -998,8 +998,8 @@ class MessengerController extends AbstractController
     public function synchronize(Request $request): Response
     {
         // for some reason DateTime round milliseconds from unix timestamp
-        $minDate = ($request->query->has('min_timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('min_timestamp') * 1000) : Carbon::now();
-        $maxDate = ($request->query->has('max_timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('max_timestamp') * 1000) : Carbon::createFromTimestampMs(0);
+        $minDate = ($request->query->has('min_timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('min_timestamp') * 1000) : Carbon::createFromTimestampMs(0);
+        $maxDate = ($request->query->has('max_timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('max_timestamp') * 1000) : Carbon::now();
 
         $user = $this->getUser();
 

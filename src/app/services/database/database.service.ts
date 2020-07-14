@@ -837,6 +837,63 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
+  getReadMessages(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.$.pipe(
+      switchMap(
+        db => db.messages.find({ readedAt: { $lt: timestamp } })
+          .sort({ date: -1 })
+          .limit(limit)
+          .$
+      ),
+      switchMap((documents: MessageDocument[]) => {
+        if (documents.length === 0)
+          return of([] as Message[]);
+
+        let conferences$ = zip(...documents.map(d => from(d.populate('conference'))));
+        let authors$ = zip(...documents.map(d => from(d.populate('author'))));
+
+        return zip(of(documents), conferences$, authors$).pipe(
+          switchMap(([ documents, conferences, authors ]) => {
+            let participants$ = concat(...conferences.map((d: ConferenceDocument) => from(d.populate('participant'))));
+
+            return zip(from(documents), from(conferences), from(authors), participants$).pipe(
+              reduce((acc, [ document, conference, author, participant ]) => {
+                let message: Message = {
+                  uuid: document.uuid,
+                  conference: {
+                    uuid: conference.uuid,
+                    updated: conference.updated,
+                    count: conference.count,
+                    unread: conference.unread,
+                    participant: {
+                      uuid: participant.uuid,
+                      name: participant.name
+                    }
+                  },
+                  author: {
+                    uuid: author.uuid,
+                    name: author.name,
+                  },
+                  readed: document.readed,
+                  readedAt: document.readedAt,
+                  type: document.type,
+                  date: document.date,
+                  content: document.content,
+                  consumed: document.consumed,
+                  edited: document.edited
+                };
+
+                return [ ...acc, message ];
+              }, [] as Message[])
+            );
+          })
+        );
+      }),
+      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date)),
+      takeUntil(this.unsubscribe$)
+    );
+  }
+
   getMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.$.pipe(
       switchMap(db => db.conferences.findOne().where('participant').eq(uuid).$),

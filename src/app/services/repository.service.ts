@@ -33,19 +33,27 @@ export class RepositoryService implements OnDestroy {
   ) { }
 
   synchronize(): Observable<void> {
-    // Get a timestamp from the last record
-    // Then get the updates older than that timestamp
+    // The synchronization logic is to get the last updated conference, last message, last read message and last unread message from IndexeDB.
+    // Then, among the last conference, the last message and the last read message, get their maximum timestamp (max_timestamp),
+    // starting from which to get new records from the API.
+    // And from the last unread message, get the minimum timestamp (min_timestamp), starting from which to get all unread messages.
+    // 
+    // If from IndexeDB there are no recent records, then the minimum timestamp will be 0, and the maximum will be equal to the current timestamp.
     return zip(
       this.databaseService.getConferences(Date.now() / 1000, 1).pipe(first()),
       this.databaseService.getMessages(Date.now() / 1000, 1).pipe(first()),
+      this.databaseService.getReadMessages(Date.now() / 1000, 1).pipe(first()),
       this.databaseService.getUnreadMessages(0, 1).pipe(first())
     ).pipe(
-      map(([ conferences, messages, unreadMessages ]) => {
-        let minTimestamp = Date.now() / 1000;
-        let maxTimestamp = 0;
+      map(([ conferences, messages, readMessages, unreadMessages ]) => {
+        let now = Date.now() / 1000;
+
+        let minTimestamp = 0;
+        let maxTimestamp = Date.now() / 1000;
 
         let conference = null;
         let message = null;
+        let readMessage = null;
         let unreadMessage = null;
 
         if (conferences.length === 1)
@@ -54,19 +62,22 @@ export class RepositoryService implements OnDestroy {
         if (messages.length === 1)
           message = messages[0];
 
+        if (readMessages.length === 1)
+          readMessage = readMessages[0];
+
         if (unreadMessages.length === 1)
           unreadMessage = unreadMessages[0];
-          
-        maxTimestamp = Math.min(
-          maxTimestamp,
+
+        minTimestamp = unreadMessage ? unreadMessage.date : minTimestamp;
+
+        let max = Math.max(
           conference ? conference.updated : 0,
-          message ? message.date : 0
+          message ? message.date : 0,
+          readMessage ? readMessage.readedAt : 0
         );
 
-        minTimestamp = Math.max(
-          minTimestamp,
-          unreadMessage ? unreadMessage.date : 0
-        );
+        if (max > 0)
+          maxTimestamp = max;
 
         return [ minTimestamp, maxTimestamp ];
       }),

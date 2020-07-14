@@ -5,7 +5,7 @@ export type MessageDocType = {
   conference: string,
   author: string,
   readed: boolean,
-  readedAt?: string
+  readedAt?: number,
   type: string,
   date: number,
   content: string,

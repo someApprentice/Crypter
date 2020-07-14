@@ -241,7 +241,7 @@ class UserRepository extends ServiceEntityRepository
             WHERE
                 m.readed = FALSE AND
                 m.author != :user AND
-                m.date < :date AND
+                m.date > :date AND
                 mr.user = :user
             ORDER BY m.date ASC
         ';
