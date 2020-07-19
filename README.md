@@ -16,9 +16,9 @@
 3. Import `schema.sql`
 4. Set enviroment variables (`./api/.env`, `./wamp/.env`)
 5. `npm run build`
-6. `node dist/server` & `crossbar start`
+6. `node ./dist/server` & `python ./ws/server.py`
 
 ## Tests
 - Backend tests `./api/bin/phpunit -c ./api/phpunit.xml.dist`
-- WAMP tests `pytest --rootdir=./wamp/tests/ --ignore=./wamp/venv --ignore=./node_modules -v -s`
+- WAMP tests `pytest --rootdir=./ws/tests/ --ignore=./ws/venv --ignore=./node_modules -v -s`
 - Frontend tests `ng test`
