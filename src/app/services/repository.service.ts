@@ -32,13 +32,27 @@ export class RepositoryService implements OnDestroy {
     private crypterService: CrypterService
   ) { }
 
+  // In case the client was offline, you need to synchronize IndexeDB by getting fresh records from the server.
+  //
+  // The synchronization logic is to get the last updated conference, last message, last read message and last unread message from IndexeDB.
+  // Then, among the last conference, the last message and the last read message, get their maximum timestamp (max_timestamp),
+  // starting from which to get new records from the API.
+  // And from the last unread message, get the minimum timestamp (min_timestamp), starting from which to get all unread messages.
+  //
+  // If there are no recent records in IndexeDB, then the minimum and the maximum timestamp will be equal to the current timestamp,
+  // and repository will fallback on API.
+  // And if there is no last unread message but there is last conference or last message or last read message,
+  // then minimum timestamp will be equal 0.
+  //
+  // Cases when the client can be desynchronized while been offline:
+  //  1. Conference(s) was updated.
+  //
+  //  2. User recieved a new message(s).
+  //
+  //  3. User on another client send a new message(s).
+  //
+  //  4. User on another client or participant(s) read message(s).
   synchronize(): Observable<void> {
-    // The synchronization logic is to get the last updated conference, last message, last read message and last unread message from IndexeDB.
-    // Then, among the last conference, the last message and the last read message, get their maximum timestamp (max_timestamp),
-    // starting from which to get new records from the API.
-    // And from the last unread message, get the minimum timestamp (min_timestamp), starting from which to get all unread messages.
-    // 
-    // If from IndexeDB there are no recent records, then the minimum timestamp will be 0, and the maximum will be equal to the current timestamp.
     return zip(
       this.databaseService.getConferences(Date.now() / 1000, 1).pipe(first()),
       this.databaseService.getMessages(Date.now() / 1000, 1).pipe(first()),
@@ -46,9 +60,7 @@ export class RepositoryService implements OnDestroy {
       this.databaseService.getUnreadMessages(0, 1).pipe(first())
     ).pipe(
       map(([ conferences, messages, readMessages, unreadMessages ]) => {
-        let now = Date.now() / 1000;
-
-        let minTimestamp = 0;
+        let minTimestamp = Date.now() / 1000;
         let maxTimestamp = Date.now() / 1000;
 
         let conference = null;
@@ -67,6 +79,9 @@ export class RepositoryService implements OnDestroy {
 
         if (unreadMessages.length === 1)
           unreadMessage = unreadMessages[0];
+
+        if (conference || message || readMessage)
+          minTimestamp = 0;
 
         minTimestamp = unreadMessage ? unreadMessage.date : minTimestamp;
 
