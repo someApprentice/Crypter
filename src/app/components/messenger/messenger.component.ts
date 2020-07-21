@@ -11,10 +11,10 @@ import {
 } from '@angular/animations';
 
 import { Subject, from, of, concat, zip, empty } from 'rxjs';
-import { tap, map, reduce, switchMap, mergeMap, concatMap, delayWhen, first, filter, finalize, catchError, takeUntil } from 'rxjs/operators';
+import { tap, map, reduce, switchMap, mergeMap, concatMap, delayWhen, filter, finalize, catchError, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../auth/auth.service';
-import { DatabaseService } from '../../services/database/database.service';
+import { DatabaseService } from '../../services/database.service';
 import { MessengerService } from './messenger.service';
 import { RepositoryService } from '../../services/repository.service';
 import { CrypterService } from '../../services/crypter.service';

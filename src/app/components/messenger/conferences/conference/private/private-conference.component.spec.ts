@@ -1,7 +1,6 @@
 import { async, inject, ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 
-
 import { Subscriber, Subject, of } from 'rxjs';
 
 import { hot, cold, getTestScheduler } from 'jasmine-marbles';
@@ -18,8 +17,7 @@ import { Router, ActivatedRoute, Data, UrlSegment } from '@angular/router';
 
 import { AuthService } from '../../../../auth/auth.service';
 
-import { DatabaseService } from '../../../../../services/database/database.service';
-
+import { DatabaseService } from '../../../../../services/database.service';
 
 import { PrivateConferenceComponent } from './private-conference.component';
 

@@ -5,9 +5,9 @@ import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
 import { Observable, Subject, of, concat } from 'rxjs';
-import { map, tap, first, switchMap, delayWhen, takeUntil } from 'rxjs/operators';
+import { map, tap, switchMap, delayWhen, takeUntil } from 'rxjs/operators';
 
-import { DatabaseService } from '../../../services/database/database.service';
+import { DatabaseService } from '../../../services/database.service';
 import { MessengerService } from '../messenger.service';
 import { RepositoryService } from '../../../services/repository.service';
 
@@ -68,7 +68,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
 
       // In case Conferences already loaded from server-side-rendering
       if (!!this.conferences.length)
-        this.databaseService.bulkUpsertConferences(this.conferences).subscribe();
+        this.databaseService.bulkConferences(this.conferences).subscribe();
 
       if (!this.conferences.length) {
         this.isConferencesLoading = true;

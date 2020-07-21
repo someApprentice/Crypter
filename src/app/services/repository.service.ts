@@ -7,7 +7,7 @@ import { Observable, Subject, of, from, concat, zip, throwError } from 'rxjs';
 import { tap, map, reduce, switchMap, first, delayWhen, catchError, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../components/auth/auth.service';
-import { DatabaseService } from './database/database.service';
+import { DatabaseService } from './database.service';
 import { MessengerService } from '../components/messenger/messenger.service';
 import { CrypterService } from './crypter.service';
 
@@ -54,10 +54,10 @@ export class RepositoryService implements OnDestroy {
   //  4. User on another client or participant(s) read message(s).
   synchronize(): Observable<void> {
     return zip(
-      this.databaseService.getConferences(Date.now() / 1000, 1).pipe(first()),
-      this.databaseService.getMessages(Date.now() / 1000, 1).pipe(first()),
-      this.databaseService.getReadMessages(Date.now() / 1000, 1).pipe(first()),
-      this.databaseService.getUnreadMessages(0, 1).pipe(first())
+      this.databaseService.getConferences(Date.now() / 1000, 1),
+      this.databaseService.getMessages(Date.now() / 1000, 1),
+      this.databaseService.getReadMessages(Date.now() / 1000, 1),
+      this.databaseService.getUnreadMessages(0, 1)
     ).pipe(
       map(([ conferences, messages, readMessages, unreadMessages ]) => {
         let minTimestamp = Date.now() / 1000;
@@ -129,7 +129,6 @@ export class RepositoryService implements OnDestroy {
 
   getUser(uuid: string): Observable<User> {
     return this.databaseService.getUser(uuid).pipe(
-      first(),
       switchMap((user: User|null) => {
         if (!user)
           return this.authService.getUser(uuid);
@@ -146,7 +145,6 @@ export class RepositoryService implements OnDestroy {
       switchMap((isSynchronized: boolean) => {
         if (isSynchronized) {
           return this.databaseService.getConferences(timestamp, limit).pipe(
-            first(),
             switchMap((conferences: Conference[]) => {
               if (conferences.length === limit)
                 return of(conferences);
@@ -156,7 +154,7 @@ export class RepositoryService implements OnDestroy {
               return this.messengerService.getConferences(timestamp, limit - conferences.length).pipe(
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
                 // Let me know if you know a solution how to avoid this
-                tap((conferences: Conference[]) => this.databaseService.bulkUpsertConferences(conferences).subscribe()),
+                tap((conferences: Conference[]) => this.databaseService.bulkConferences(conferences).subscribe()),
                 map((c: Conference[]) => c.reduce((acc, cur) => {
                   if (acc.find((conference: Conference) => conference.uuid === cur.uuid)) {
                     acc[acc.findIndex((conference: Conference) => conference.uuid === cur.uuid)] = cur;
@@ -179,11 +177,10 @@ export class RepositoryService implements OnDestroy {
         }
 
         return this.databaseService.getConferences(timestamp, limit).pipe(
-          first(),
           switchMap((conferences: Conference[]) => this.messengerService.getConferences(timestamp, limit).pipe(
             // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
             // Let me know if you know a solution how to avoid this
-            tap((conferences: Conference[]) => this.databaseService.bulkUpsertConferences(conferences).subscribe()),
+            tap((conferences: Conference[]) => this.databaseService.bulkConferences(conferences).subscribe()),
               catchError((err: HttpErrorResponse) => {
               // What status codes responsable for timeout errors? 408, 504 what else?
               if (err.status === 408 || err.status === 504)
@@ -205,7 +202,6 @@ export class RepositoryService implements OnDestroy {
       switchMap((isSynchronized: boolean) => {
         if (isSynchronized) {
           return this.databaseService.getOldConferences(timestamp, limit).pipe(
-            first(),
             switchMap((conferences: Conference[]) => {
               if (conferences.length === limit)
                 return of(conferences);
@@ -215,7 +211,7 @@ export class RepositoryService implements OnDestroy {
               return this.messengerService.getOldConferences(timestamp, limit - conferences.length).pipe(
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
                 // Let me know if you know a solution how to avoid this
-                tap((conferences: Conference[]) => this.databaseService.bulkUpsertConferences(conferences).subscribe()),
+                tap((conferences: Conference[]) => this.databaseService.bulkConferences(conferences).subscribe()),
                 map((c: Conference[]) => c.reduce((acc, cur) => {
                   if (acc.find((conference: Conference) => conference.uuid === cur.uuid)) {
                     acc[acc.findIndex((conference: Conference) => conference.uuid === cur.uuid)] = cur;
@@ -238,11 +234,10 @@ export class RepositoryService implements OnDestroy {
         }
 
         return this.databaseService.getOldConferences(timestamp, limit).pipe(
-          first(),
           switchMap((conferences: Conference[]) => this.messengerService.getOldConferences(timestamp, limit).pipe(
             // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
             // Let me know if you know a solution how to avoid this
-            tap((conferences: Conference[]) => this.databaseService.bulkUpsertConferences(conferences).subscribe()),
+            tap((conferences: Conference[]) => this.databaseService.bulkConferences(conferences).subscribe()),
             catchError((err: HttpErrorResponse) => {
               // What status codes responsable for timeout errors? 408, 504 what else?
               if (err.status === 408 || err.status === 504)
@@ -260,7 +255,6 @@ export class RepositoryService implements OnDestroy {
 
   getConferenceByParticipant(uuid: string): Observable<Conference|null> {
     return this.databaseService.getConferenceByParticipant(uuid).pipe(
-      first(),
       switchMap((conference: Conference|null) => {
         if (!conference) {
           return this.messengerService.getConferenceByParticipant(uuid).pipe(
@@ -292,7 +286,6 @@ export class RepositoryService implements OnDestroy {
       switchMap((isSynchronized: boolean) => {
         if (isSynchronized) {
           return this.databaseService.getMessagesByParticipant(uuid, timestamp, limit).pipe(
-            first(),
             switchMap((messages: Message[]) => {
               if (messages.length === limit)
                 return of(messages);
@@ -314,7 +307,7 @@ export class RepositoryService implements OnDestroy {
                 }),
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
                 // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages).subscribe()),
+                tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
                 map((m: Message[]) => m.reduce((acc, cur) => {
                   if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                     acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -337,7 +330,6 @@ export class RepositoryService implements OnDestroy {
         }
 
         return this.databaseService.getMessagesByParticipant(uuid, timestamp, limit).pipe(
-          first(),
           switchMap((messages: Message[]) => this.messengerService.getMessagesByParticipant(uuid, timestamp, limit).pipe(
             delayWhen(() => this.databaseService.user$),
             switchMap((messages: Message[]) => {
@@ -353,7 +345,7 @@ export class RepositoryService implements OnDestroy {
             }),
             // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
             // Let me know if you know a solution how to avoid this
-            tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages).subscribe()),
+            tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
             catchError((err: HttpErrorResponse) => {
               // What status codes responsable for timeout errors? 408, 504 what else?
               if (err.status === 408 || err.status === 504)
@@ -375,7 +367,6 @@ export class RepositoryService implements OnDestroy {
       switchMap((isSynchronized: boolean) => {
         if (isSynchronized) {
           return this.databaseService.getUnreadMessagesByParticipant(uuid, timestamp, limit).pipe(
-            first(),
             switchMap((messages: Message[]) => {
               if (messages.length === limit)
                 return of(messages);
@@ -397,7 +388,7 @@ export class RepositoryService implements OnDestroy {
                 }),
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
                 // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages).subscribe()),
+                tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
                 map((m: Message[]) => m.reduce((acc, cur) => {
                   if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                     acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -434,7 +425,7 @@ export class RepositoryService implements OnDestroy {
           }),
           // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
           // Let me know if you know a solution how to avoid this
-          tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages).subscribe()),
+          tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
           catchError((err: HttpErrorResponse) => {
             // What status codes responsable for timeout errors? 408, 504 what else?
             if (err.status === 408 || err.status === 504)
@@ -455,7 +446,6 @@ export class RepositoryService implements OnDestroy {
       switchMap((isSynchronized: boolean) => {
         if (isSynchronized) {
           return this.databaseService.getOldMessagesByParticipant(uuid, timestamp, limit).pipe(
-            first(),
             switchMap((messages: Message[]) => {
               if (messages.length === limit)
                 return of(messages);
@@ -477,7 +467,7 @@ export class RepositoryService implements OnDestroy {
                 }),
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
                 // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages).subscribe()),
+                tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
                 map((m: Message[]) => m.reduce((acc, cur) => {
                   if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                     acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -500,7 +490,6 @@ export class RepositoryService implements OnDestroy {
         }
 
         return this.databaseService.getOldMessagesByParticipant(uuid, timestamp, limit).pipe(
-          first(),
           switchMap((messages: Message[]) => {
             return this.messengerService.getOldMessagesByParticipant(uuid, timestamp, limit).pipe(
               delayWhen(() => this.databaseService.user$),
@@ -517,7 +506,7 @@ export class RepositoryService implements OnDestroy {
               }),
               // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
               // Let me know if you know a solution how to avoid this
-              tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages).subscribe()),
+              tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
               catchError((err: HttpErrorResponse) => {
                 // What status codes responsable for timeout errors? 408, 504 what else?
                 if (err.status === 408 || err.status === 504)
@@ -540,7 +529,6 @@ export class RepositoryService implements OnDestroy {
       switchMap((isSynchronized: boolean) => {
         if (isSynchronized) {
           return this.databaseService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
-            first(),
             switchMap((messages: Message[]) => {
               if (messages.length === limit)
                 return of(messages);
@@ -562,7 +550,7 @@ export class RepositoryService implements OnDestroy {
                 }),
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
                 // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages)),
+                tap((messages: Message[]) => this.databaseService.bulkMessages(messages)),
                 map((m: Message[]) => m.reduce((acc, cur) => {
                   if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                     acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -585,7 +573,6 @@ export class RepositoryService implements OnDestroy {
         }
 
         return this.databaseService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
-          first(),
           switchMap((messages: Message[]) => {
             return this.messengerService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
               delayWhen(() => this.databaseService.user$),
@@ -602,7 +589,7 @@ export class RepositoryService implements OnDestroy {
               }),
               // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
               // Let me know if you know a solution how to avoid this
-              tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages).subscribe()),
+              tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
               catchError((err: HttpErrorResponse) => {
                 // What status codes responsable for timeout errors? 408, 504 what else?
                 if (err.status === 408 || err.status === 504)

@@ -14,7 +14,7 @@ import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, f
 import { CrypterService } from '../../../../../services/crypter.service';
 
 import { AuthService } from '../../../../auth/auth.service';
-import { DatabaseService } from '../../../../../services/database/database.service';
+import { DatabaseService } from '../../../../../services/database.service';
 import { MessengerService } from '../../../messenger.service';
 import { RepositoryService } from '../../../../../services/repository.service';
 import { SocketService } from '../../../../../services/socket.service'
@@ -169,7 +169,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
                 }),
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
                 // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkUpsertMessages(messages))
+                tap((messages: Message[]) => this.databaseService.bulkMessages(messages))
               );
             }
 
