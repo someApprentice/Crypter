@@ -81,6 +81,16 @@ export class SocketService implements OnDestroy {
     takeUntil(this.unsubscribe$)
   );
 
+  public privateMessageReadSince$: Observable<Message[]> = fromEvent(this.socket, 'private.message.read_since').pipe(
+    map(data => {
+      // Type '{}' is missing the following properties from type 'Message[]': length, pop, push, concat, and 26 more.
+      let messages: Message[] = data as Message[];
+
+      return messages;
+    }),
+    takeUntil(this.unsubscribe$)
+  );
+
   public wroteToUser$: Observable<User> = fromEvent(this.socket, 'wrote.to.user').pipe(
     map(data => {
       // Type '{}' is not assignable to type 'User'. Property 'uuid' is missing in type '{}'.

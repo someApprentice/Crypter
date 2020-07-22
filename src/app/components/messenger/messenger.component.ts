@@ -155,6 +155,11 @@ export class MessengerComponent implements OnInit, OnDestroy {
         concatMap((message: Message) => this.databaseService.readMessage(message)),
         takeUntil(this.unsubscribe$)
       ).subscribe();
+
+      this.socketService.privateMessageReadSince$.pipe(
+        concatMap((messages: Message[]) => this.databaseService.readMessages(messages)),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
     }
   }
 

@@ -446,6 +446,164 @@ async def read_private_message(sid, data):
 
     return json
 
+@sio.on('private.message.read_since')
+async def read_private_message_since(sid, data):
+    json = {}
+
+    v = cerberus.Validator()
+
+    v.schema = {
+        'message': {
+            'type': 'UUID',
+            'required': True,
+            'coerce': UUID
+        }
+    }
+
+    if not v.validate(data):
+        result['errors'] = v.errors
+
+        return result
+
+    user = await sio.get_session(sid)
+
+    message = database.session.query(Message).filter(Message.uuid == data['message']).one_or_none()
+
+    if not message:
+        json['errors'] = { 'message': "Message doesn't exist" }
+
+        return json
+
+    if message.author.uuid == user['uuid']:
+        json['errors'] = { 'message': "You're author of this message" }
+
+        return json
+
+    message_reference = database.session.query(Message_Reference) \
+        .filter(Message_Reference.message_uuid == message.uuid, Message_Reference.user_uuid == user['uuid']) \
+        .one_or_none()
+
+    if not message_reference:
+        json['errors'] = { 'message': "Message doesn't exists" }
+
+        return json
+
+    messages = database.session.query(Message) \
+        .filter(
+            Message.conference_uuid == message.conference_uuid,
+            Message.readed == False,
+            Message.date <= message.date
+        ) \
+        .all()
+
+    for m in messages:
+        m.readed = True
+        m.readed_at = datetime.datetime.utcnow()
+
+    database.session.add_all(messages)
+
+    database.session.flush()
+
+    conference_reference = database.session.query(Conference_Reference) \
+        .filter(
+            Conference_Reference.conference_uuid == message.conference_uuid,
+            Conference_Reference.user_uuid == user['uuid']
+        ) \
+        .one_or_none()
+
+    if conference_reference:
+        conference_reference.unread -= len(messages)
+
+        database.session.add(conference_reference)
+
+        database.session.flush()
+
+    database.session.commit()
+
+    if conference_reference:
+        c = {
+            'uuid': str(conference_reference.conference.uuid),
+            'updated': conference_reference.conference.updated.timestamp(),
+            'count': conference_reference.count,
+            'unread': conference_reference.unread,
+            'participant': {
+                'uuid': str(conference_reference.participant.uuid),
+                'name': conference_reference.participant.name,
+                'public_key': conference_reference.participant.public_key
+            }
+        }
+
+        await sio.emit('conference.updated', c, room=str(user['uuid']))
+
+    conference_references = database.session.query(Conference_Reference) \
+        .filter(Conference_Reference.conference_uuid == conference_reference.conference.uuid) \
+        .all()
+
+    for cr in conference_references:
+        ms = []
+
+        for m in messages:
+            ms.append({
+                'uuid': str(m.uuid),
+                'author': {
+                    'uuid': str(m.author.uuid),
+                    'name': m.author.name,
+                    'public_key': m.author.public_key
+                },
+                'conference': {
+                    'uuid': str(cr.conference.uuid),
+                    'updated': cr.conference.updated.timestamp(),
+                    'count': cr.count,
+                    'unread': cr.unread,
+                    'participant': {
+                        'uuid': str(cr.participant.uuid),
+                        'name': cr.participant.name,
+                        'public_key': cr.participant.public_key
+                    }
+                },
+                'readed': m.readed,
+                'readedAt': m.readed_at.timestamp() if m.readed_at is not None else m.readed_at,
+                'date': m.date.timestamp(),
+                'type': m.type,
+                'content': m.content,
+                'consumed': m.consumed,
+                'edited': m.edited
+            })
+
+        await sio.emit('private.message.read_since', ms, room=str(cr.user.uuid))
+
+    json['messages'] = []
+
+    for m in messages:
+        json['messages'].append({
+            'uuid': str(m.uuid),
+            'author': {
+                'uuid': str(m.author.uuid),
+                'name': m.author.name,
+                'public_key': m.author.public_key
+            },
+            'conference': {
+                'uuid': str(conference_reference.conference.uuid),
+                'updated': conference_reference.conference.updated.timestamp(),
+                'count': conference_reference.count,
+                'unread': conference_reference.unread,
+                'participant': {
+                    'uuid': str(conference_reference.participant.uuid),
+                    'name': conference_reference.participant.name,
+                    'public_key': conference_reference.participant.public_key
+                }
+            },
+            'readed': m.readed,
+            'readedAt': m.readed_at.timestamp() if m.readed_at is not None else m.readed_at,
+            'date': m.date.timestamp(),
+            'type': m.type,
+            'content': m.content,
+            'consumed': m.consumed,
+            'edited': m.edited
+        })
+
+    return json
+
 @sio.on('wrote.to.user')
 async def write_to_user(sid, data):
     json = {}

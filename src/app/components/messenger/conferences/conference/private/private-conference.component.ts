@@ -8,7 +8,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
-import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, timer, throwError } from 'rxjs';
+import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, timer, empty, throwError } from 'rxjs';
 import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
 
 import { CrypterService } from '../../../../../services/crypter.service';
@@ -330,6 +330,21 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         }
       });
 
+      this.socketService.privateMessageReadSince$.pipe(
+        map((messages: Message[]) => messages.filter((m: Message) => m.conference.participant && m.conference.participant.uuid === this.participant.uuid)),
+        takeUntil(this.unsubscribe$)
+      ).subscribe((messages: Message[]) => {
+        for (let message of messages) {
+          let unread = this.messages.find((m: Message) => m.uuid === message.uuid);
+
+          if (unread) {
+            // abusing muttable js behavior
+            unread.readed = message.readed;
+            unread.readedAt = message.readedAt;
+          }
+        }
+      });
+
       this.writing$.pipe(
         filter((value: string) => !!value),
         // Commented out for achieving smoother notification
@@ -506,7 +521,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   read$(): Observable<any> {
     let scrollerEl = this.scroller.nativeElement as HTMLElement;
 
-    return concat(...this.messagesList.toArray()
+    let messages = this.messagesList.toArray()
       .filter(ref => {
         let el = ref.nativeElement as HTMLElement;
 
@@ -520,18 +535,27 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       .map(ref => {
         return this.messages.find((m: Message) => m.uuid == ref.nativeElement.getAttribute('data-uuid'));
       })
-      .filter((m: Message) => m.author.uuid !== this.authService.user.uuid && !m.readed)
-      .map((m: Message) => {
-        return this.socketService.emit('private.message.read', { message: m.uuid }).pipe(
-          switchMap(data => 'errors' in data ? throwError(JSON.stringify(data.errors)) : of(data)),
-            tap(data => {
+      .filter((m: Message) => m.author.uuid !== this.authService.user.uuid && !m.readed);
+
+    if (!messages.length)
+      return empty();
+
+    let message = messages[messages.length - 1];
+
+    return this.socketService.emit('private.message.read_since', { message: message.uuid }).pipe(
+      switchMap(data => 'errors' in data ? throwError(JSON.stringify(data.errors)) : of(data['messages'])),
+      tap((messages: Message[]) => {
+        for (let message of messages) {
+          let unread = this.messages.find((m: Message) => m.uuid === message.uuid);
+
+          if (unread) {
             // abusing muttable js behavior
-            m.readed = data['message'].readed;
-            m.readedAt = data['message'].readedAt;
-          })
-        );
+            unread.readed = message.readed;
+            unread.readedAt = message.readedAt;
+          }
+        }
       })
-     );
+    );
   }
 
   ngAfterViewInit() {
