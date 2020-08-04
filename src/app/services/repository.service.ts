@@ -550,7 +550,7 @@ export class RepositoryService implements OnDestroy {
                 }),
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
                 // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkMessages(messages)),
+                tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
                 map((m: Message[]) => m.reduce((acc, cur) => {
                   if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                     acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
