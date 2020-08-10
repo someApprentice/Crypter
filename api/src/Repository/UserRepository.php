@@ -30,23 +30,19 @@ class UserRepository extends ServiceEntityRepository
 
         $dql = '
             SELECT
-                c,
-                cr.count,
-                cr.unread,
-                IDENTITY(cr.participant) as participant
-            FROM Crypter\Entity\Conference c
-            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
-            WHERE cr.user = :user AND c.updated < :date
-            ORDER BY c.updated DESC
+                cr
+            FROM Crypter\Entity\ConferenceReference cr
+            WHERE cr.user = :user AND cr.updatedAt < :date
+            ORDER BY cr.updatedAt DESC
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['user' => $user->getUuid(), 'date' => $date->format('Y-m-d H:i:s.uP')]);
         $query->setMaxResults($limit);
 
-        $conferences = $query->getResult();
+        $conferenceReferences = $query->getResult();
 
-        return $conferences;
+        return $conferenceReferences;
     }
 
     public function getOldConferences(User $user, \DateTime $date, int $limit = 0): array
@@ -56,23 +52,19 @@ class UserRepository extends ServiceEntityRepository
 
         $dql = '
             SELECT
-                c,
-                cr.count,
-                cr.unread,
-                IDENTITY(cr.participant) as participant
-            FROM Crypter\Entity\Conference c
-            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
-            WHERE cr.user = :user AND c.updated < :date
-            ORDER BY c.updated DESC
+                cr
+            FROM Crypter\Entity\ConferenceReference cr
+            WHERE cr.user = :user AND cr.updatedAt < :date
+            ORDER BY cr.updatedAt DESC
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['user' => $user->getUuid(), 'date' => $date->format('Y-m-d H:i:s.uP')]);
         $query->setMaxResults($limit);
-        
-        $conferences = $query->getResult();
 
-        return $conferences;
+        $conferenceReferences = $query->getResult();
+
+        return $conferenceReferences;
     }
 
     public function getNewConferences(User $user, \DateTime $date, int $limit = 0): array
@@ -82,36 +74,28 @@ class UserRepository extends ServiceEntityRepository
 
         $dql = '
             SELECT
-                c,
-                cr.count,
-                cr.unread,
-                IDENTITY(cr.participant) as participant
-            FROM Crypter\Entity\Conference c
-            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
-            WHERE cr.user = :user AND c.updated > :date
-            ORDER BY c.updated ASC
+                cr
+            FROM Crypter\Entity\ConferenceReference cr
+            WHERE cr.user = :user AND cr.updatedAt < :date
+            ORDER BY cr.updatedAt ASC
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['user' => $user->getUuid(), 'date' => $date->format('Y-m-d H:i:s.uP')]);
         $query->setMaxResults($limit);
 
-        $conferences = $query->getResult();
+        $conferenceReferences = $query->getResult();
 
-        return $conferences;
+        return $conferenceReferences;
     }
 
     public function getConference(string $uuid, User $user)
     {
         $dql = '
             SELECT
-                c,
-                cr.count,
-                cr.unread,
-                IDENTITY(cr.participant) as participant
-            FROM Crypter\Entity\Conference c
-            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
-            WHERE c.uuid = :uuid AND cr.user = :user
+                cr
+            FROM Crypter\Entity\ConferenceReference cr
+            WHERE cr.conference = :uuid AND cr.user = :user
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
@@ -126,21 +110,17 @@ class UserRepository extends ServiceEntityRepository
     {
         $dql = '
             SELECT
-                c,
-                cr.count,
-                cr.unread,
-                IDENTITY(cr.participant) as participant
-            FROM Crypter\Entity\Conference c
-            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
+                cr
+            FROM Crypter\Entity\ConferenceReference cr
             WHERE cr.user = :user AND cr.participant = :uuid
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['uuid' => $uuid, 'user' => $user->getUuid()]);
 
-        $conference = $query->getOneOrNullResult();
+        $conferenceReference = $query->getOneOrNullResult();
 
-        return $conference;
+        return $conferenceReference;
     }
 
     /**
@@ -187,22 +167,18 @@ class UserRepository extends ServiceEntityRepository
     {
         $dql = '
             SELECT
-                c,
-                cr.count,
-                cr.unread,
-                IDENTITY(cr.participant) as participant
-            FROM Crypter\Entity\Conference c
-            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
-            WHERE cr.user = :user AND c.updated > :date
-            ORDER BY c.updated ASC
+                cr
+            FROM Crypter\Entity\ConferenceReference cr
+            WHERE cr.user = :user AND cr.updatedAt > :date
+            ORDER BY cr.updatedAt ASC
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
         $query->setParameters(['user' => $user->getUuid(), 'date' => $date->format('Y-m-d H:i:s.uP')]);
 
-        $conferences = $query->getResult();
+        $conferenceReferences = $query->getResult();
 
-        return $conferences;
+        return $conferenceReferences;
     }
 
     public function getUpdatedMessages(User $user, \DateTime $date): array
@@ -211,12 +187,11 @@ class UserRepository extends ServiceEntityRepository
             SELECT
                 m
             FROM Crypter\Entity\Message m
-            JOIN Crypter\Entity\Conference c WITH m.conference = c.uuid
-            JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
+            JOIN Crypter\Entity\ConferenceReference cr WITH m.conference = cr.conference
             JOIN Crypter\Entity\MessageReference mr WITH mr.message = m.uuid
             WHERE
                 m.date > :date AND
-                c.updated > :date AND
+                cr.updatedAt > :date AND
                 mr.user = :user
             ORDER BY m.date ASC
         ';

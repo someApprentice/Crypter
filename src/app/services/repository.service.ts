@@ -86,7 +86,7 @@ export class RepositoryService implements OnDestroy {
         minTimestamp = unreadMessage ? unreadMessage.date : minTimestamp;
 
         let max = Math.max(
-          conference ? conference.updated : 0,
+          conference ? conference.updated_at : 0,
           message ? message.date : 0,
           readMessage ? readMessage.readedAt : 0
         );
@@ -149,7 +149,7 @@ export class RepositoryService implements OnDestroy {
               if (conferences.length === limit)
                 return of(conferences);
 
-              timestamp = !!conferences.length ? conferences[conferences.length - 1].updated : timestamp;
+              timestamp = !!conferences.length ? conferences[conferences.length - 1].updated_at : timestamp;
 
               return this.messengerService.getConferences(timestamp, limit - conferences.length).pipe(
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
@@ -191,7 +191,7 @@ export class RepositoryService implements OnDestroy {
           ))
         );
       }),
-      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated - a.updated)),
+      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at)),
       takeUntil(this.unsubscribe$)
     );
   }
@@ -206,7 +206,7 @@ export class RepositoryService implements OnDestroy {
               if (conferences.length === limit)
                 return of(conferences);
 
-              timestamp = !!conferences.length ? conferences[conferences.length - 1].updated : timestamp;
+              timestamp = !!conferences.length ? conferences[conferences.length - 1].updated_at : timestamp;
 
               return this.messengerService.getOldConferences(timestamp, limit - conferences.length).pipe(
                 // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
@@ -248,7 +248,7 @@ export class RepositoryService implements OnDestroy {
           ))
         );
       }),
-      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated - a.updated)),
+      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at)),
       takeUntil(this.unsubscribe$)
     );
   } 

@@ -6,8 +6,8 @@ export interface Message {
   conference: Conference,
   author: User,
   readed: boolean,
-  readedAt?: number
-  type: string,
+  readedAt?: number,
+  type: 'text/plain' | 'audio/ogg' | 'video/mp4',
   date: number,
   content: string,
   consumed?: boolean,

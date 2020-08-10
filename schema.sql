@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 12.1
--- Dumped by pg_dump version 12.1
+-- Dumped from database version 12.2
+-- Dumped by pg_dump version 12.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -30,6 +30,32 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
 
 
+--
+-- Name: conference_type; Type: TYPE; Schema: public; Owner: crypter
+--
+
+CREATE TYPE public.conference_type AS ENUM (
+    'private',
+    'public',
+    'secret'
+);
+
+
+ALTER TYPE public.conference_type OWNER TO crypter;
+
+--
+-- Name: message_type; Type: TYPE; Schema: public; Owner: crypter
+--
+
+CREATE TYPE public.message_type AS ENUM (
+    'text/plain',
+    'audio/ogg',
+    'video/mp4'
+);
+
+
+ALTER TYPE public.message_type OWNER TO crypter;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -40,7 +66,8 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.conference (
     uuid uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    updated timestamp with time zone DEFAULT now() NOT NULL
+    type public.conference_type NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -54,9 +81,11 @@ CREATE TABLE public.conference_reference (
     uuid uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     "user" uuid NOT NULL,
     conference uuid NOT NULL,
-    unread integer DEFAULT 0 NOT NULL,
+    unread_messages_count integer DEFAULT 0 NOT NULL,
     participant uuid,
-    count integer DEFAULT 0 NOT NULL
+    messages_count integer DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_message uuid
 );
 
 
@@ -71,7 +100,7 @@ CREATE TABLE public.message (
     author uuid NOT NULL,
     readed boolean DEFAULT false NOT NULL,
     date timestamp with time zone DEFAULT now() NOT NULL,
-    type character varying NOT NULL,
+    type public.message_type NOT NULL,
     content text NOT NULL,
     consumed boolean,
     edited boolean,
@@ -176,7 +205,8 @@ CREATE TABLE public."user" (
     last_seen timestamp with time zone DEFAULT now() NOT NULL,
     public_key text NOT NULL,
     private_key text NOT NULL,
-    revocation_certificate text NOT NULL
+    revocation_certificate text NOT NULL,
+    conferences_count integer DEFAULT 0 NOT NULL
 );
 
 
@@ -252,6 +282,14 @@ ALTER TABLE ONLY public."user"
 
 ALTER TABLE ONLY public.conference_reference
     ADD CONSTRAINT conference_reference_conference_fkey FOREIGN KEY (conference) REFERENCES public.conference(uuid);
+
+
+--
+-- Name: conference_reference conference_reference_last_message_fkey; Type: FK CONSTRAINT; Schema: public; Owner: crypter
+--
+
+ALTER TABLE ONLY public.conference_reference
+    ADD CONSTRAINT conference_reference_last_message_fkey FOREIGN KEY (last_message) REFERENCES public.message(uuid);
 
 
 --

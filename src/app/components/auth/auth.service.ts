@@ -21,6 +21,7 @@ export class AuthService {
         email: this.storageService.storage.email,
         name: this.storageService.storage.name,
         hash: this.storageService.storage.hash,
+        conferences_count: this.storageService.storage.conferences_count,
         last_seen: this.storageService.storage.last_seen
       };
     }

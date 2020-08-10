@@ -57,14 +57,14 @@ export class ConferencesComponent implements OnInit, OnDestroy {
 
         this.conferences = conferences;
 
-        this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
+        this.conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at);
       });
     }
 
     if (isPlatformBrowser(this.platformId)) {
       this.conferences = this.state.get(CONFERENCES_STATE_KEY, [] as Conference[]);
 
-      this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
+      this.conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at);
 
       // In case Conferences already loaded from server-side-rendering
       if (!!this.conferences.length)
@@ -86,7 +86,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
             return [ ...acc, cur ];
           }, this.conferences);
 
-          this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
+          this.conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at);
 
           this.isConferencesLoading = false;
         });
@@ -124,7 +124,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
         return [ ...acc, cur ];
       }, this.conferences);
 
-      this.conferences.sort((a: Conference, b: Conference) => b.updated - a.updated);
+      this.conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at);
 
       this.isOldConferencesLoading = false;
     });

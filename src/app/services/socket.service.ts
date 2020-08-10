@@ -27,7 +27,7 @@ export class SocketService implements OnDestroy {
 
   public disconnected$: Observable<unknown> = fromEvent(this.socket, 'disconnect').pipe(
     takeUntil(this.unsubscribe$)
-  )
+  );
 
   public userUpdated$: Observable<User> = fromEvent(this.socket, 'user.updated').pipe(
     map(data => {
@@ -36,6 +36,12 @@ export class SocketService implements OnDestroy {
 
       return user;
     }),
+    takeUntil(this.unsubscribe$)
+  );
+
+  public userConferencesCountUpdated$: Observable<number> = fromEvent(this.socket, 'user.conferences_count.updated').pipe(
+    map(data => data as { conferences_count: number }),
+    map(data => data.conferences_count as number),
     takeUntil(this.unsubscribe$)
   );
 

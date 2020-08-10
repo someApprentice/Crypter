@@ -37,7 +37,7 @@ export class DatabaseService implements OnDestroy {
   public conferences$ = of(new PouchDB('conferences')).pipe(
     delayWhen(db => from(db.createIndex({
       index: {
-        fields: [ 'updated', 'participant' ]
+        fields: [ 'updated_at', 'participant' ]
       }
     }))),
     takeUntil(this.unsubscribe$),
@@ -202,9 +202,10 @@ export class DatabaseService implements OnDestroy {
       switchMap((doc: any) => {
         let conference: Conference = {
           uuid: doc._id,
-          updated: doc.updated,
-          count: doc.count,
-          unread: doc.unread
+          type: doc.type,
+          updated_at: doc.updated_at,
+          messages_count: doc.messages_count,
+          unread_messages_count: doc.unread_messages_count
         };
 
         if ('participant' in doc) {
@@ -222,6 +223,7 @@ export class DatabaseService implements OnDestroy {
                 name: string,
                 hash?: string,
                 last_seen?: number,
+                conferences_count: number,
                 public_key?: string,
                 private_key?: string,
                 revocation_certificate?: string
@@ -250,7 +252,7 @@ export class DatabaseService implements OnDestroy {
       switchMap(db => from(db.find({
         selector: {
           participant: uuid,
-          updated: { $gte: null }
+          updated_at: { $gte: null }
         }
       }))),
       switchMap((result: any) => {
@@ -261,17 +263,19 @@ export class DatabaseService implements OnDestroy {
         let doc = result.docs[0] as {
           _id: string,
           _rev: string,
-          updated: number,
-          count: number,
-          unread: number,
+          type: 'private' | 'public' | 'secret',
+          updated_at: number,
+          messages_count: number,
+          unread_messages_count: number,
           participant?: string,
         };
 
         let conference: Conference = {
           uuid: doc._id,
-          updated: doc.updated,
-          count: doc.count,
-          unread: doc.unread
+          type: doc.type,
+          updated_at: doc.updated_at,
+          messages_count: doc.messages_count,
+          unread_messages_count: doc.unread_messages_count
         };
 
         if ('participant' in doc) {
@@ -289,6 +293,7 @@ export class DatabaseService implements OnDestroy {
                 name: string,
                 hash?: string,
                 last_seen?: number,
+                conferences_count: number,
                 public_key?: string,
                 private_key?: string,
                 revocation_certificate?: string
@@ -310,10 +315,10 @@ export class DatabaseService implements OnDestroy {
     return this.conferences$.pipe(
       switchMap(db => from(db.find({
         selector: {
-          updated: { $lt: timestamp }
+          updated_at: { $lt: timestamp }
         },
         limit: limit,
-        sort: [ { updated: 'desc' } ]
+        sort: [ { updated_at: 'desc' } ]
       }))),
       switchMap(result => {
         if (!result.docs.length)
@@ -336,9 +341,10 @@ export class DatabaseService implements OnDestroy {
             let conferences: Conference[] = docs.map((doc: any) => {
               let conference: Conference = {
                 uuid: doc._id,
-                updated: doc.updated,
-                count: doc.count,
-                unread: doc.unread
+                type: doc.type,
+                updated_at: doc.updated_at,
+                messages_count: doc.messages_count,
+                unread_messages_count: doc.unread_messages_count
               };
 
               if ('participant' in doc) {
@@ -353,6 +359,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -369,7 +376,7 @@ export class DatabaseService implements OnDestroy {
           })
         );
       }),
-      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated - a.updated))
+      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at))
     );
   }
 
@@ -377,10 +384,10 @@ export class DatabaseService implements OnDestroy {
     return this.conferences$.pipe(
       switchMap(db => from(db.find({
         selector: {
-          updated: { $lt: timestamp }
+          updated_at: { $lt: timestamp }
         },
         limit: limit,
-        sort: [ { updated: 'desc' } ]
+        sort: [ { updated_at: 'desc' } ]
       }))),
       switchMap(result => {
         if (!result.docs.length)
@@ -403,9 +410,10 @@ export class DatabaseService implements OnDestroy {
             let conferences: Conference[] = docs.map((doc: any) => {
               let conference: Conference = {
                 uuid: doc._id,
-                updated: doc.updated,
-                count: doc.count,
-                unread: doc.unread
+                type: doc.type,
+                updated_at: doc.updated_at,
+                messages_count: doc.messages_count,
+                unread_messages_count: doc.unread_messages_count
               }
 
               if ('participant' in doc) {
@@ -420,6 +428,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -436,7 +445,7 @@ export class DatabaseService implements OnDestroy {
           })
         );
       }),
-      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated - a.updated))
+      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at))
     );
   }
 
@@ -445,7 +454,7 @@ export class DatabaseService implements OnDestroy {
       return this.upsertUser(conference.participant).pipe(
         switchMap(() => this.conferences$),
         switchMap(db => from(db.upsert(conference.uuid, (doc: any) => {
-          let { uuid, ...d  } = Object.assign(doc, { ...conference, participant: conference.participant.uuid });
+          let { uuid, last_message = undefined, ...d } = Object.assign(doc, { ...conference, participant: conference.participant.uuid });
           
           return d;
         }))),
@@ -504,16 +513,18 @@ export class DatabaseService implements OnDestroy {
               row.doc,
               {
                 _id: c.uuid,
-                updated: c.updated,
-                count: c.count,
-                unread: c.unread
+                type: c.type,
+                updated_at: c.updated_at,
+                messages_count: c.messages_count,
+                unread_messages_count: c.unread_messages_count
               }
             ) as {
               _id: string,
               _rev: string,
-              updated: number,
-              count: number,
-              unread: number,
+              type: 'private' | 'public' | 'secret',
+              updated_at: number,
+              messages_count: number,
+              unread_messages_count: number,
               participant?: string,
             };
 
@@ -526,15 +537,17 @@ export class DatabaseService implements OnDestroy {
           // how to typify this more convenient?
           let doc: {
             _id: string,
-            updated: number,
-            count: number,
-            unread: number,
+            type: 'private' | 'public' | 'secret',
+            updated_at: number,
+            messages_count: number,
+            unread_messages_count: number,
             participant?: string,
           } = {
             _id: c.uuid,
-            updated: c.updated,
-            count: c.count,
-            unread: c.unread
+            type: c.type,
+            updated_at: c.updated_at,
+            messages_count: c.messages_count,
+            unread_messages_count: c.unread_messages_count
           };
 
           if ('participant' in c)
@@ -608,17 +621,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -630,6 +645,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -646,6 +662,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -724,17 +741,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -746,6 +765,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -762,6 +782,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -840,17 +861,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -862,6 +885,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -878,6 +902,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -910,7 +935,7 @@ export class DatabaseService implements OnDestroy {
       switchMap(db => from(db.find({
         selector: {
           participant: uuid,
-          updated: { $gte: null }
+          updated_at: { $gte: null }
         }
       }))),
       switchMap(result => {
@@ -969,17 +994,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -991,6 +1018,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -1007,6 +1035,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -1039,7 +1068,7 @@ export class DatabaseService implements OnDestroy {
       switchMap(db => from(db.find({
         selector: {
           participant: uuid,
-          updated: { $gte: null }
+          updated_at: { $gte: null }
         }
       }))),
       switchMap(result => {
@@ -1099,17 +1128,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -1121,6 +1152,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -1137,6 +1169,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -1169,7 +1202,7 @@ export class DatabaseService implements OnDestroy {
       switchMap(db => from(db.find({
         selector: {
           participant: uuid,
-          updated: { $gte: null }
+          updated_at: { $gte: null }
         }
       }))),
       switchMap(result => {
@@ -1228,17 +1261,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -1250,6 +1285,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -1266,6 +1302,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -1298,7 +1335,7 @@ export class DatabaseService implements OnDestroy {
       switchMap(db => from(db.find({
         selector: {
           participant: uuid,
-          updated: { $gte: null }
+          updated_at: { $gte: null }
         }
       }))),
       switchMap(result => {
@@ -1357,17 +1394,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -1379,6 +1418,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -1395,6 +1435,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -1473,17 +1514,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -1495,6 +1538,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -1511,6 +1555,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -1590,17 +1635,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -1612,6 +1659,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -1628,6 +1676,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -1706,17 +1755,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -1728,6 +1779,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -1744,6 +1796,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string
@@ -1822,17 +1875,19 @@ export class DatabaseService implements OnDestroy {
                   let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
                     _id: string,
                     _rev: string,
-                    updated: number,
-                    count: number,
-                    unread: number
+                    type: 'private' | 'public' | 'secret',
+                    updated_at: number,
+                    messages_count: number,
+                    unread_messages_count: number,
                     participant?: string
                   };
 
                   let conference: Conference = {
                     uuid: c._id,
-                    updated: c.updated,
-                    count: c.count,
-                    unread: c.unread
+                    type: c.type,
+                    updated_at: c.updated_at,
+                    messages_count: c.messages_count,
+                    unread_messages_count: c.unread_messages_count
                   };
                  
                   if ('participant' in c) {
@@ -1844,6 +1899,7 @@ export class DatabaseService implements OnDestroy {
                       name: string,
                       hash?: string,
                       last_seen?: number,
+                      conferences_count: number,
                       public_key?: string,
                       private_key?: string,
                       revocation_certificate?: string
@@ -1860,6 +1916,7 @@ export class DatabaseService implements OnDestroy {
                     name: string,
                     hash?: string,
                     last_seen?: number,
+                    conferences_count: number,
                     public_key?: string,
                     private_key?: string,
                     revocation_certificate?: string

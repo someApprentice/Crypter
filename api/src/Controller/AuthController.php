@@ -88,6 +88,7 @@ class AuthController extends AbstractController
         $uuid = $user->getUuid();
         $hash = $user->getPassword();
         $lastSeen = (float) $user->getLastSeen()->format('U.u');
+        $conferencesCount = $user->getConferencesCount();
 
         $jwt = JWT::encode(['uuid' => $uuid, 'hash' => $hash], $this->getParameter('JWT_SECRET'));
 
@@ -97,6 +98,7 @@ class AuthController extends AbstractController
             'name' => $name,
             'hash' => $jwt,
             'last_seen' => $lastSeen,
+            'conferences_count' => $conferencesCount,
             'public_key' => $publicKey,
             'private_key' => $privateKey,
             'revocation_certificate' => $revocationCertificate
@@ -108,6 +110,7 @@ class AuthController extends AbstractController
         $response->headers->setCookie(new Cookie('name', $name, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('hash', $jwt, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('last_seen', $lastSeen, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+        $response->headers->setCookie(new Cookie('conferences_count', $conferencesCount, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
 
         return $response;
     }
@@ -134,7 +137,6 @@ class AuthController extends AbstractController
         $user->setEmail($email);
         $user->setPassword($password);
 
-
         $errors = new ConstraintViolationList();
 
         foreach ($this->validator->validateProperty($user, 'email') as $error) {
@@ -160,6 +162,7 @@ class AuthController extends AbstractController
         $name = $user->getName();
         $hash = $user->getPassword();
         $lastSeen = (float) $user->getLastSeen()->format('U.u');
+        $conferencesCount = $user->getConferencesCount();
         $publicKey = $user->getPublicKey();
         $privateKey = $user->getPrivateKey();
         $revocationCertificate = $user->getRevocationCertificate();
@@ -172,6 +175,7 @@ class AuthController extends AbstractController
             'name' => $name,
             'hash' => $jwt,
             'last_seen' => $lastSeen,
+            'conferences_count' => $conferencesCount,
             'public_key' => $publicKey,
             'private_key' => $privateKey,
             'revocation_certificate' => $revocationCertificate
@@ -183,6 +187,7 @@ class AuthController extends AbstractController
         $response->headers->setCookie(new Cookie('name', $name, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('hash', $jwt, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
         $response->headers->setCookie(new Cookie('last_seen', $lastSeen, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+        $response->headers->setCookie(new Cookie('conferences_count', $conferencesCount, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
 
         return $response;
     }

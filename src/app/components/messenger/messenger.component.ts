@@ -141,6 +141,21 @@ export class MessengerComponent implements OnInit, OnDestroy {
         takeUntil(this.unsubscribe$)
       ).subscribe();
 
+      this.socketService.userConferencesCountUpdated$.pipe(
+        tap(conferences_count => {
+          // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+          localStorage.setItem('conferences_count', conferences_count as unknown as string);
+
+          this.authService.user.conferences_count = conferences_count;
+        }),
+        switchMap(() => {
+          if ('private_key' in this.authService.user)
+            return this.databaseService.upsertUser(this.authService.user);
+
+          return of(this.authService.user);
+        })
+      )
+
       this.socketService.conferenceUpdated$.pipe(
         concatMap((conference: Conference) => this.databaseService.upsertConference(conference)),
         takeUntil(this.unsubscribe$)

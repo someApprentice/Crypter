@@ -79,7 +79,12 @@ export class LoginComponent implements OnInit, OnDestroy {
         localStorage.setItem('email', user.email);
         localStorage.setItem('name', user.name);
         localStorage.setItem('hash', user.hash);
-        localStorage.setItem('last_seen', user.last_seen as unknown as string); // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+        
+        // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+        localStorage.setItem('conferences_count', user.conferences_count as unknown as string);
+
+        // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+        localStorage.setItem('last_seen', user.last_seen as unknown as string);
 
         this.router.navigate([redirect]);
       },

@@ -52,8 +52,9 @@ describe('MessengerComponent', () => {
 
     conference = <Conference> {
       "uuid":"14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
-      "updated":1560541328,
-      "unread":0,
+      "updated_at":1560541328,
+      "messages_count": 0,
+      "unread_messages_count":0,
       "participant":{
         "uuid":"3ddfeb6e-ce7a-4e1e-808c-85a2a0d3d5e9",
         "name":"Bob"

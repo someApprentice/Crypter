@@ -12,6 +12,10 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 class Message
 {
+    const TEXT_TYPE = 'text/plain';
+    const AUDIO_TYPE = 'audio/ogg';
+    const VIDEO_TYPE = 'video/mp4';
+
     /**
      * @ORM\Id()
      * @ORM\Column(type="guid")
@@ -151,6 +155,9 @@ class Message
 
     public function setType(string $type): self
     {
+        if (!in_array($type, [self::TEXT_TYPE, self::AUDIO_TYPE, self::VIDEO_TYPE]))
+            throw new \InvalidArgumentException('Invalid type');
+
         $this->type = $type;
 
         return $this;

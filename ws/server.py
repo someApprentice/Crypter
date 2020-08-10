@@ -57,6 +57,7 @@ async def connect(sid, environ):
         'name': user.name,
         'hash': token,
         'last_seen': user.last_seen.timestamp(),
+        'conferences_count': user.conferences_count,
         'public_key': user.public_key,
         'private_key': user.private_key,
         'revocation_certificate': user.revocation_certificate
@@ -103,7 +104,9 @@ async def send_private_message(sid, data):
 
         return json
 
-    sender = await sio.get_session(sid)
+    user = await sio.get_session(sid)
+
+    sender = database.session.query(User).get(user['uuid'])
 
     receiver = database.session.query(User).get(data['to'])
 
@@ -116,16 +119,16 @@ async def send_private_message(sid, data):
             .join(Conference_Reference) \
             .filter(and_(
                 Conference_Reference.conference_uuid == Conference.uuid,
-                Conference_Reference.user_uuid == sender['uuid'],
+                Conference_Reference.user_uuid == sender.uuid,
                 Conference_Reference.participant_uuid == receiver.uuid
             )) \
             .one_or_none()
 
     if not conference:
-        conference = Conference(uuid=uuid4())
+        conference = Conference(uuid=uuid4(), type='private')
 
         sender_conference_reference = Conference_Reference(
-            user_uuid=sender['uuid'],
+            user_uuid=sender.uuid,
             conference=conference,
             participant=receiver
         )
@@ -133,10 +136,10 @@ async def send_private_message(sid, data):
         receiver_conference_reference = Conference_Reference(
             user=receiver,
             conference=conference,
-            participant_uuid=sender['uuid']
+            participant_uuid=sender.uuid
         )
 
-        sender_participant = Participant(conference=conference, user_uuid=sender['uuid'])
+        sender_participant = Participant(conference=conference, user_uuid=sender.uuid)
 
         receiver_participant = Participant(conference=conference, user=receiver)
 
@@ -151,9 +154,18 @@ async def send_private_message(sid, data):
         ])
         database.session.flush()
 
+        sender.conferences_count += 1
+        receiver.conferences_count += 1
+
+        database.session.add_all([
+            sender,
+            receiver
+        ])
+        database.session.flush()
+
     sender_conference_reference = database.session.query(Conference_Reference) \
         .filter(and_(
-            Conference_Reference.user_uuid == sender['uuid'],
+            Conference_Reference.user_uuid == sender.uuid,
             Conference_Reference.conference_uuid == conference.uuid
         )) \
         .one_or_none()
@@ -161,12 +173,17 @@ async def send_private_message(sid, data):
     # In case sender has deleted his own conference
     if not sender_conference_reference:
         sender_conference_reference = Conference_Reference(
-            user_uuid=sender['uuid'],
+            user_uuid=sender.uuid,
             conference=conference,
             participant=receiver
         )
 
         database.session.add(sender_conference_reference)
+        database.session.flush()
+
+        sender.conferences_count += 1
+
+        database.session.add(sender)
         database.session.flush()
 
     receiver_conference_reference = database.session.query(Conference_Reference) \
@@ -181,22 +198,27 @@ async def send_private_message(sid, data):
         receiver_conference_reference = Conference_Reference(
             user=receiver,
             conference=conference,
-            participant_uuid=sender['uuid']
+            participant_uuid=sender.uuid
         )
 
         database.session.add(receiver_conference_reference)
         database.session.flush()
 
+        receiver.conferences_count += 1
+
+        database.session.add(receiver)
+        database.session.flush()
+
     message = Message(
         uuid=uuid4(),
         conference=conference,
-        author_uuid=sender['uuid'],
+        author_uuid=sender.uuid,
         type='text/plain',
         content=data['text'],
         edited=False
     )
 
-    sender_message_reference = Message_Reference(user_uuid=sender['uuid'], message=message)
+    sender_message_reference = Message_Reference(user_uuid=sender.uuid, message=message)
     receiver_message_reference = Message_Reference(user=receiver, message=message)
 
     database.session.add(message)
@@ -206,14 +228,15 @@ async def send_private_message(sid, data):
     database.session.add(receiver_message_reference)
     database.session.flush()
 
-    conference.updated = datetime.datetime.utcnow()
+    sender_conference_reference.updated_at = datetime.datetime.utcnow()
+    sender_conference_reference.messages_count += 1
+    sender_conference_reference.last_message = message
 
-    sender_conference_reference.count += 1
+    receiver_conference_reference.updated_at = datetime.datetime.utcnow()
+    receiver_conference_reference.messages_count += 1
+    receiver_conference_reference.unread_messages_count += 1
+    receiver_conference_reference.last_message = message
 
-    receiver_conference_reference.count += 1
-    receiver_conference_reference.unread += 1
-
-    database.session.add(conference)
     database.session.add(sender_conference_reference)
     database.session.add(receiver_conference_reference)
     database.session.flush()
@@ -225,17 +248,48 @@ async def send_private_message(sid, data):
         receiver_conference_reference
     ]
 
+    await sio.emit('user.conferences_count.updated', { 'conferences_count': sender.conferences_count }, room=str(sender.uuid))
+    await sio.emit('user.conferences_count.updated', { 'conferences_count': receiver.conferences_count }, room=str(receiver.uuid))
+
     for conference_reference in conference_references:
         c = {
             'uuid': str(conference.uuid),
-            'updated': conference.updated.timestamp(),
-            'count': conference_reference.count,
-            'unread': conference_reference.unread,
+            'type': conference.type,
+            'updated_at': conference_reference.updated_at.timestamp(),
+            'messages_count': conference_reference.messages_count,
+            'unread_messages_count': conference_reference.unread_messages_count,
             'participant': {
                 'uuid': str(conference_reference.participant.uuid),
                 'name': conference_reference.participant.name,
                 'public_key': conference_reference.participant.public_key
-            }
+            },
+            'last_message': {
+                'uuid': str(message.uuid),
+                'author': {
+                    'uuid': str(message.author.uuid),
+                    'name': message.author.name,
+                    'public_key': message.author.public_key
+                },
+                'conference': {
+                    'uuid': str(conference.uuid),
+                    'type': conference.type,
+                    'updated_at': conference_reference.updated_at.timestamp(),
+                    'messages_count': conference_reference.messages_count,
+                    'unread_messages_count': conference_reference.unread_messages_count,
+                    'participant': {
+                        'uuid': str(conference_reference.participant.uuid),
+                        'name': conference_reference.participant.name,
+                        'public_key': conference_reference.participant.public_key
+                    }
+                },
+                'readed': message.readed,
+                'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
+                'date': message.date.timestamp(),
+                'type': message.type,
+                'content': message.content,
+                'consumed': message.consumed,
+                'edited': message.edited
+           }
         }
 
         await sio.emit('conference.updated', c, room=str(conference_reference.user.uuid))
@@ -249,9 +303,10 @@ async def send_private_message(sid, data):
             },
             'conference': {
                 'uuid': str(conference.uuid),
-                'updated': conference.updated.timestamp(),
-                'count': conference_reference.count,
-                'unread': conference_reference.unread,
+                'type': conference.type,
+                'updated_at': conference_reference.updated_at.timestamp(),
+                'messages_count': conference_reference.messages_count,
+                'unread_messages_count': conference_reference.unread_messages_count,
                 'participant': {
                     'uuid': str(conference_reference.participant.uuid),
                     'name': conference_reference.participant.name,
@@ -278,9 +333,10 @@ async def send_private_message(sid, data):
         },
         'conference': {
             'uuid': str(conference.uuid),
-            'updated': conference.updated.timestamp(),
-            'count': sender_conference_reference.count,
-            'unread': sender_conference_reference.unread,
+            'type': conference.type,
+            'updated_at': sender_conference_reference.updated_at.timestamp(),
+            'messages_count': sender_conference_reference.messages_count,
+            'unread_messages_count': sender_conference_reference.unread_messages_count,
             'participant': {
                 'uuid': str(sender_conference_reference.participant.uuid),
                 'name': sender_conference_reference.participant.name,
@@ -360,7 +416,7 @@ async def read_private_message(sid, data):
         .one_or_none()
 
     if conference_reference:
-        conference_reference.unread -= 1
+        conference_reference.unread_messages_count -= 1
 
         database.session.add(conference_reference)
 
@@ -371,9 +427,10 @@ async def read_private_message(sid, data):
     if conference_reference:
         c = {
             'uuid': str(conference_reference.conference.uuid),
-            'updated': conference_reference.conference.updated.timestamp(),
-            'count': conference_reference.count,
-            'unread': conference_reference.unread,
+            'type': conference_reference.conference.type,
+            'updated_at': conference_reference.updated_at.timestamp(),
+            'messages_count': conference_reference.messages_count,
+            'unread_messages_count': conference_reference.unread_messages_count,
             'participant': {
                 'uuid': str(conference_reference.participant.uuid),
                 'name': conference_reference.participant.name,
@@ -397,9 +454,10 @@ async def read_private_message(sid, data):
             },
             'conference': {
                 'uuid': str(cr.conference.uuid),
-                'updated': cr.conference.updated.timestamp(),
-                'count': cr.count,
-                'unread': cr.unread,
+                'type': cr.conference.type,
+                'updated_at': cr.updated_at.timestamp(),
+                'messages_count': cr.messages_count,
+                'unread_messages_count': cr.unread_messages_count,
                 'participant': {
                     'uuid': str(cr.participant.uuid),
                     'name': cr.participant.name,
@@ -426,9 +484,10 @@ async def read_private_message(sid, data):
         },
         'conference': {
             'uuid': str(conference_reference.conference.uuid),
-            'updated': conference_reference.conference.updated.timestamp(),
-            'count': conference_reference.count,
-            'unread': conference_reference.unread,
+            'type': conference_reference.conference.type,
+            'updated_at': conference_reference.updated_at.timestamp(),
+            'messages_count': conference_reference.messages_count,
+            'unread_messages_count': conference_reference.unread_messages_count,
             'participant': {
                 'uuid': str(conference_reference.participant.uuid),
                 'name': conference_reference.participant.name,
@@ -512,7 +571,7 @@ async def read_private_message_since(sid, data):
         .one_or_none()
 
     if conference_reference:
-        conference_reference.unread -= len(messages)
+        conference_reference.unread_messages_count -= len(messages)
 
         database.session.add(conference_reference)
 
@@ -523,9 +582,10 @@ async def read_private_message_since(sid, data):
     if conference_reference:
         c = {
             'uuid': str(conference_reference.conference.uuid),
-            'updated': conference_reference.conference.updated.timestamp(),
-            'count': conference_reference.count,
-            'unread': conference_reference.unread,
+            'type': conference_reference.conference.type,
+            'updated_at': conference_reference.updated_at.timestamp(),
+            'messages_count': conference_reference.messages_count,
+            'unread_messages_count': conference_reference.unread_messages_count,
             'participant': {
                 'uuid': str(conference_reference.participant.uuid),
                 'name': conference_reference.participant.name,
@@ -552,9 +612,10 @@ async def read_private_message_since(sid, data):
                 },
                 'conference': {
                     'uuid': str(cr.conference.uuid),
-                    'updated': cr.conference.updated.timestamp(),
-                    'count': cr.count,
-                    'unread': cr.unread,
+                    'type': cr.conference.type,
+                    'updated_at': cr.updated_at.timestamp(),
+                    'messages_count': cr.messages_count,
+                    'unread_messages_count': cr.unread_messages_count,
                     'participant': {
                         'uuid': str(cr.participant.uuid),
                         'name': cr.participant.name,
@@ -584,9 +645,10 @@ async def read_private_message_since(sid, data):
             },
             'conference': {
                 'uuid': str(conference_reference.conference.uuid),
-                'updated': conference_reference.conference.updated.timestamp(),
-                'count': conference_reference.count,
-                'unread': conference_reference.unread,
+                'type': conference_reference.conference.type,
+                'updated_at': conference_reference.updated_at.timestamp(),
+                'messages_count': conference_reference.messages_count,
+                'unread_messages_count': conference_reference.unread_messages_count,
                 'participant': {
                     'uuid': str(conference_reference.participant.uuid),
                     'name': conference_reference.participant.name,

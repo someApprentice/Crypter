@@ -3,7 +3,7 @@ import datetime
 
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, BOOLEAN, VARCHAR, TEXT, TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID, BOOLEAN, ENUM, TEXT, TIMESTAMP
 
 from database import Base
 
@@ -19,7 +19,7 @@ class Message(Base):
     readed = Column(BOOLEAN, nullable=False, default=False)
     readed_at = Column(TIMESTAMP(timezone=True), nullable=True)
     date =  Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.datetime.utcnow)
-    type = Column(VARCHAR, nullable=False)
+    type = Column(ENUM('text/plain', 'audio/ogg', 'video/mp4', name='message_type', create_type=False), nullable=False)
     content = Column(TEXT, nullable=False)
     consumed = Column(BOOLEAN, nullable=True)
     edited = Column(BOOLEAN, nullable=True)

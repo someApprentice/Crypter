@@ -73,18 +73,48 @@ class MessengerController extends AbstractController
 
         $user = $this->getUser();
 
-        $conferences = $this->em->getRepository(User::class)->getConferences($user, $date, $limit);
+        $conferenceReferences = $this->em->getRepository(User::class)->getConferences($user, $date, $limit);
 
         $json = [];
 
-        foreach ($conferences as $key => $conference) {
-            $participant = $this->em->getRepository(User::class)->find($conference['participant']);
+        foreach ($conferenceReferences as $key => $conferenceReference) {
+            $conference = $conferenceReference->getConference();
+            $lastMessage = $conferenceReference->getLastMessage();
+            $participant = $conferenceReference->getParticipant();
 
             $json[$key] = [
-                'uuid' => $conference[0]->getUuid(),
-                'updated' => (float) $conference[0]->getUpdated()->format('U.u'),
-                'count' => $conference['count'],
-                'unread' => $conference['unread'],
+                'uuid' => $conference->getUuid(),
+                'type' => $conference->getType(),
+                'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+                'messages_count' => $conferenceReference->getMessagesCount(),
+                'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+                'last_message' => [
+                    'uuid' => $lastMessage->getUuid(),
+                    'author' => [
+                        'uuid' => $lastMessage->getAuthor()->getUuid(),
+                        'name' => $lastMessage->getAuthor()->getName(),
+                        'public_key' => $lastMessage->getAuthor()->getPublicKey()
+                    ],
+                    'conference' => [
+                        'uuid' => $conference->getUuid(),
+                        'type' => $conference->getType(),
+                        'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+                        'messages_count' => $conferenceReference->getMessagesCount(),
+                        'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+                        'participant' => [
+                            'uuid' => $participant->getUuid(),
+                            'name' => $participant->getName(),
+                            'public_key' => $participant->getPublicKey()
+                        ],
+                    ],
+                    'readed' => $lastMessage->getReaded(),
+                    'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                    'date' => (float) $lastMessage->getDate()->format('U.u'),
+                    'type' => $lastMessage->getType(),
+                    'content' => $lastMessage->getContent(),
+                    'consumed' => $lastMessage->getConsumed(),
+                    'edited' => $lastMessage->getEdited()
+                ],
                 'participant' => [
                     'uuid' => $participant->getUuid(),
                     'name' => $participant->getName(),
@@ -93,7 +123,7 @@ class MessengerController extends AbstractController
                 'participants' => []
             ];
 
-            $participants = $this->em->getRepository(Conference::class)->getParticipants($conference[0]);
+            $participants = $this->em->getRepository(Conference::class)->getParticipants($conference);
 
             foreach ($participants as $participant) {
                 $json[$key]['participants'][] = [
@@ -105,7 +135,7 @@ class MessengerController extends AbstractController
         }
 
         usort($json, function($a, $b) {
-            return $b['updated'] - $a['updated'];
+            return $b['updated_at'] - $a['updated_at'];
         });
 
         return new JsonResponse($json);
@@ -124,18 +154,47 @@ class MessengerController extends AbstractController
 
         $user = $this->getUser();
 
-        $conferences = $this->em->getRepository(User::class)->getOldConferences($user, $date, $limit);
+        $conferenceReferences = $this->em->getRepository(User::class)->getOldConferences($user, $date, $limit);
 
         $json = [];
 
-        foreach ($conferences as $key => $conference) {
-            $participant = $this->em->getRepository(User::class)->find($conference['participant']);
+        foreach ($conferenceReferences as $key => $conferenceReference) {
+            $conference = $conferenceReference->getConference();
+            $participant = $conferenceReference->getParticipant();
 
             $json[$key] = [
-                'uuid' => $conference[0]->getUuid(),
-                'updated' => (float) $conference[0]->getUpdated()->format('U.u'),
-                'count' => $conference['count'],
-                'unread' => $conference['unread'],
+                'uuid' => $conference->getUuid(),
+                'type' => $conference->getType(),
+                'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+                'messages_count' => $conferenceReference->getMessagesCount(),
+                'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+                'last_message' => [
+                    'uuid' => $lastMessage->getUuid(),
+                    'author' => [
+                        'uuid' => $lastMessage->getAuthor()->getUuid(),
+                        'name' => $lastMessage->getAuthor()->getName(),
+                        'public_key' => $lastMessage->getAuthor()->getPublicKey()
+                    ],
+                    'conference' => [
+                        'uuid' => $conference->getUuid(),
+                        'type' => $conference->getType(),
+                        'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+                        'messages_count' => $conferenceReference->getMessagesCount(),
+                        'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+                        'participant' => [
+                            'uuid' => $participant->getUuid(),
+                            'name' => $participant->getName(),
+                            'public_key' => $participant->getPublicKey()
+                        ],
+                    ],
+                    'readed' => $lastMessage->getReaded(),
+                    'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                    'date' => (float) $lastMessage->getDate()->format('U.u'),
+                    'type' => $lastMessage->getType(),
+                    'content' => $lastMessage->getContent(),
+                    'consumed' => $lastMessage->getConsumed(),
+                    'edited' => $lastMessage->getEdited()
+                ],
                 'participant' => [
                     'uuid' => $participant->getUuid(),
                     'name' => $participant->getName(),
@@ -144,7 +203,7 @@ class MessengerController extends AbstractController
                 'participants' => []
             ];
 
-            $participants = $this->em->getRepository(Conference::class)->getParticipants($conference[0]);
+            $participants = $this->em->getRepository(Conference::class)->getParticipants($conference);
 
             foreach ($participants as $participant) {
                 $json[$key]['participants'][] = [
@@ -156,7 +215,7 @@ class MessengerController extends AbstractController
         }
 
         usort($json, function($a, $b) {
-            return $b['updated'] - $a['updated'];
+            return $b['updated_at'] - $a['updated_at'];
         });
 
         return new JsonResponse($json);
@@ -175,18 +234,47 @@ class MessengerController extends AbstractController
 
         $user = $this->getUser();
 
-        $conferences = $this->em->getRepository(User::class)->getNewConferences($user, $date, $limit);
+        $conferenceReferences = $this->em->getRepository(User::class)->getNewConferences($user, $date, $limit);
 
         $json = [];
 
-        foreach ($conferences as $key => $conference) {
-            $participant = $this->em->getRepository(User::class)->find($conference['participant']);
+        foreach ($conferenceReferences as $key => $conferenceReference) {
+            $conference = $conferenceReference->getConference();
+            $participant = $conferenceReference->getParticipant();
 
             $json[$key] = [
-                'uuid' => $conference[0]->getUuid(),
-                'updated' => (float) $conference[0]->getUpdated()->format('U.u'),
-                'count' => $conference['count'],
-                'unread' => $conference['unread'],
+                'uuid' => $conference->getUuid(),
+                'type' => $conference->getType(),
+                'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+                'messages_count' => $conferenceReference->getMessagesCount(),
+                'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+                'last_message' => [
+                    'uuid' => $lastMessage->getUuid(),
+                    'author' => [
+                        'uuid' => $lastMessage->getAuthor()->getUuid(),
+                        'name' => $lastMessage->getAuthor()->getName(),
+                        'public_key' => $lastMessage->getAuthor()->getPublicKey()
+                    ],
+                    'conference' => [
+                        'uuid' => $conference->getUuid(),
+                        'type' => $conference->getType(),
+                        'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+                        'messages_count' => $conferenceReference->getMessagesCount(),
+                        'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+                        'participant' => [
+                            'uuid' => $participant->getUuid(),
+                            'name' => $participant->getName(),
+                            'public_key' => $participant->getPublicKey()
+                        ],
+                    ],
+                    'readed' => $lastMessage->getReaded(),
+                    'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                    'date' => (float) $lastMessage->getDate()->format('U.u'),
+                    'type' => $lastMessage->getType(),
+                    'content' => $lastMessage->getContent(),
+                    'consumed' => $lastMessage->getConsumed(),
+                    'edited' => $lastMessage->getEdited()
+                ],
                 'participant' => [
                     'uuid' => $participant->getUuid(),
                     'name' => $participant->getName(),
@@ -195,7 +283,7 @@ class MessengerController extends AbstractController
                 'participants' => []
             ];
 
-            $participants = $this->em->getRepository(Conference::class)->getParticipants($conference[0]);
+            $participants = $this->em->getRepository(Conference::class)->getParticipants($conference);
 
             foreach ($participants as $participant) {
                 $json[$key]['participants'][] = [
@@ -207,7 +295,7 @@ class MessengerController extends AbstractController
         }
 
         usort($json, function($a, $b) {
-            return $b['updated'] - $a['updated'];
+            return $b['updated_at'] - $a['updated_at'];
         });
 
         return new JsonResponse($json);
@@ -230,19 +318,48 @@ class MessengerController extends AbstractController
             return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
         }
 
-        $conference = $this->em->getRepository(User::class)->getConference($conference, $user);
+        $conferenceReference = $this->em->getRepository(User::class)->getConference($conference, $user);
 
-        if (!$conference) {
+        if (!$conferenceReference) {
             return new Response('Not Found', Response::HTTP_NOT_FOUND);
         }
 
-        $participant = $this->em->getRepository(User::class)->find($conference['participant']);
+        $conference = $conferenceReference->getConference();
+        $participant = $conferenceReference->getParticipant();
 
         $json = [
-            'uuid' => $conference[0]->getUuid(),
-            'updated' => (float) $conference[0]->getUpdated()->format('U.u'),
-            'count' => $conference['count'],
-            'unread' => $conference['unread'],
+            'uuid' => $conference->getUuid(),
+            'type' => $conference->getType(),
+            'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+            'messages_count' => $conferenceReference->getMessagesCount(),
+            'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+            'last_message' => [
+                'uuid' => $lastMessage->getUuid(),
+                'author' => [
+                    'uuid' => $lastMessage->getAuthor()->getUuid(),
+                    'name' => $lastMessage->getAuthor()->getName(),
+                    'public_key' => $lastMessage->getAuthor()->getPublicKey()
+                ],
+                'conference' => [
+                    'uuid' => $conference->getUuid(),
+                    'type' => $conference->getType(),
+                    'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+                    'participant' => [
+                        'uuid' => $participant->getUuid(),
+                        'name' => $participant->getName(),
+                        'public_key' => $participant->getPublicKey()
+                    ],
+                ],
+                'readed' => $lastMessage->getReaded(),
+                'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                'date' => (float) $lastMessage->getDate()->format('U.u'),
+                'type' => $lastMessage->getType(),
+                'content' => $lastMessage->getContent(),
+                'consumed' => $lastMessage->getConsumed(),
+                'edited' => $lastMessage->getEdited()
+            ],
             'participant' => [
                 'uuid' => $participant->getUuid(),
                 'name' => $participant->getName(),
@@ -251,7 +368,7 @@ class MessengerController extends AbstractController
             'participants' => []
         ];
 
-        $participants = $this->em->getRepository(Conference::class)->getParticipants($conference[0]);
+        $participants = $this->em->getRepository(Conference::class)->getParticipants($conference);
 
         foreach ($participants as $participant) {
             $json['participants'][] = [
@@ -287,17 +404,47 @@ class MessengerController extends AbstractController
            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
         }
 
-        $conference = $this->em->getRepository(User::class)->getConferenceByParticipant($participant->getUuid(), $user);
+        $conferenceReference = $this->em->getRepository(User::class)->getConferenceByParticipant($participant->getUuid(), $user);
 
-        if (!$conference) {
+        if (!$conferenceReference) {
             return new Response('Not Found', Response::HTTP_NOT_FOUND);
         }
 
+        $conference = $conferenceReference->getConference();
+
         $json = [
-            'uuid' => $conference[0]->getUuid(),
-            'updated' => (float) $conference[0]->getUpdated()->format('U.u'),
-            'count' => $conference['count'],
-            'unread' => $conference['unread'],
+            'uuid' => $conference->getUuid(),
+            'type' => $conference->getType(),
+            'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+            'messages_count' => $conferenceReference->getMessagesCount(),
+            'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+            'last_message' => [
+                'uuid' => $lastMessage->getUuid(),
+                'author' => [
+                    'uuid' => $lastMessage->getAuthor()->getUuid(),
+                    'name' => $lastMessage->getAuthor()->getName(),
+                    'public_key' => $lastMessage->getAuthor()->getPublicKey()
+                ],
+                'conference' => [
+                    'uuid' => $conference->getUuid(),
+                    'type' => $conference->getType(),
+                    'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
+                    'participant' => [
+                        'uuid' => $participant->getUuid(),
+                        'name' => $participant->getName(),
+                        'public_key' => $participant->getPublicKey()
+                    ],
+                ],
+                'readed' => $lastMessage->getReaded(),
+                'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                'date' => (float) $lastMessage->getDate()->format('U.u'),
+                'type' => $lastMessage->getType(),
+                'content' => $lastMessage->getContent(),
+                'consumed' => $lastMessage->getConsumed(),
+                'edited' => $lastMessage->getEdited()
+            ],
             'participant' => [
                 'uuid' => $participant->getUuid(),
                 'name' => $participant->getName(),
@@ -306,7 +453,7 @@ class MessengerController extends AbstractController
             'participants' => []
         ];
 
-        $participants = $this->em->getRepository(Conference::class)->getParticipants($conference[0]);
+        $participants = $this->em->getRepository(Conference::class)->getParticipants($conference);
 
         foreach ($participants as $participant) {
             $json['participants'][] = [
@@ -384,9 +531,10 @@ class MessengerController extends AbstractController
 
             $conference = [
                 'uuid' => $conferenceReference->getConference()->getUuid(),
-                'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                'count' => $conferenceReference->getCount(),
-                'unread' => $conferenceReference->getUnread()
+                'type' => $conferenceReference->getConference()->getType(),
+                'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                'messages_count' => $conferenceReference->getMessagesCount(),
+                'unread_messages_count' => $conferenceReference->getUnreadMessagesCount()
             ];
 
             if ($participant = $conferenceReference->getParticipant()) {
@@ -463,9 +611,10 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => [
                     'uuid' => $conferenceReference->getConference()->getUuid(),
-                    'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                    'count' => $conferenceReference->getCount(),
-                    'unread' => $conferenceReference->getUnread(),
+                    'type' => $conferenceReference->getConference()->getType(),
+                    'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     'participant' => [
                         'uuid' => $conferenceReference->getParticipant()->getUuid(),
                         'name' => $conferenceReference->getParticipant()->getName(),
@@ -532,9 +681,10 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => [
                     'uuid' => $conferenceReference->getConference()->getUuid(),
-                    'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                    'count' => $conferenceReference->getCount(),
-                    'unread' => $conferenceReference->getUnread(),
+                    'type' => $conferenceReference->getConference()->getType(),
+                    'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     'participant' => [
                         'uuid' => $conferenceReference->getParticipant()->getUuid(),
                         'name' => $conferenceReference->getParticipant()->getName(),
@@ -599,9 +749,10 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => [
                     'uuid' => $conferenceReference->getConference()->getUuid(),
-                    'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                    'count' => $conferenceReference->getCount(),
-                    'unread' => $conferenceReference->getUnread(),
+                    'type' => $conferenceReference->getConference()->getType(),
+                    'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     'participant' => [
                         'uuid' => $conferenceReference->getParticipant()->getUuid(),
                         'name' => $conferenceReference->getParticipant()->getName(),
@@ -666,9 +817,10 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => [
                     'uuid' => $conferenceReference->getConference()->getUuid(),
-                    'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                    'count' => $conferenceReference->getCount(),
-                    'unread' => $conferenceReference->getUnread(),
+                    'type' => $conferenceReference->getConference()->getType(),
+                    'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     'participant' => [
                         'uuid' => $conferenceReference->getParticipant()->getUuid(),
                         'name' => $conferenceReference->getParticipant()->getName(),
@@ -743,9 +895,10 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => [
                     'uuid' => $conferenceReference->getConference()->getUuid(),
-                    'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                    'count' => $conferenceReference->getCount(),
-                    'unread' => $conferenceReference->getUnread(),
+                    'type' => $conferenceReference->getConference()->getType(),
+                    'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     'participant' => [
                         'uuid' => $conferenceReference->getParticipant()->getUuid(),
                         'name' => $conferenceReference->getParticipant()->getName(),
@@ -818,9 +971,10 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => [
                     'uuid' => $conferenceReference->getConference()->getUuid(),
-                    'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                    'count' => $conferenceReference->getCount(),
-                    'unread' => $conferenceReference->getUnread(),
+                    'type' => $conferenceReference->getConference()->getType(),
+                    'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     'participant' => [
                         'uuid' => $conferenceReference->getParticipant()->getUuid(),
                         'name' => $conferenceReference->getParticipant()->getName(),
@@ -891,9 +1045,10 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => [
                     'uuid' => $conferenceReference->getConference()->getUuid(),
-                    'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                    'count' => $conferenceReference->getCount(),
-                    'unread' => $conferenceReference->getUnread(),
+                    'type' => $conferenceReference->getConference()->getType(),
+                    'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     'participant' => [
                         'uuid' => $conferenceReference->getParticipant()->getUuid(),
                         'name' => $conferenceReference->getParticipant()->getName(),
@@ -964,9 +1119,10 @@ class MessengerController extends AbstractController
                 ],
                 'conference' => [
                     'uuid' => $conferenceReference->getConference()->getUuid(),
-                    'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                    'count' => $conferenceReference->getCount(),
-                    'unread' => $conferenceReference->getUnread(),
+                    'type' => $conferenceReference->getConference()->getType(),
+                    'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                    'messages_count' => $conferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     'participant' => [
                         'uuid' => $conferenceReference->getParticipant()->getUuid(),
                         'name' => $conferenceReference->getParticipant()->getName(),
@@ -1003,7 +1159,7 @@ class MessengerController extends AbstractController
 
         $user = $this->getUser();
 
-        $conferences = $this->em->getRepository(User::class)->getUpdatedConferences($user, $maxDate);
+        $conferenceReferences = $this->em->getRepository(User::class)->getUpdatedConferences($user, $maxDate);
         $messages = $this->em->getRepository(User::class)->getUpdatedMessages($user, $maxDate);
         $readMessages = $this->em->getRepository(User::class)->getReadedMessages($user, $maxDate);
         $unreadMessages = $this->em->getRepository(User::class)->getUnreadMessages($user, $minDate);
@@ -1015,14 +1171,16 @@ class MessengerController extends AbstractController
             'unread_messages' => []
         ];
 
-        foreach ($conferences as $conference) {
-            $participant = $this->em->getRepository(User::class)->find($conference['participant']);
+        foreach ($conferenceReferences as $conferenceReference) {
+            $conference = $conferenceReference->getConference();
+            $participant = $conferenceReference->getParticipant();
 
             $json['conferences'][] = [
-                'uuid' => $conference[0]->getUuid(),
-                'updated' => (float) $conference[0]->getUpdated()->format('U.u'),
-                'count' => $conference['count'],
-                'unread' => $conference['unread'],
+                'uuid' => $conference->getUuid(),
+                'type' => $conference->getType(),
+                'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+                'messages_count' => $conferenceReference->getMessagesCount(),
+                'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                 'participant' => [
                     'uuid' => $participant->getUuid(),
                     'name' => $participant->getName(),
@@ -1033,7 +1191,7 @@ class MessengerController extends AbstractController
         }
 
         usort($json['conferences'], function($a, $b) {
-            return $b['updated'] - $a['updated'];
+            return $b['updated_at'] - $a['updated_at'];
         });
 
         foreach ($messages as $message) {
@@ -1044,9 +1202,10 @@ class MessengerController extends AbstractController
 
             $conference = [
                 'uuid' => $conferenceReference->getConference()->getUuid(),
-                'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                'count' => $conferenceReference->getCount(),
-                'unread' => $conferenceReference->getUnread()
+                'type' => $conferenceReference->getConference()->getType(),
+                'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                'messages_count' => $conferenceReference->getMessagesCount(),
+                'unread_messages_count' => $conferenceReference->getUnreadMessagesCount()
             ];
 
             if ($participant = $conferenceReference->getParticipant()) {
@@ -1087,9 +1246,10 @@ class MessengerController extends AbstractController
 
             $conference = [
                 'uuid' => $conferenceReference->getConference()->getUuid(),
-                'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                'count' => $conferenceReference->getCount(),
-                'unread' => $conferenceReference->getUnread()
+                'type' => $conferenceReference->getConference()->getType(),
+                'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                'messages_count' => $conferenceReference->getMessagesCount(),
+                'unread_messages_count' => $conferenceReference->getUnreadMessagesCount()
             ];
 
             if ($participant = $conferenceReference->getParticipant()) {
@@ -1130,9 +1290,10 @@ class MessengerController extends AbstractController
 
             $conference = [
                 'uuid' => $conferenceReference->getConference()->getUuid(),
-                'updated' => $conferenceReference->getConference()->getUpdated()->format('U.u'),
-                'count' => $conferenceReference->getCount(),
-                'unread' => $conferenceReference->getUnread()
+                'type' => $conferenceReference->getConference()->getType(),
+                'updated_at' => $conferenceReference->getUpdatedAt()->format('U.u'),
+                'messages_count' => $conferenceReference->getMessagesCount(),
+                'unread_messages_count' => $conferenceReference->getUnreadMessagesCount()
             ];
 
             if ($participant = $conferenceReference->getParticipant()) {
@@ -1188,26 +1349,27 @@ class MessengerController extends AbstractController
             return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
         }
 
-        $reciever = $this->em->find(User::class, $user);
+        $receiver = $this->em->find(User::class, $user);
 
-        if (!$reciever) {
+        if (!$receiver) {
             return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
         }
 
-        $conference = $this->em->getRepository(Conference::class)->getConferenceByParticipant($sender, $reciever);
+        $conference = $this->em->getRepository(Conference::class)->getConferenceByParticipant($sender, $receiver);
 
         if (!$conference) {
             $conference = new Conference();
+            $conference->setType(Conference::PRIVATE_TYPE);
             $this->em->persist($conference);
 
             $senderConferenceReference = new ConferenceReference();
             $senderConferenceReference->setUser($sender);
             $senderConferenceReference->setConference($conference);
-            $senderConferenceReference->setParticipant($reciever);
+            $senderConferenceReference->setParticipant($receiver);
             $this->em->persist($senderConferenceReference);
 
             $receiverConferenceReference = new ConferenceReference();
-            $receiverConferenceReference->setUser($reciever);
+            $receiverConferenceReference->setUser($receiver);
             $receiverConferenceReference->setConference($conference);
             $receiverConferenceReference->setParticipant($sender);
             $this->em->persist($receiverConferenceReference);
@@ -1219,7 +1381,7 @@ class MessengerController extends AbstractController
 
             $receiverParticipant = new Participant();
             $receiverParticipant->setConference($conference);
-            $receiverParticipant->setUser($reciever);
+            $receiverParticipant->setUser($receiver);
             $this->em->persist($receiverParticipant);
         }
 
@@ -1230,21 +1392,28 @@ class MessengerController extends AbstractController
             $senderConferenceReference = new ConferenceReference();
             $senderConferenceReference->setUser($sender);
             $senderConferenceReference->setConference($conference);
-            $senderConferenceReference->setParticipant($reciever);
+            $senderConferenceReference->setParticipant($receiver);
             $this->em->persist($senderConferenceReference);
+
+            $sender->setConferencesCount($sender->getConferencesCount() + 1);
+
+            $this->em->persist($sender);
         }
 
 
-        $receiverConferenceReference = $receiverConferenceReference ?? $this->em->getRepository(ConferenceReference::class)->findOneBy(['user' => $reciever->getUuid(), 'conference' => $conference->getUuid()]);
+        $receiverConferenceReference = $receiverConferenceReference ?? $this->em->getRepository(ConferenceReference::class)->findOneBy(['user' => $receiver->getUuid(), 'conference' => $conference->getUuid()]);
 
         if (!$receiverConferenceReference) {
             $receiverConferenceReference = new ConferenceReference();
-            $receiverConferenceReference->setUser($reciever);
+            $receiverConferenceReference->setUser($receiver);
             $receiverConferenceReference->setConference($conference);
             $receiverConferenceReference->setParticipant($sender);
             $this->em->persist($receiverConferenceReference);
-        }
 
+            $receiver->setConferencesCount($receiver->getConferencesCount() + 1);
+
+            $this->em->persist($receiver);
+        }
 
         $message = new Message();
         $message->setConference($conference);
@@ -1260,19 +1429,20 @@ class MessengerController extends AbstractController
         $this->em->persist($senderMessageReference);
         
         $receiverMessageReference = new MessageReference();
-        $receiverMessageReference->setUser($reciever);
+        $receiverMessageReference->setUser($receiver);
         $receiverMessageReference->setMessage($message);
         $this->em->persist($receiverMessageReference);
 
 
-        $conference->setUpdated((new \DateTime()));
-        $this->em->persist($conference);
-
-        $senderConferenceReference->setCount($senderConferenceReference->getCount() + 1);
+        $senderConferenceReference->setUpdatedAt((new \DateTime()));
+        $senderConferenceReference->setMessagesCount($senderConferenceReference->getMessagesCount() + 1);
+        $senderConferenceReference->setLastMessage($message);
         $this->em->persist($senderConferenceReference);
 
-        $receiverConferenceReference->setCount($receiverConferenceReference->getCount() + 1);
-        $receiverConferenceReference->setUnread($receiverConferenceReference->getUnread() + 1);
+        $receiverConferenceReference->setUpdatedAt((new \DateTime()));
+        $receiverConferenceReference->setMessagesCount($receiverConferenceReference->getMessagesCount() + 1);
+        $receiverConferenceReference->setUnreadMessagesCount($receiverConferenceReference->getUnreadMessagesCount() + 1);
+        $receiverConferenceReference->setLastMessage($message);
         $this->em->persist($receiverConferenceReference);
 
 
@@ -1285,7 +1455,6 @@ class MessengerController extends AbstractController
             ],
             'conference' => [
                 'uuid' => $conference->getUuid(),
-                'updated' => $conference->getUpdated(),
                 'participants' => [
                     [
                         'uuid' => $sender->getUuid(),
@@ -1293,9 +1462,9 @@ class MessengerController extends AbstractController
                         'public_Key' => $sender->getPublicKey()
                     ],
                     [
-                        'uuid' => $reciever->getUuid(),
-                        'name' => $reciever->getName(),
-                        'public_key' => $reciever->getPublicKey()
+                        'uuid' => $receiver->getUuid(),
+                        'name' => $receiver->getName(),
+                        'public_key' => $receiver->getPublicKey()
                     ]
                 ]
             ],
@@ -1303,14 +1472,16 @@ class MessengerController extends AbstractController
                 [
                     'uuid' => $senderConferenceReference->getUuid(),
                     'conference' => $senderConferenceReference->getConference()->getUuid(),
-                    'count' => $senderConferenceReference->getCount(),
-                    'unread' => $senderConferenceReference->getUnread()
+                    'messages_count' => $senderConferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $senderConferenceReference->getUnreadMessagesCount(),
+                    'updated_at' => $senderConferenceReference->getUpdatedAt(),
                 ],
                 [
                     'uuid' => $receiverConferenceReference->getUuid(),
                     'conference' => $receiverConferenceReference->getConference()->getUuid(),
-                    'count' => $receiverConferenceReference->getCount(),
-                    'unread' => $receiverConferenceReference->getUnread()
+                    'messages_count' => $receiverConferenceReference->getMessagesCount(),
+                    'unread_messages_count' => $receiverConferenceReference->getUnreadMessagesCount(),
+                    'updated_at' => $receiverConferenceReference->getUpdatedAt(),
                 ]
             ],
             'message' => [

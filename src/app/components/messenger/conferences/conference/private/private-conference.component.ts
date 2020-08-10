@@ -106,7 +106,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           if (!conference)
             return of([] as Message[]);
 
-          if (conference.unread > environment.batch_size) 
+          if (conference.unread_messages_count > environment.batch_size)
             return this.messengerService.getUnreadMessagesByParticipant(conference.participant.uuid);
 
           return this.messengerService.getMessagesByParticipant(conference.participant.uuid);
@@ -146,7 +146,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             if (!conference)
               return of([] as Message[]);
 
-            if (!conference.count)
+            if (!conference.messages_count)
               return of([] as Message[]);
 
             if (!!this.messages.length) {
@@ -175,7 +175,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
             this.isMessagesLoading = true;
 
-            if (conference.unread > environment.batch_size)
+            if (conference.unread_messages_count > environment.batch_size)
               return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
 
             return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
@@ -247,12 +247,12 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             if (!conference)
               return of([] as Message[]);
 
-            if (conference && !conference.count)
+            if (conference && !conference.messages_count)
               return of([] as Message[]);
 
             this.isMessagesLoading = true;
 
-            if (conference.unread > environment.batch_size)
+            if (conference.unread_messages_count > environment.batch_size)
               return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
 
             return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
@@ -366,7 +366,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   }
 
   onScrollUp(timestamp: number) {
-    if (this.messages.length === this.conference.count) {
+    if (this.messages.length === this.conference.messages_count) {
       return;
     }
 
@@ -408,7 +408,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   }
 
   onScrollDown(timestamp: number) {
-    if (this.conference.unread === 0 && this.isScrolledDown) {
+    if (this.conference.unread_messages_count === 0 && this.isScrolledDown) {
       return;
     }
 

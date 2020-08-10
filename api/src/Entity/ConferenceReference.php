@@ -32,21 +32,37 @@ class ConferenceReference
     private $conference;
 
     /**
-     * @ORM\Column(type="integer", options={"default": 0})
+     * @ORM\Column(name="messages_count", type="integer", options={"default": 0})
      */
-    private $count = 0;
+    private $messagesCount = 0;
 
     /**
-     * @ORM\Column(type="integer", options={"default": 0})
+     * @ORM\Column(name="unread_messages_count", type="integer", options={"default": 0})
      */
-    private $unread = 0;
+    private $unreadMessagesCount = 0;
 
     /**
      * @ORM\ManyToOne(targetEntity="Crypter\Entity\User")
      * @ORM\JoinColumn(name="participant", referencedColumnName="uuid", nullable=true)
      */
     private $participant;
+
+    /**
+     * @ORM\Column(name="updated_at", type="datetimetz")
+     */
+    private $updatedAt;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Crypter\Entity\Message")
+     * @ORM\JoinColumn(name="last_message", referencedColumnName="uuid", nullable=false)
+     */
+    private $lastMessage;
     
+    public function __construct()
+    {
+        $this->updatedAt = (new \DateTime());
+    }
+
     public function getUuid(): ?string
     {
         return $this->uuid;
@@ -76,26 +92,26 @@ class ConferenceReference
         return $this;
     }
 
-    public function getCount(): ?int
+    public function getMessagesCount(): ?int
     {
-        return $this->count;
+        return $this->messagesCount;
     }
 
-    public function setCount(int $count): self
+    public function setMessagesCount(int $messagesCount): self
     {
-        $this->count = $count;
+        $this->messagesCount = $messagesCount;
 
         return $this;
     }
 
-    public function getUnread(): ?int
+    public function getUnreadMessagesCount(): ?int
     {
-        return $this->unread;
+        return $this->unreadMessagesCount;
     }
 
-    public function setUnread(int $unread): self
+    public function setUnreadMessagesCount(int $unreadMessagesCount): self
     {
-        $this->unread = $unread;
+        $this->unreadMessagesCount = $unreadMessagesCount;
 
         return $this;
     }
@@ -108,6 +124,30 @@ class ConferenceReference
     public function setParticipant(?User $participant): self
     {
         $this->participant = $participant;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeInterface
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(\DateTimeInterface $updatedAt): self
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    public function getLastMessage(): ?Message
+    {
+        return $this->lastMessage;
+    }
+
+    public function setLastMessage(?Message $lastMessage): self
+    {
+        $this->lastMessage = $lastMessage;
 
         return $this;
     }

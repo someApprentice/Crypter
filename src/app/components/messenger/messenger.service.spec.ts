@@ -55,9 +55,10 @@ describe('MessengerService', () => {
     let conferences: Conference[] = [
       {
         "uuid":"04ba1734-1a03-494c-b608-ea2e88412210",
-        "updated":1560276253,
-        "count": 0,
-        "unread":0,
+        "type": "private",
+        "updated_at":1560276253,
+        "messages_count": 0,
+        "unread_messages_count":0,
         "participant":{
           "uuid":"ea155bbf-726a-4f11-a2b6-f8bf04331d4d",
           "name":"Alice"
@@ -75,9 +76,10 @@ describe('MessengerService', () => {
       },
       {
         "uuid":"62212a71-acb8-4dc5-b1fe-63cf538182f2",
-        "updated":1560541328,
-        "count": 0,
-        "unread":0,
+        "type": "private",
+        "updated_at":1560541328,
+        "messages_count": 0,
+        "unread_messages_count":0,
         "participant":{
           "uuid":"3ddfeb6e-ce7a-4e1e-808c-85a2a0d3d5e9",
           "name":"Bob"
@@ -111,9 +113,10 @@ describe('MessengerService', () => {
   it('should retrive conference', () => {
     let conference: Conference = {
       "uuid":"14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
-      "updated":1560276253,
-      "count": 0,
-      "unread":0,
+      "type": "private",
+      "updated_at":1560276253,
+      "messages_count": 0,
+      "unread_messages_count":0,
       "participant":{
         "uuid":"ea155bbf-726a-4f11-a2b6-f8bf04331d4d",
         "name":"Alice"
@@ -153,9 +156,10 @@ describe('MessengerService', () => {
         },
         "conference": {
           "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
-          "updated": 1559016403,
-          "count": 2,
-          "unread": 2,
+          "type": "private",
+          "updated_at": 1559016403,
+          "messages_count": 2,
+          "unread_messages_count": 2,
         },
         "readed":false,
         "date":1559016403,
@@ -172,9 +176,10 @@ describe('MessengerService', () => {
         },
         "conference": {
           "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
-          "updated": 1559016403,
-          "count": 2,
-          "unread": 2,
+          "type": "private",
+          "updated_at": 1559016403,
+          "messages_count": 2,
+          "unread_messages_count": 2,
         },
         "readed":false,
         "date":1559016403,
@@ -208,9 +213,10 @@ describe('MessengerService', () => {
         },
         "conference": {
           "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
-          "updated": 1559016403,
-          "count": 2,
-          "unread": 2,
+          "type": "private",
+          "updated_at": 1559016403,
+          "messages_count": 2,
+          "unread_messages_count": 2,
         },
         "readed":false,
         "date":1559016403,
@@ -227,9 +233,10 @@ describe('MessengerService', () => {
         },
         "conference": {
           "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87",
-          "updated": 1559016403,
-          "count": 2,
-          "unread": 2,
+          "type": "private",
+          "updated_at": 1559016403,
+          "messages_count": 2,
+          "unread_messages_count": 2,
         },
         "readed":false,
         "date":1559016403,

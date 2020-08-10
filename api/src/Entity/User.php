@@ -54,6 +54,11 @@ class User implements UserInterface
     private $lastSeen;
 
     /**
+     * @ORM\Column(name="conferences_count", type="integer", options={"default": 0})
+     */
+    private $conferencesCount = 0;
+
+    /**
      * @ORM\Column(name="public_key", type="text")
      *
      * @Assert\NotBlank
@@ -179,6 +184,18 @@ class User implements UserInterface
     public function setLastSeen(\DateTimeInterface $date): self
     {
         $this->lastSeen = $date;
+
+        return $this;
+    }
+
+    public function getConferencesCount(): ?int
+    {
+        return $this->conferencesCount;
+    }
+
+    public function setConferencesCount(int $conferencesCount): self
+    {
+        $this->conferencesCount = $conferencesCount;
 
         return $this;
     }
