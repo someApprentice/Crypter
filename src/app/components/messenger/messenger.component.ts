@@ -10,8 +10,8 @@ import {
   transition, animate, style, query
 } from '@angular/animations';
 
-import { Subject, from, of, concat, zip, empty } from 'rxjs';
-import { tap, map, reduce, switchMap, mergeMap, concatMap, delayWhen, filter, finalize, catchError, takeUntil } from 'rxjs/operators';
+import { Subject, of, concat, zip } from 'rxjs';
+import { tap, switchMap, concatMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../auth/auth.service';
 import { DatabaseService } from '../../services/database.service';
@@ -127,10 +127,18 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
       this.socketService.userUpdated$.pipe(
         tap((user: User) => {
+          localStorage.setItem('uuid', user.uuid);
+          localStorage.setItem('email', user.email);
+          localStorage.setItem('name', user.name);
+          localStorage.setItem('hash', user.hash);
+
+          // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+          localStorage.setItem('conferences_count', user.conferences_count as unknown as string);
+
           // Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
           localStorage.setItem('last_seen', user.last_seen as unknown as string);
 
-          this.authService.user.last_seen = user.last_seen;
+          this.authService.user = Object.assign(this.authService.user, user);
         }),
         switchMap(() => {
           if ('private_key' in this.authService.user)
