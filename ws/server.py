@@ -68,7 +68,7 @@ async def connect(sid, environ):
 
     await sio.save_session(sid, json)
 
-    await sio.emit('user.updated', json, room=sid)
+    await sio.emit('user.updated', {k: json[k] for k in json if k not in {'public_key', 'private_key', 'revocation_certificate'}}, room=sid)
 
 @sio.event
 async def disconnect(sid):
