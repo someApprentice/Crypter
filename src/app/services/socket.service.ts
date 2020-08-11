@@ -30,12 +30,7 @@ export class SocketService implements OnDestroy {
   );
 
   public userUpdated$: Observable<User> = fromEvent(this.socket, 'user.updated').pipe(
-    map(data => {
-      // Type '{}' is not assignable to type 'User'. Property 'uuid' is missing in type '{}'.
-      let user: User = data as User;
-
-      return user;
-    }),
+    map(data => data as User),
     takeUntil(this.unsubscribe$)
   );
 
@@ -46,22 +41,12 @@ export class SocketService implements OnDestroy {
   );
 
   public conferenceUpdated$: Observable<Conference> = fromEvent(this.socket, 'conference.updated').pipe(
-    map(data => {
-      // Type '{}' is not assignable to type 'Conference'. Property 'uuid' is missing in type '{}'.
-      let conference: Conference = data as Conference;
-
-      return conference;
-    }),
+    map(data => data as Conference),
     takeUntil(this.unsubscribe$)
   );
 
   public privateMessage$: Observable<Message> = fromEvent(this.socket, 'private.message.sent').pipe(
-    map(data => {
-      // Type '{}' is not assignable to type 'Message'. Property 'uuid' is missing in type '{}'.
-      let message: Message = data as Message;
-
-      return message;
-    }),
+    map(data => data as Message),
     concatMap((message: Message) => zip(of(message), this.databaseService.user$)),
     concatMap(([ message, user ]) => {
       let decrypted$ = this.crypterService.decrypt(message.content, user.private_key);
@@ -78,32 +63,17 @@ export class SocketService implements OnDestroy {
   );
 
   public privateMessageRead$: Observable<Message> = fromEvent(this.socket, 'private.message.read').pipe(
-    map(data => {
-      // Type '{}' is not assignable to type 'Message'. Property 'uuid' is missing in type '{}'.
-      let message: Message = data as Message;
-
-      return message;
-    }),
+    map(data => data as Message),
     takeUntil(this.unsubscribe$)
   );
 
   public privateMessageReadSince$: Observable<Message[]> = fromEvent(this.socket, 'private.message.read_since').pipe(
-    map(data => {
-      // Type '{}' is missing the following properties from type 'Message[]': length, pop, push, concat, and 26 more.
-      let messages: Message[] = data as Message[];
-
-      return messages;
-    }),
+    map(data => data as Message[]),
     takeUntil(this.unsubscribe$)
   );
 
   public wroteToUser$: Observable<User> = fromEvent(this.socket, 'wrote.to.user').pipe(
-    map(data => {
-      // Type '{}' is not assignable to type 'User'. Property 'uuid' is missing in type '{}'.
-      let user: User = data as User;
-
-      return user;
-    }),
+    map(data => data as User),
     takeUntil(this.unsubscribe$)
   );
 
