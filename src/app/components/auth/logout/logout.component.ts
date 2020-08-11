@@ -36,6 +36,7 @@ export class LogoutComponent {
         localStorage.removeItem('email');
         localStorage.removeItem('name');
         localStorage.removeItem('hash');
+        localStorage.removeItem('conferences_count');
         localStorage.removeItem('last_seen');
 
         this.router.navigate(['']);
