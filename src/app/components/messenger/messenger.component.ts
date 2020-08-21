@@ -11,7 +11,7 @@ import {
 } from '@angular/animations';
 
 import { Subject, of, concat, zip } from 'rxjs';
-import { tap, switchMap, concatMap, takeUntil } from 'rxjs/operators';
+import { tap, first, switchMap, concatMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../auth/auth.service';
 import { DatabaseService } from '../../services/database.service';
@@ -140,12 +140,10 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
           this.authService.user = Object.assign(this.authService.user, user);
         }),
-        switchMap(() => {
-          if ('private_key' in this.authService.user)
-            return this.databaseService.upsertUser(this.authService.user);
-
-          return of(this.authService.user);
-        }),
+        switchMap((user: User) => this.databaseService.user$.pipe(
+          first(),
+          switchMap((u: User) => this.databaseService.upsertUser(Object.assign(u, user)))
+        )),
         takeUntil(this.unsubscribe$)
       ).subscribe();
 
@@ -156,13 +154,12 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
           this.authService.user.conferences_count = conferences_count;
         }),
-        switchMap(() => {
-          if ('private_key' in this.authService.user)
-            return this.databaseService.upsertUser(this.authService.user);
-
-          return of(this.authService.user);
-        })
-      )
+        switchMap(conferences_count => this.databaseService.user$.pipe(
+          first(),
+          switchMap((u: User) => this.databaseService.upsertUser(Object.assign(u, { conferences_count })))
+        )),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
 
       this.socketService.conferenceUpdated$.pipe(
         concatMap((conference: Conference) => this.databaseService.upsertConference(conference)),
