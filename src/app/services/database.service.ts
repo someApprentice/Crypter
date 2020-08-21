@@ -2,8 +2,10 @@ import { environment } from '../../environments/environment';
 
 import { Injectable, OnDestroy } from '@angular/core';
 
-import { Observable, Subject, BehaviorSubject, of, from, concat, zip, throwError } from 'rxjs';
-import { tap, map, finalize, filter, ignoreElements, switchMap, delayWhen, shareReplay, takeUntil, catchError } from 'rxjs/operators';
+import { Observable, Subject, BehaviorSubject, interval, concat } from 'rxjs';
+import { tap, finalize, filter, distinctUntilChanged, ignoreElements, switchMap, shareReplay, takeUntil } from 'rxjs/operators';
+
+import { isEqual } from 'lodash';
 
 import { AuthService } from '../components/auth/auth.service';
 
@@ -11,85 +13,52 @@ import { User } from '../models/user.model';
 import { Conference } from '../models/conference.model';
 import { Message } from '../models/message.model';
 
-import PouchDB from 'pouchdb';
-import PouchDBFind from 'pouchdb-find';
-import PouchDBUpsert from 'pouchdb-upsert';
-
-PouchDB.plugin(PouchDBFind);
-PouchDB.plugin(PouchDBUpsert);
-
 @Injectable()
 export class DatabaseService implements OnDestroy {
   private unsubscribe$ = new Subject<void>();
 
   public isSynchronized$ = new BehaviorSubject<boolean>(false);
 
-  public users$ = of(new PouchDB('users')).pipe(
-    delayWhen(db => from(db.createIndex({
-      index: {
-        fields: [ 'name' ]
-      }
-    }))),
-    takeUntil(this.unsubscribe$),
-    shareReplay(1)
-  );
+  public db$ = (new Observable<IDBDatabase>(subscriber => {
+    const db: IDBOpenDBRequest = indexedDB.open('crypter');
 
-  public conferences$ = of(new PouchDB('conferences')).pipe(
-    delayWhen(db => from(db.createIndex({
-      index: {
-        fields: [ 'updated_at', 'participant' ]
-      }
-    }))),
-    takeUntil(this.unsubscribe$),
-    shareReplay(1)
-  );
+    db.onupgradeneeded = (e: IDBVersionChangeEvent) => {
+      // Property 'result' does not exist on type 'EventTarget'.
+      // https://github.com/microsoft/TypeScript/issues/28293
+      let db = (e.target as IDBOpenDBRequest).result;
 
-  public messages$ = of(new PouchDB('messages')).pipe(
-    delayWhen(db => from(db.createIndex({
-      index: {
-        fields: [ 'date' ]
-      }
-    }))),
-    takeUntil(this.unsubscribe$),
-    shareReplay(1)
-  );
+      db.onerror = (err: Event) => {
+        subscriber.error(err);
+      };
 
-  private userChanges$ = this.users$.pipe(
-    map(db => db.changes({
-      since: 'now',
-      doc_ids: [ this.authService.user.uuid ],
-      limit: 1,
-      live: true,
-      include_docs: true
-    })),
-    takeUntil(this.unsubscribe$),
+      let users = db.createObjectStore('users', { keyPath: 'uuid' }) ;
+
+      let conferences = db.createObjectStore('conferences', { keyPath: 'uuid' });
+      conferences.createIndex('updated_at', 'updated_at');
+      conferences.createIndex('participant', 'participant', { unique: true });
+
+      let messages = db.createObjectStore('messages', { keyPath: 'uuid' });
+      messages.createIndex('conference', 'conference');
+      messages.createIndex('date', 'date');
+      messages.createIndex('readedAt', 'readedAt');
+    };
+
+    db.onsuccess = (e: Event) => {
+      subscriber.next(db.result);
+      subscriber.complete();
+    };
+  })).pipe(
     shareReplay(1)
   );
 
   public user$ = concat(
     this.getUser(this.authService.user.uuid),
-    this.userChanges$.pipe(
-      switchMap(changes => new Observable<any>(subscriber => {
-        changes.on('change', change => {
-          subscriber.next(change);
-        });
-
-        changes.on('complete', info => {
-          subscriber.complete();
-        });
-
-        changes.on('error', err => {
-          subscriber.error(err);
-        });
-      })),
-      map((change: any) => {
-        let user: User = (({ _id, _rev, ...user }) => user)({ uuid: change.doc._id, ...change.doc });
-
-        return user;
-      }),
+    interval(333).pipe(
+      switchMap(() => this.getUser(this.authService.user.uuid))
     )
   ).pipe(
-    filter((user: User|null) => !!user),
+    filter((user: User) => !!user),
+    distinctUntilChanged((x: User, y: User) => isEqual(x, y)),
     takeUntil(this.unsubscribe$),
     shareReplay(1)
   );
@@ -114,2014 +83,1624 @@ export class DatabaseService implements OnDestroy {
   }
 
   getUser(uuid: string): Observable<User|null> {
-    return this.users$.pipe(
-      switchMap(db => from(db.get(uuid))),
-      map((doc: any) => {
-        let user: User = (({ _id, _rev, ...user }) => user)({ uuid: doc._id, ...doc });
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<User|null>(subscriber => {
+        let transaction: IDBTransaction = db.transaction('users');
+        let store: IDBObjectStore = transaction.objectStore('users');
 
-        return user;
-      }),
-      catchError(err => {
-        if (err.status === 404)
-          return of(null);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-        return throwError(err);
-      })
+        store.get(uuid).onsuccess = (e: Event) => {
+          let u = (e.target as IDBRequest).result;
+
+          if (!u) {
+            subscriber.next(null);
+
+            return;
+          }
+
+          let user: User = u;
+
+          subscriber.next(user);
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   upsertUser(user: User): Observable<User> {
-    return this.users$.pipe(
-      switchMap(db => from(db.upsert(user.uuid, (doc: any) => {
-        let { uuid, ...d } = Object.assign(doc, user);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<User>(subscriber => {
+        let transaction: IDBTransaction = db.transaction('users', 'readwrite');
+        let store: IDBObjectStore = transaction.objectStore('users');
 
-        return d;
-      }))),
-      map(result => user),
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+
+        store.get(user.uuid).onsuccess = (e: Event) => {
+          let u = (e.target as IDBRequest).result;
+
+          if (u)
+            user = Object.assign(u, user);
+
+          store.put(user);
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          subscriber.next(user);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   bulkUsers(users: User[]): Observable<User[]> {
-    users = users.reduce((acc, cur) => {
-      if (acc.find(a => a.uuid === cur.uuid))
-        return acc;
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<User[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction('users', 'readwrite');
+        let store: IDBObjectStore = transaction.objectStore('users');
 
-      return [ ...acc, cur ];
-    }, [] as User[]);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-    return this.users$.pipe(
-      switchMap(db => {
-        let ids = users.map((u: User) => u.uuid);
+        users.map((u: User) => store.put(u));
 
-        return from(db.allDocs({
-          keys: ids,
-          include_docs: true
-        }));
-      }),
-      switchMap(result => {
-        // Property 'error' does not exist on type 'never'.
-        let errors = result.rows.filter((r: any) => 'error' in r && r.error !== 'not_found');
-
-        if (!!errors.length)
-          return throwError(errors);
-
-        let rows = result.rows.filter(r => !('error' in r));
-        
-        let docs = users.map((u: User) => {
-          let row = rows.find(r => r.id === u.uuid);
-
-          if (row) {
-            let { uuid, ...doc } = Object.assign(row.doc, u);
-
-            return doc;
-          }
-
-          let doc = (({ uuid, ...doc }) => doc)({ _id: u.uuid, ...u });
-
-          return doc;
-        });
-
-        return this.users$.pipe(
-          switchMap(db => from(db.bulkDocs(docs)))
-        );
-      }),
-      switchMap(result => {
-        let errors = result.filter(r => 'error' in r);
-
-        if (!!errors.length)
-          return throwError(errors);
-
-        return of(users);
-      })
+        transaction.oncomplete = (e: Event) => {
+          subscriber.next(users);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   getConference(uuid: string): Observable<Conference|null> {
-    return this.conferences$.pipe(
-      switchMap(db => from(db.get(uuid))),
-      switchMap((doc: any) => {
-        let conference: Conference = {
-          uuid: doc._id,
-          type: doc.type,
-          updated_at: doc.updated_at,
-          messages_count: doc.messages_count,
-          unread_messages_count: doc.unread_messages_count
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Conference|null>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
         };
 
-        if ('participant' in doc) {
-          let participant$ = this.users$.pipe(
-            switchMap(db => from(db.get(doc.participant)))
-          );
+        conferencesStore.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
 
-          return zip(of(conference), participant$).pipe(
-            map(([ conference, participant ]) => {
-              // how to typify this more convenient?
-              let p = participant as {
-                _id: string,
-                _rev: string,
-                email?: string,
-                name: string,
-                hash?: string,
-                last_seen?: number,
-                conferences_count: number,
-                public_key?: string,
-                private_key?: string,
-                revocation_certificate?: string
-              };
+          if (!c) {
+            subscriber.next(null);
 
-              conference.participant = (({ _id, _rev, ...p }) => p)({ uuid: p._id, ...p });
+            return;
+          }
 
-              return conference;
-            })
-          );
-        }
+          if ('participant' in c) {
+            usersStore.get(c.participant).onsuccess = (e: Event) => {
+              let participant: User = (e.target as IDBRequest).result;
 
-        return of(conference);
-      }),
-      catchError(err => {
-        if (err.status === 404)
-          return of(null);
+              let conference: Conference = { ...c, participant };
 
-        return throwError(err);
-      })
+              subscriber.next(conference);
+            };
+
+            return;
+          }
+
+          let conference: Conference = c;
+
+          subscriber.next(conference);
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   getConferenceByParticipant(uuid: string): Observable<Conference|null> {
-    return this.conferences$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          participant: uuid,
-          updated_at: { $gte: null }
-        }
-      }))),
-      switchMap((result: any) => {
-        if (!result.docs.length)
-          return of(null);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Conference|null>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
 
-        // how to typify this more convenient?
-        let doc = result.docs[0] as {
-          _id: string,
-          _rev: string,
-          type: 'private' | 'public' | 'secret',
-          updated_at: number,
-          messages_count: number,
-          unread_messages_count: number,
-          participant?: string,
+        let index: IDBIndex = conferencesStore.index('participant');
+
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
         };
 
-        let conference: Conference = {
-          uuid: doc._id,
-          type: doc.type,
-          updated_at: doc.updated_at,
-          messages_count: doc.messages_count,
-          unread_messages_count: doc.unread_messages_count
+        index.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
+
+          if (!c) {
+            subscriber.next(null);
+
+            return;
+          }
+
+          usersStore.get(c.participant).onsuccess = (e: Event) => {
+            let participant: User = (e.target as IDBRequest).result;
+
+            let conference: Conference = { ...c, participant };
+
+            subscriber.next(conference);
+          };
         };
 
-        if ('participant' in doc) {
-          let participant$ = this.users$.pipe(
-            switchMap(db => db.get(doc.participant))
-          );
-          
-          return zip(of(conference), participant$).pipe(
-            map(([ conference, participant ]) => {
-              // how to typify this more convenient?
-              let p = participant as {
-                _id: string,
-                _rev: string,
-                email?: string,
-                name: string,
-                hash?: string,
-                last_seen?: number,
-                conferences_count: number,
-                public_key?: string,
-                private_key?: string,
-                revocation_certificate?: string
-              };
-
-              conference.participant = (({ _id, _rev, ...p }) => p)({ uuid: p._id, ...p });
-
-              return conference;
-            })
-          );
-        }
-
-        return of(conference);
-      })
+        transaction.oncomplete = (e: Event) => {
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   getConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
-    return this.conferences$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          updated_at: { $lt: timestamp }
-        },
-        limit: limit,
-        sort: [ { updated_at: 'desc' } ]
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Conference[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Conference[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
 
-        // Property 'participant' does not exist on type 'ExistingDocument<{}>'.
-        let ids = result.docs
-          .filter((d: any) => 'participant' in d)
-          .map((d: any) => d.participant);
+        let index: IDBIndex = conferencesStore.index('updated_at');
 
-        let participants$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: ids,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        return zip(of(result.docs), participants$).pipe(
-          map(([ docs, participants ]) => {
-            let conferences: Conference[] = docs.map((doc: any) => {
-              let conference: Conference = {
-                uuid: doc._id,
-                type: doc.type,
-                updated_at: doc.updated_at,
-                messages_count: doc.messages_count,
-                unread_messages_count: doc.unread_messages_count
+        let conferences: Conference[] = [] as Conference[];
+
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+
+        index
+          .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev')
+          .onsuccess = (e: Event) => {
+            let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+            if (!cursor || i === limit) {
+              return;
+            }
+
+            let c = cursor.value;
+
+            if ('participant' in c) {
+              usersStore.get(c.participant).onsuccess = (e: Event) => {
+                let participant: User = (e.target as IDBRequest).result;
+
+                let conference: Conference = Object.assign(c, { participant });
+
+                conferences.push(conference);
+
+                i++;
+
+                cursor.continue();
               };
 
-              if ('participant' in doc) {
-                let row = participants.rows.find(r => r.id === doc.participant);
+              return;
+            }
 
-                if (row) {
-                  // how to typify this more convenient?
-                  let participant = row.doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
-                  };
+            let conference: Conference = c;
 
-                  conference.participant = (({ _id, _rev, ...p }) => p)({ uuid: participant._id, ...participant });
-                }
-              }
+            conferences.push(conference);
 
-              return conference;
-            });
+            i++;
 
-            return conferences;
-          })
-        );
-      }),
-      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at))
+            cursor.continue();
+          };
+
+        transaction.oncomplete = (e: Event) => {
+          conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at);
+
+          subscriber.next(conferences);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   getOldConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
-    return this.conferences$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          updated_at: { $lt: timestamp }
-        },
-        limit: limit,
-        sort: [ { updated_at: 'desc' } ]
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Conference[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Conference[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
 
-        // Property 'participant' does not exist on type 'ExistingDocument<{}>'.
-        let ids = result.docs
-          .filter((d: any) => 'participant' in d)
-          .map((d: any) => d.participant);
+        let index: IDBIndex = conferencesStore.index('updated_at');
 
-        let participants$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: ids,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        return zip(of(result.docs), participants$).pipe(
-          map(([ docs, participants ]) => {
-            let conferences: Conference[] = docs.map((doc: any) => {
-              let conference: Conference = {
-                uuid: doc._id,
-                type: doc.type,
-                updated_at: doc.updated_at,
-                messages_count: doc.messages_count,
-                unread_messages_count: doc.unread_messages_count
-              }
+        let conferences: Conference[] = [] as Conference[];
 
-              if ('participant' in doc) {
-                let row = participants.rows.find(r => r.id === doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+        
+        index
+          .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev')
+          .onsuccess = (e: Event) => {
+            let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                if (row) {
-                  // how to typify this more convenient?
-                  let participant = row.doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
-                  };
+            if (!cursor || i === limit) {
+              return;
+            }
 
-                  conference.participant = (({ _id, _rev, ...p }) => p)({ uuid: participant._id, ...participant });
-                }
-              }
+            let c = cursor.value;
 
-              return conference;
-            });
+            if ('participant' in c) {
+              usersStore.get(c.participant).onsuccess = (e: Event) => {
+                let participant: User = (e.target as IDBRequest).result;
 
-            return conferences;
-          })
-        );
-      }),
-      map((conferences: Conference[]) => conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at))
+                let conference: Conference = Object.assign(c, { participant });
+
+                conferences.push(conference);
+
+                i++;
+
+                cursor.continue();
+              };
+
+              return;
+            }
+
+            let conference: Conference = c;
+
+            conferences.push(conference);
+
+            i++;
+
+            cursor.continue();
+          };
+
+        transaction.oncomplete = (e: Event) => {
+          conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at);
+
+          subscriber.next(conferences);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   upsertConference(conference: Conference): Observable<Conference> {
-    if ('participant' in conference) {
-      return this.upsertUser(conference.participant).pipe(
-        switchMap(() => this.conferences$),
-        switchMap(db => from(db.upsert(conference.uuid, (doc: any) => {
-          let { uuid, last_message = undefined, ...d } = Object.assign(doc, { ...conference, participant: conference.participant.uuid });
-          
-          return d;
-        }))),
-        map(result => conference)
-      );
-    }
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Conference>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ], 'readwrite');
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
 
-    return this.conferences$.pipe(
-      switchMap(db => from(db.upsert(conference.uuid, (doc: any) => {
-        let { uuid, ...d } = Object.assign(doc, conference);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-        return doc;
-      }))),
-      map(result => conference)
+        let {
+          participants = undefined,
+          last_message = undefined,
+          ...c
+        } = 'participant' in conference ? { ...conference, participant: conference.participant.uuid } : conference;
+
+        conferencesStore.get(conference.uuid).onsuccess = (e: Event) => {
+          if (!(e.target as IDBRequest).result) {
+            if ('participant' in conference) {
+              usersStore.get(conference.participant.uuid).onsuccess = (e: Event) => {
+                if (!(e.target as IDBRequest).result) {
+                  usersStore.put(conference.participant);
+                }
+              };
+            }
+
+            conferencesStore.put(c).onsuccess = (e: Event) => {
+              subscriber.next(conference);
+            };
+
+            return;
+          }
+
+          conferencesStore.put(Object.assign((e.target as IDBRequest).result, c)).onsuccess = (e: Event) => {
+            subscriber.next(conference);
+          };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   bulkConferences(conferences: Conference[]): Observable<Conference[]> {
-    conferences = conferences.reduce((acc, cur) => {
-      if (acc.find(a => a.uuid === cur.uuid))
-        return acc;
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Conference[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ], 'readwrite');
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
 
-      return [ ...acc, cur ];
-    }, [] as Conference[]);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-    let participants = conferences
-      .filter((c: Conference) => 'participant' in c)
-      .map((c: Conference) => c.participant);
+        conferences.map((conference: Conference) => {
+          let {
+            participants = undefined,
+            last_message = undefined,
+              ...c
+          } = 'participant' in conference ? { ...conference, participant: conference.participant.uuid } : conference;
 
-    return this.bulkUsers(participants).pipe(
-      switchMap(() => {
-        let ids = conferences.map((c: Conference) => c.uuid);
-
-        return this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: ids,
-            include_docs: true
-          })))
-        );
-      }),
-      switchMap(result => {
-        // Property 'error' does not exist on type 'never'.
-        let errors = result.rows.filter((r: any) => 'error' in r && r.error !== 'not_found');
-
-        if (!!errors.length)
-          return throwError(errors);
-
-        let rows = result.rows.filter(r => !('error' in r));
-
-        let docs = conferences.map((c: Conference) => {
-          let row = rows.find(r => r.id === c.uuid);
-
-          if (row) {
-            // how to typify this more convenient?
-            let doc = Object.assign(
-              row.doc,
-              {
-                _id: c.uuid,
-                type: c.type,
-                updated_at: c.updated_at,
-                messages_count: c.messages_count,
-                unread_messages_count: c.unread_messages_count
+          conferencesStore.get(conference.uuid).onsuccess = (e: Event) => {
+            if (!(e.target as IDBRequest).result) {
+              if ('participant' in conference) {
+                usersStore.get(conference.participant.uuid).onsuccess = (e: Event) => {
+                  if (!(e.target as IDBRequest).result) {
+                    usersStore.put(conference.participant);
+                  }
+                };
               }
-            ) as {
-              _id: string,
-              _rev: string,
-              type: 'private' | 'public' | 'secret',
-              updated_at: number,
-              messages_count: number,
-              unread_messages_count: number,
-              participant?: string,
-            };
 
-            if ('participant' in c)
-              doc.participant = c.participant.uuid;
+              conferencesStore.put(c);
 
-            return doc
-          }
+              return;
+            }
 
-          // how to typify this more convenient?
-          let doc: {
-            _id: string,
-            type: 'private' | 'public' | 'secret',
-            updated_at: number,
-            messages_count: number,
-            unread_messages_count: number,
-            participant?: string,
-          } = {
-            _id: c.uuid,
-            type: c.type,
-            updated_at: c.updated_at,
-            messages_count: c.messages_count,
-            unread_messages_count: c.unread_messages_count
+            conferencesStore.put(Object.assign((e.target as IDBRequest).result, c));
           };
-
-          if ('participant' in c)
-            doc.participant = c.participant.uuid;
-
-          return doc;
         });
 
-        return this.conferences$.pipe(
-          switchMap(db => from(db.bulkDocs(docs)))
-        );
-      }),
-      switchMap(result => {
-        let errors = result.filter(r => 'error' in r);
+        transaction.oncomplete = (e: Event) => {
+          subscriber.next(conferences);
+          subscriber.complete();
+        };
+      }))
+    );
+  }
 
-        if (!!errors.length)
-          return throwError(errors);
+  getMessage(uuid: string): Observable<Message|null> {
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message|null>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        return of(conferences);
-      })
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+
+        messagesStore.get(uuid).onsuccess = (e: Event) => {
+          let m = (e.target as IDBRequest).result;
+
+          if (!m) {
+            subscriber.next(null);
+
+            return;
+          }
+
+          conferencesStore.get(m.conference).onsuccess = (e: Event) => {
+            let c = (e.target as IDBRequest).result;
+
+            if ('participant' in c) {
+              usersStore.get(c.participant).onsuccess = (e: Event) => {
+                let participant: User = (e.target as IDBRequest).result;
+
+                let conference: Conference = { ...c, participant };
+
+                usersStore.get(m.author).onsuccess = (e: Event) => {
+                  let author: User = (e.target as IDBRequest).result;
+
+                  let message: Message = { ...m, conference, author };
+
+                  subscriber.next(message);
+                };
+              };
+
+              return;
+            }
+
+            let conference: Conference = c;
+
+            usersStore.get(m.author).onsuccess = (e: Event) => {
+              let author: User = (e.target as IDBRequest).result;
+
+              let message: Message = { ...m, conference, author };
+
+              subscriber.next(message);
+            };
+          };
+
+          transaction.oncomplete = (e: Event) => {
+            subscriber.complete();
+          };
+        };
+      }))
     );
   }
 
   getMessages(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
-    return this.messages$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          date: { $lt: timestamp }
-        },
-        limit: limit,
-        sort: [ { date: 'desc' } ]
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let index: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
+        index
+          .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev') 
+          .onsuccess = (e: Event) => {
+            let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+            if (!cursor || i === limit) {
+              return;
+            }
+
+            let m = cursor.value;
+
+            conferencesStore.get(m.conference).onsuccess = (e: Event) => {
+              let c = (e.target as IDBRequest).result;
+
+              if ('participant' in c) {
+                usersStore.get(c.participant).onsuccess = (e: Event) => {
+                  let participant: User = (e.target as IDBRequest).result;
+
+                  let conference: Conference = { ...c, participant };
+
+                  usersStore.get(m.author).onsuccess = (e: Event) => {
+                    let author: User = (e.target as IDBRequest).result;
+
+                    let message: Message = { ...m, conference, author };
+
+                    messages.unshift(message);
+
+                    i++;
+
+                    cursor.continue();
                   };
+                };
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+                return;
+              }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
-                  }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
-                  };
+              let conference: Conference = c;
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+              usersStore.get(m.author).onsuccess = (e: Event) => {
+                let author: User = (e.target as IDBRequest).result;
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+                let message: Message = { ...m, conference, author };
 
-                  return message;
-                });
+                messages.unshift(message);
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+                i++;
+
+                cursor.continue();
+              };
+            };
+          };
+
+          transaction.oncomplete = (e: Event) => {
+            messages.sort((a: Message, b: Message) => a.date - b.date);
+
+            subscriber.next(messages);
+            subscriber.complete();
+          };
+      }))
     );
   }
 
-  getUnreadMessages(timestamp: number = 0, limit: number = environment.batch_size):Observable<Message[]> {
-    return this.messages$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          readed: false,
-          date: { $gt: timestamp }
-        },
-        limit: limit,
-        sort: [ { date: 'asc' } ]
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+  getUnreadMessages(timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let index: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
+        index
+          .openCursor(IDBKeyRange.lowerBound(timestamp, true))
+          .onsuccess = (e: Event) => {
+            let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+            if (!cursor || i === limit) {
+              return;
+            }
+
+            let m = cursor.value;
+
+            if (m.readed) {
+              cursor.continue();
+
+              return;
+            }
+
+            conferencesStore.get(m.conference).onsuccess = (e: Event) => {
+              let c = (e.target as IDBRequest).result;
+
+              if ('participant' in c) {
+                usersStore.get(c.participant).onsuccess = (e: Event) => {
+                  let participant: User = (e.target as IDBRequest).result;
+
+                  let conference: Conference = { ...c, participant };
+
+                  usersStore.get(m.author).onsuccess = (e: Event) => {
+                    let author: User = (e.target as IDBRequest).result;
+
+                    let message: Message = { ...m, conference, author };
+
+                    messages.push(message);
+
+                    i++;
+
+                    cursor.continue();
                   };
+                };
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+                return;
+              }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
-                  }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
-                  };
+              let conference: Conference = c;
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+              usersStore.get(m.author).onsuccess = (e: Event) => {
+                let author: User = (e.target as IDBRequest).result;
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+                let message: Message = { ...m, conference, author };
 
-                  return message;
-                });
+                messages.push(message);
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+                i++;
+
+                cursor.continue();
+              };
+            };
+          };
+
+          transaction.oncomplete = (e: Event) => {
+            messages.sort((a: Message, b: Message) => a.date - b.date);
+
+            subscriber.next(messages);
+            subscriber.complete();
+          };
+      }))
     );
   }
 
-  getReadMessages(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size):Observable<Message[]> {
-    return this.messages$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          readedAt: { $lt: timestamp },
-          date: { $gte: null }
-        },
-        limit: limit,
-        sort: [ { date: 'desc' } ]
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+  getReadMessages(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let index: IDBIndex = messagesStore.index('readedAt');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
-                  };
+        index
+        .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev') 
+        .onsuccess = (e: Event) => {
+          let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+          if (!cursor || i === limit) {
+            return;
+          }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
-                  }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
-                  };
+          let m = cursor.value;
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+          if (!m.readed) {
+            cursor.continue();
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+            return;
+          }
 
-                  return message;
-                });
+          conferencesStore.get(m.conference).onsuccess = (e: Event) => {
+            let c = (e.target as IDBRequest).result;
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+            if ('participant' in c) {
+              usersStore.get(c.participant).onsuccess = (e: Event) => {
+                let participant: User = (e.target as IDBRequest).result;
+
+                let conference: Conference = { ...c, participant };
+
+                usersStore.get(m.author).onsuccess = (e: Event) => {
+                  let author: User = (e.target as IDBRequest).result;
+
+                  let message: Message = { ...m, conference, author };
+
+                  messages.unshift(message);
+
+                  i++;
+
+                  cursor.continue();
+                };
+              };
+
+              return;
+            }
+
+            let conference: Conference = c;
+
+            usersStore.get(m.author).onsuccess = (e: Event) => {
+              let author: User = (e.target as IDBRequest).result;
+
+              let message: Message = { ...m, conference, author };
+
+              messages.unshift(message);
+
+              i++;
+
+              cursor.continue();
+            };
+          };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   getMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
-    return this.conferences$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          participant: uuid,
-          updated_at: { $gte: null }
-        }
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return throwError(new Error('Conference with that participant does not exist'));
-        
-        return this.messages$.pipe(
-          switchMap(db => from(db.find({
-            selector: {
-              conference: result.docs[0]._id,
-              date: { $lt: timestamp }
-            },
-            limit: limit,
-            sort: [ { date: 'desc' } ]
-          })))
-        );
-      }),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let conferenceIndex: IDBIndex = conferencesStore.index('participant');
+        let messagesIndex: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
-                  };
+        conferenceIndex.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+          if (!c) {
+            return;
+          }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
-                  }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
-                  };
+          usersStore.get(c.participant).onsuccess = (e: Event) => {
+            let participant: User = (e.target as IDBRequest).result;
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+            let conference: Conference = { ...c, participant };
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+            messagesIndex
+              .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev') 
+              .onsuccess = (e: Event) => {
+                let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                  return message;
-                });
+                if (!cursor || i === limit) {
+                  return;
+                }
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+                let m = cursor.value;
+
+                if (m.conference !== conference.uuid) {
+                  cursor.continue();
+
+                  return;
+                }
+
+                usersStore.get(m.author).onsuccess = (e: Event) => {
+                  let author: User = (e.target as IDBRequest).result;
+
+                  let message: Message = { ...m, conference, author };
+
+                  messages.unshift(message);
+
+                  i++;
+
+                  cursor.continue();
+                };
+              };
+          };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   getUnreadMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
-    return this.conferences$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          participant: uuid,
-          updated_at: { $gte: null }
-        }
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return throwError(new Error('Conference with that participant does not exist'));
-        
-        return this.messages$.pipe(
-          switchMap(db => from(db.find({
-            selector: {
-              conference: result.docs[0]._id,
-              readed: false,
-              date: { $gt: timestamp }
-            },
-            limit: limit,
-            sort: [ { date: 'asc' } ]
-          })))
-        );
-      }),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let conferenceIndex: IDBIndex = conferencesStore.index('participant');
+        let messagesIndex: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
-                  };
+        conferenceIndex.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+          if (!c) {
+            return;
+          }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
-                  }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
-                  };
+          usersStore.get(c.participant).onsuccess = (e: Event) => {
+            let participant: User = (e.target as IDBRequest).result;
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+            let conference: Conference = { ...c, participant };
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+            messagesIndex
+              .openCursor(IDBKeyRange.lowerBound(timestamp, true)) 
+              .onsuccess = (e: Event) => {
+                let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                  return message;
-                });
+                if (!cursor || i === limit) {
+                  return;
+                }
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+                let m = cursor.value;
+
+                if (m.conference !== conference.uuid || m.readed) {
+                  cursor.continue();
+
+                  return;
+                }
+
+                usersStore.get(m.author).onsuccess = (e: Event) => {
+                  let author: User = (e.target as IDBRequest).result;
+
+                  let message: Message = { ...m, conference, author };
+
+                  messages.push(message);
+
+                  i++;
+
+                  cursor.continue();
+                };
+              };
+          };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
-    return this.conferences$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          participant: uuid,
-          updated_at: { $gte: null }
-        }
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return throwError(new Error('Conference with that participant does not exist'));
-        
-        return this.messages$.pipe(
-          switchMap(db => from(db.find({
-            selector: {
-              conference: result.docs[0]._id,
-              date: { $lt: timestamp }
-            },
-            limit: limit,
-            sort: [ { date: 'desc' } ]
-          })))
-        );
-      }),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let conferenceIndex: IDBIndex = conferencesStore.index('participant');
+        let messagesIndex: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
-                  };
+        conferenceIndex.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+          if (!c) {
+            return;
+          }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
-                  }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
-                  };
+          usersStore.get(c.participant).onsuccess = (e: Event) => {
+            let participant: User = (e.target as IDBRequest).result;
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+            let conference: Conference = { ...c, participant };
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+            messagesIndex
+              .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev') 
+              .onsuccess = (e: Event) => {
+                let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                  return message;
-                });
+                if (!cursor || i === limit) {
+                  return;
+                }
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+                let m = cursor.value;
+
+                if (m.conference !== conference.uuid) {
+                  cursor.continue();
+
+                  return;
+                }
+
+                usersStore.get(m.author).onsuccess = (e: Event) => {
+                  let author: User = (e.target as IDBRequest).result;
+
+                  let message: Message = { ...m, conference, author };
+
+                  messages.unshift(message);
+
+                  i++;
+
+                  cursor.continue();
+                };
+              };
+          };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
-  
+
   getNewMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
-    return this.conferences$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          participant: uuid,
-          updated_at: { $gte: null }
-        }
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return throwError(new Error('Conference with that participant does not exist'));
-        
-        return this.messages$.pipe(
-          switchMap(db => from(db.find({
-            selector: {
-              conference: result.docs[0]._id,
-              date: { $gt: timestamp }
-            },
-            limit: limit,
-            sort: [ { date: 'asc' } ]
-          })))
-        );
-      }),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let conferenceIndex: IDBIndex = conferencesStore.index('participant');
+        let messagesIndex: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
-                  };
+        conferenceIndex.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+          if (!c) {
+            return;
+          }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
-                  }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
-                  };
+          usersStore.get(c.participant).onsuccess = (e: Event) => {
+            let participant: User = (e.target as IDBRequest).result;
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+            let conference: Conference = { ...c, participant };
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+            messagesIndex
+              .openCursor(IDBKeyRange.lowerBound(timestamp, true)) 
+              .onsuccess = (e: Event) => {
+                let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                  return message;
-                });
+                if (!cursor || i === limit) {
+                  return;
+                }
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+                let m = cursor.value;
+
+                if (m.conference !== conference.uuid) {
+                  cursor.continue();
+
+                  return;
+                }
+
+                usersStore.get(m.author).onsuccess = (e: Event) => {
+                  let author: User = (e.target as IDBRequest).result;
+
+                  let message: Message = { ...m, conference, author };
+
+                  messages.push(message);
+
+                  i++;
+
+                  cursor.continue();
+                };
+              };
+          };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
-  
+
   getMessagesByConference(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
-    return this.messages$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          conference: uuid,
-          date: { $lt: timestamp }
-        },
-        limit: limit,
-        sort: [ { date: 'desc' } ]
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let index: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
-                  };
+        conferencesStore.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+          if (!c) {
+            return;
+          }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
+          if ('participant' in c) {
+            usersStore.get(c.participant).onsuccess = (e: Event) => {
+              let participant: User = (e.target as IDBRequest).result;
+
+              let conference: Conference = { ...c, participant };
+
+              index
+                .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev') 
+                .onsuccess = (e: Event) => {
+                  let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+                  if (!cursor || i === limit) {
+                    return;
                   }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
+
+                  let m = cursor.value;
+
+                  if (m.conference !== conference.uuid) {
+                    cursor.continue();
+
+                    return;
+                  }
+
+                  usersStore.get(m.author).onsuccess = (e: Event) => {
+                    let author: User = (e.target as IDBRequest).result;
+
+                    let message: Message = { ...m, conference, author };
+
+                    messages.unshift(message);
+
+                    i++;
+
+                    cursor.continue();
                   };
+                };
+            };
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+            return;
+          }
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+          let conference: Conference = c;
 
-                  return message;
-                });
+          index
+            .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev') 
+            .onsuccess = (e: Event) => {
+              let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+              if (!cursor || i === limit) {
+                return;
+              }
+
+              let m = cursor.value;
+
+              if (m.conference !== conference.uuid) {
+                cursor.continue();
+
+                return;
+              }
+
+              usersStore.get(m.author).onsuccess = (e: Event) => {
+                let author: User = (e.target as IDBRequest).result;
+
+                let message: Message = { ...m, conference, author };
+
+                messages.unshift(message);
+
+                i++;
+
+                cursor.continue();
+              };
+            };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   getUnreadMessagesByConference(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
-    return this.messages$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          conference: uuid,
-          readed: false,
-          date: { $lt: timestamp }
-        },
-        limit: limit,
-        sort: [ { date: 'asc' } ]
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let index: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
-                  };
+        conferencesStore.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+          if (!c) {
+            return;
+          }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
+          if ('participant' in c) {
+            usersStore.get(c.participant).onsuccess = (e: Event) => {
+              let participant: User = (e.target as IDBRequest).result;
+
+              let conference: Conference = { ...c, participant };
+
+              index
+                .openCursor(IDBKeyRange.lowerBound(timestamp, true)) 
+                .onsuccess = (e: Event) => {
+                  let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+                  if (!cursor || i === limit) {
+                    return;
                   }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
+
+                  let m = cursor.value;
+
+                  if (m.conference !== conference.uuid || m.readed) {
+                    cursor.continue();
+
+                    return;
+                  }
+
+                  usersStore.get(m.author).onsuccess = (e: Event) => {
+                    let author: User = (e.target as IDBRequest).result;
+
+                    let message: Message = { ...m, conference, author };
+
+                    messages.push(message);
+
+                    i++;
+
+                    cursor.continue();
                   };
+                };
+            };
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+            return;
+          }
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+          let conference: Conference = c;
 
-                  return message;
-                });
+          index
+            .openCursor(IDBKeyRange.lowerBound(timestamp, true)) 
+            .onsuccess = (e: Event) => {
+              let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+              if (!cursor || i === limit) {
+                return;
+              }
+
+              let m = cursor.value;
+
+              if (m.conference !== conference.uuid || m.readed) {
+                cursor.continue();
+
+                return;
+              }
+
+              usersStore.get(m.author).onsuccess = (e: Event) => {
+                let author: User = (e.target as IDBRequest).result;
+
+                let message: Message = { ...m, conference, author };
+
+                messages.push(message);
+
+                i++;
+
+                cursor.continue();
+              };
+            };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   getOldMessagesByConference(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
-    return this.messages$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          conference: uuid,
-          date: { $lt: timestamp }
-        },
-        limit: limit,
-        sort: [ { date: 'desc' } ]
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let index: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
-                  };
+        conferencesStore.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+          if (!c) {
+            return;
+          }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
+          if ('participant' in c) {
+            usersStore.get(c.participant).onsuccess = (e: Event) => {
+              let participant: User = (e.target as IDBRequest).result;
+
+              let conference: Conference = { ...c, participant };
+
+              index
+                .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev') 
+                .onsuccess = (e: Event) => {
+                  let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+                  if (!cursor || i === limit) {
+                    return;
                   }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
+
+                  let m = cursor.value;
+
+                  if (m.conference !== conference.uuid) {
+                    cursor.continue();
+
+                    return;
+                  }
+
+                  usersStore.get(m.author).onsuccess = (e: Event) => {
+                    let author: User = (e.target as IDBRequest).result;
+
+                    let message: Message = { ...m, conference, author };
+
+                    messages.unshift(message);
+
+                    i++;
+
+                    cursor.continue();
                   };
+                };
+            };
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+            return;
+          }
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+          let conference: Conference = c;
 
-                  return message;
-                });
+          index
+            .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev') 
+            .onsuccess = (e: Event) => {
+              let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+              if (!cursor || i === limit) {
+                return;
+              }
+
+              let m = cursor.value;
+
+              if (m.conference !== conference.uuid) {
+                cursor.continue();
+
+                return;
+              }
+
+              usersStore.get(m.author).onsuccess = (e: Event) => {
+                let author: User = (e.target as IDBRequest).result;
+
+                let message: Message = { ...m, conference, author };
+
+                messages.unshift(message);
+
+                i++;
+
+                cursor.continue();
+              };
+            };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
-  
+
   getNewMessagesByConference(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
-    return this.messages$.pipe(
-      switchMap(db => from(db.find({
-        selector: {
-          conference: uuid,
-          date: { $gt: timestamp }
-        },
-        limit: limit,
-        sort: [ { date: 'asc' } ]
-      }))),
-      switchMap(result => {
-        if (!result.docs.length)
-          return of([] as Message[]);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let conferenceIds = result.docs.map((d: any) => d.conference);
-        let authorIds = result.docs.map((d: any) => d.author);
+        let index: IDBIndex = messagesStore.index('date');
 
-        let conferences$ = this.conferences$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: conferenceIds,
-            include_docs: true
-          })))
-        );
+        let i = 0;
 
-        let authors$ = this.users$.pipe(
-          switchMap(db => from(db.allDocs({
-            keys: authorIds,
-            include_docs: true
-          })))
-        );
+        let messages: Message[] = [] as Message[];
 
-        return zip(of(result.docs), conferences$, authors$).pipe(
-          switchMap(([ docs, conferences, authors ]) => {
-            let participantIds = conferences.rows
-              .filter((r: any) => 'participant' in r.doc)
-              .map((r: any) => r.doc.participant);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-            let participants$ = this.users$.pipe(
-              switchMap(db => from(db.allDocs({
-                keys: participantIds,
-                include_docs: true
-              })))
-            );
-          
-            return zip(of(docs), of(conferences), of(authors), participants$).pipe(
-              map(([ docs, conferences, authors, participants ]) => {
-                let messages: Message[] = docs.map((d: any) => {
-                  // how to typify this more convenient?
-                  let c = conferences.rows.find((r: any) => r.id === d.conference).doc as {
-                    _id: string,
-                    _rev: string,
-                    type: 'private' | 'public' | 'secret',
-                    updated_at: number,
-                    messages_count: number,
-                    unread_messages_count: number,
-                    participant?: string
-                  };
+        conferencesStore.get(uuid).onsuccess = (e: Event) => {
+          let c = (e.target as IDBRequest).result;
 
-                  let conference: Conference = {
-                    uuid: c._id,
-                    type: c.type,
-                    updated_at: c.updated_at,
-                    messages_count: c.messages_count,
-                    unread_messages_count: c.unread_messages_count
-                  };
-                 
-                  if ('participant' in c) {
-                    // how to typify this more convenient?
-                    let p = participants.rows.find((r: any) => r.id === c.participant).doc as {
-                      _id: string,
-                      _rev: string,
-                      email?: string,
-                      name: string,
-                      hash?: string,
-                      last_seen?: number,
-                      conferences_count: number,
-                      public_key?: string,
-                      private_key?: string,
-                      revocation_certificate?: string
-                    };
+          if (!c) {
+            return;
+          }
 
-                    conference.participant = (({ _id, _rev, ...p  }) => p)({ uuid: p._id, ...p });
+          if ('participant' in c) {
+            usersStore.get(c.participant).onsuccess = (e: Event) => {
+              let participant: User = (e.target as IDBRequest).result;
+
+              let conference: Conference = { ...c, participant };
+
+              index
+                .openCursor(IDBKeyRange.lowerBound(timestamp, true)) 
+                .onsuccess = (e: Event) => {
+                  let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+                  if (!cursor || i === limit) {
+                    return;
                   }
-                  
-                  // how to typify this more convenient?
-                  let a = authors.rows.find((r: any) => r.id === d.author).doc as {
-                    _id: string,
-                    _rev: string,
-                    email?: string,
-                    name: string,
-                    hash?: string,
-                    last_seen?: number,
-                    conferences_count: number,
-                    public_key?: string,
-                    private_key?: string,
-                    revocation_certificate?: string
+
+                  let m = cursor.value;
+
+                  if (m.conference !== conference.uuid) {
+                    cursor.continue();
+
+                    return;
+                  }
+
+                  usersStore.get(m.author).onsuccess = (e: Event) => {
+                    let author: User = (e.target as IDBRequest).result;
+
+                    let message: Message = { ...m, conference, author };
+
+                    messages.push(message);
+
+                    i++;
+
+                    cursor.continue();
                   };
+                };
+            };
 
-                  let author: User = (({ _id, _rev, ...a }) => a)({ uuid: a._id, ...a });
+            return;
+          }
 
-                  let message: Message = (({ _id, _rev, ...message }) => message)({
-                    uuid: d._id,
-                    ...d,
-                    conference: conference,
-                    author: author
-                  });
+          let conference: Conference = c;
 
-                  return message;
-                });
+          index
+            .openCursor(IDBKeyRange.lowerBound(timestamp, true)) 
+            .onsuccess = (e: Event) => {
+              let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
-                return messages;
-              })
-            );
-          })
-        );
-      }),
-      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date))
+              if (!cursor || i === limit) {
+                return;
+              }
+
+              let m = cursor.value;
+
+              if (m.conference !== conference.uuid) {
+                cursor.continue();
+
+                return;
+              }
+
+              usersStore.get(m.author).onsuccess = (e: Event) => {
+                let author: User = (e.target as IDBRequest).result;
+
+                let message: Message = { ...m, conference, author };
+
+                messages.push(message);
+
+                i++;
+
+                cursor.continue();
+              };
+            };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   upsertMessage(message: Message): Observable<Message> {
-    return this.upsertConference(message.conference).pipe(
-      switchMap(() => this.upsertUser(message.author)),
-      switchMap(() => this.messages$),
-      switchMap(db => from(db.upsert(message.uuid, (doc: any) => {
-        let { uuid, ...d } = Object.assign(
-          doc,
-          {
-            ...message,
-            conference: message.conference.uuid,
-            author: message.author.uuid
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ], 'readwrite');
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
+
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+
+        let m = {
+          ...message,
+          conference: message.conference.uuid,
+          author: message.author.uuid
+        };
+
+        messagesStore.get(message.uuid).onsuccess = (e: Event) => {
+          if (!(e.target as IDBRequest).result) {
+            let {
+              participants = undefined,
+              last_message = undefined,
+              ...c
+            } = 'participant' in message.conference ? { ...message.conference, participant: message.conference.participant.uuid } : message.conference;
+
+            conferencesStore.get(message.conference.uuid).onsuccess = (e: Event) => {
+              if (!(e.target as IDBRequest).result) {
+                if ('participant' in message.conference) {
+                  usersStore.get(message.conference.participant.uuid).onsuccess = (e: Event) => {
+                    if (!(e.target as IDBRequest).result) {
+                      usersStore.put(message.conference.participant);
+                    }
+                  };
+                }
+
+                conferencesStore.put(c);
+
+                return;
+              }
+
+              conferencesStore.put(Object.assign((e.target as IDBRequest).result, c));
+            };
+
+            usersStore.get(message.author.uuid).onsuccess = (e: Event) => {
+              if (!(e.target as IDBRequest).result) {
+                usersStore.put(message.author);
+              }
+            };
+
+            messagesStore.put(m).onsuccess = (e: Event) => {
+              subscriber.next(message);
+            };
+
+            return;
           }
-        );
 
-        return d;
-      }))),
-      map(result => message)
-    );
-  }
+          messagesStore.put(Object.assign((e.target as IDBRequest).result, m)).onsuccess = (e: Event) => {
+            subscriber.next(message);
+          };
+        };
 
-  readMessage(message: Message): Observable<Message> {
-    return this.messages$.pipe(
-      switchMap(db => from(db.upsert(message.uuid, (doc: any) => {
-        if (!!Object.keys(doc).length) {
-          let { uuid, d } = Object.assign(
-            doc,
-            {
-              readed: message.readed,
-              readedAt: message.readedAt
-            }
-          );
-
-          return d;
-        }
-
-        return false;
-      }))),
-      map(result => message)
+        transaction.oncomplete = (e: Event) => {
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   bulkMessages(messages: Message[]): Observable<Message[]> {
-    messages = messages.reduce((acc, cur) => {
-      if (acc.find(a => a.uuid === cur.uuid))
-        return acc;
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ], 'readwrite');
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-      return [ ...acc, cur ];
-    }, [] as Message[]);
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-    let conferences: Conference[] = messages.map((m: Message) => m.conference);
-    let authors: User[] = messages.map((m: Message) => m.author);
+        messages.map((message: Message) => {
+          let m = {
+            ...message,
+            conference: message.conference.uuid,
+            author: message.author.uuid
+          };
 
-    return this.bulkConferences(conferences).pipe(
-      switchMap(() => this.bulkUsers(authors)),
-      switchMap(() => this.messages$),
-      switchMap(db => {
-        let ids = messages.map((m: Message) => m.uuid);
+          messagesStore.get(message.uuid).onsuccess = (e: Event) => {
+            if (!(e.target as IDBRequest).result) {
+              let {
+                participants = undefined,
+                  last_message = undefined,
+                  ...c
+              } = 'participant' in message.conference ? { ...message.conference, participant: message.conference.participant.uuid } : message.conference;
 
-        return from(db.allDocs({
-          keys: ids,
-          include_docs: true
-        }));
-      }),
-      switchMap(result => {
-        // Property 'error' does not exist on type 'never'.
-        let errors = result.rows.filter((r: any) => 'error' in r && r.error !== 'not_found');
+              conferencesStore.get(message.conference.uuid).onsuccess = (e: Event) => {
+                if (!(e.target as IDBRequest).result) {
+                  if ('participant' in message.conference) {
+                    usersStore.get(message.conference.participant.uuid).onsuccess = (e: Event) => {
+                      if (!(e.target as IDBRequest).result) {
+                        usersStore.put(message.conference.participant);
+                      }
+                    };
+                  }
 
-        if (!!errors.length)
-          return throwError(errors);
+                  conferencesStore.put(c);
 
-        let rows = result.rows.filter(r => !('error' in r));
-        
-        let docs = messages.map((m: Message) => {
-          let row = rows.find(r => r.id === m.uuid);
+                  return;
+                }
 
-          if (row) {
-            let { uuid, ...doc } = Object.assign(
-              row.doc,
-              {
-                ...m,
-                conference: m.conference.uuid,
-                author: m.author.uuid
-              }
-            );
+                conferencesStore.put(Object.assign((e.target as IDBRequest).result, c));
+              };
 
-            return doc;
-          }
+              usersStore.get(message.author.uuid).onsuccess = (e: Event) => {
+                if (!(e.target as IDBRequest).result) {
+                  usersStore.put(message.author);
+                }
+              };
 
-          let doc = (({ uuid, ...doc }) => doc)({
-            ...m,
-            _id: m.uuid,
-            conference: m.conference.uuid,
-            author: m.author.uuid
-          });
+              messagesStore.put(m);
 
-          return doc;
+              return;
+            }
+
+            messagesStore.put(Object.assign((e.target as IDBRequest).result, m));
+          };
         });
-        
-        return this.messages$.pipe(
-          switchMap(db => from(db.bulkDocs(docs)))
-        );
-      }),
-      switchMap(result => {
-        let errors = result.filter(r => 'error' in r);
 
-        if (!!errors.length)
-          return throwError(errors);
+        transaction.oncomplete = (e: Event) => {
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
+    );
+  }
 
-        return of(messages);
-      })
+  readMessage(message: Message): Observable<Message> {
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message>(subscriber => {
+        let transaction: IDBTransaction = db.transaction('messages', 'readwrite');
+        let store: IDBObjectStore = transaction.objectStore('messages');
+
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+
+        store.get(message.uuid).onsuccess = (e: Event) => {
+          let m = (e.target as IDBRequest).result;
+
+          if (!m)
+            return;
+
+          store.put({
+            ...m,
+            readed: message.readed,
+            readedAt: message.readedAt
+          });
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          subscriber.next(message);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   readMessages(messages: Message[]): Observable<Message[]> {
-    return this.messages$.pipe(
-      switchMap(db => {
-        let ids = messages.map((m: Message) => m.uuid);
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction('messages', 'readwrite');
+        let store: IDBObjectStore = transaction.objectStore('messages');
 
-        return from(db.allDocs({
-          keys: ids,
-          include_docs: true
-        }));
-      }),
-      switchMap(result => {
-        // Property 'error' does not exist on type 'never'.
-        let errors = result.rows.filter((r: any) => 'error' in r && r.error !== 'not_found');
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
 
-        if (!!errors.length)
-          return throwError(errors);
+        messages.map((message: Message) => {
+          store.get(message.uuid).onsuccess = (e: Event) => {
+            let m = (e.target as IDBRequest).result;
 
-        let rows = result.rows.filter(r => !('error' in r));
-        
-        let docs = messages
-          .filter((m: Message) => rows.find(r => r.id === m.uuid))
-          .map((m: Message) => {
-            let row = rows.find(r => r.id === m.uuid);
+            if (!m)
+              return;
 
-            let doc = Object.assign(
-              row.doc,
-              {
-                readed: m.readed,
-                readedAt: m.readedAt
-              }
-            );
+            store.put({
+              ...m,
+              readed: message.readed,
+              readedAt: message.readedAt
+            });
+          };
+        });
 
-            return doc;
-          });
-
-        return this.messages$.pipe(
-          switchMap(db => from(db.bulkDocs(docs)))
-        );
-      }),
-      switchMap(result => {
-        let errors = result.filter(r => 'error' in r);
-
-        if (!!errors.length)
-          return throwError(errors);
-
-        return of(messages);
-      })
+        transaction.oncomplete = (e: Event) => {
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
     );
   }
 
   ngOnDestroy() {
-    this.userChanges$.pipe(
-      tap(changes => changes.cancel()) 
-    ).subscribe();
-
-    this.users$.pipe(
-      switchMap(db => from(db.destroy()))
-    ).subscribe();
-
-    this.conferences$.pipe(
-      switchMap(db => from(db.destroy()))
-    ).subscribe();
-
-    this.messages$.pipe(
-      switchMap(db => from(db.destroy()))
+    this.db$.pipe(
+      tap(db => db.close()),
+      tap(() => indexedDB.deleteDatabase('crypter'))
     ).subscribe();
 
     this.unsubscribe$.next();
