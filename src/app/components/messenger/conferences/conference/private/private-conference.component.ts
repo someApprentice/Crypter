@@ -11,6 +11,8 @@ import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, timer, empty, throwError } from 'rxjs';
 import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
 
+import { cloneDeep } from 'lodash';
+
 import { CrypterService } from '../../../../../services/crypter.service';
 
 import { AuthService } from '../../../../auth/auth.service';
@@ -152,7 +154,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             if (!!this.messages.length) {
               // decryption mutates Message objects in template
               // and breaks scroll down on initialization that triggers on a first change
-              let clone = JSON.parse(JSON.stringify(this.messages));
+              let clone = cloneDeep(this.messages);
 
               return of(clone).pipe(
                 delayWhen(() => this.databaseService.user$),
