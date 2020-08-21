@@ -3,8 +3,8 @@ import { environment } from '../../environments/environment';
 import { Injectable, OnDestroy } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 
-import { Observable, Subject, of, from, concat, zip, throwError } from 'rxjs';
-import { tap, map, reduce, switchMap, first, delayWhen, catchError, takeUntil } from 'rxjs/operators';
+import { Observable, Subject, of, from, concat, merge, zip, throwError } from 'rxjs';
+import { tap, map, reduce, switchMap, first, ignoreElements, delayWhen, catchError, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../components/auth/auth.service';
 import { DatabaseService } from './database.service';
@@ -16,7 +16,7 @@ import { Conference } from '../models/conference.model';
 import { Message } from '../models/message.model';
 
 // The purpose of this repository is to encapsulate the logic of getting records from either API or IndexeDB.
-// Most of the methods gets records straight from IndexeDB, if the application is synchronized
+// If the application is synchronized, most of the methods gets records straight from IndexeDB
 // and fallbacks on API in case the count of records < BATCH_SIZE, to get rest of them.
 // And otherwise, if the application is not synchronized, these methods gets at least a last records from IndexeDB
 // and fallbacks on API, to get a fresh records.
@@ -127,11 +127,21 @@ export class RepositoryService implements OnDestroy {
     );
   }
 
-  getUser(uuid: string): Observable<User> {
+  getUser(uuid: string): Observable<User|null> {
     return this.databaseService.getUser(uuid).pipe(
       switchMap((user: User|null) => {
         if (!user)
-          return this.authService.getUser(uuid);
+          return this.authService.getUser(uuid).pipe(
+            switchMap((user: User|null) => {
+              if (!user)
+                return of(user);
+
+              return merge(
+                this.databaseService.upsertUser(user).pipe(ignoreElements()),
+                of(user)
+              );
+            })
+          );
 
         return of(user);
       }),
@@ -152,9 +162,10 @@ export class RepositoryService implements OnDestroy {
               timestamp = !!conferences.length ? conferences[conferences.length - 1].updated_at : timestamp;
 
               return this.messengerService.getConferences(timestamp, limit - conferences.length).pipe(
-                // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-                // Let me know if you know a solution how to avoid this
-                tap((conferences: Conference[]) => this.databaseService.bulkConferences(conferences).subscribe()),
+                switchMap((conferences: Conference[]) => merge(
+                  this.databaseService.bulkConferences(conferences).pipe(ignoreElements()),
+                  of(conferences)
+                )),
                 map((c: Conference[]) => c.reduce((acc, cur) => {
                   if (acc.find((conference: Conference) => conference.uuid === cur.uuid)) {
                     acc[acc.findIndex((conference: Conference) => conference.uuid === cur.uuid)] = cur;
@@ -178,10 +189,11 @@ export class RepositoryService implements OnDestroy {
 
         return this.databaseService.getConferences(timestamp, limit).pipe(
           switchMap((conferences: Conference[]) => this.messengerService.getConferences(timestamp, limit).pipe(
-            // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-            // Let me know if you know a solution how to avoid this
-            tap((conferences: Conference[]) => this.databaseService.bulkConferences(conferences).subscribe()),
-              catchError((err: HttpErrorResponse) => {
+            switchMap((conferences: Conference[]) => merge(
+              this.databaseService.bulkConferences(conferences).pipe(ignoreElements()),
+              of(conferences)
+            )),
+            catchError((err: HttpErrorResponse) => {
               // What status codes responsable for timeout errors? 408, 504 what else?
               if (err.status === 408 || err.status === 504)
                 return of(conferences);
@@ -209,9 +221,10 @@ export class RepositoryService implements OnDestroy {
               timestamp = !!conferences.length ? conferences[conferences.length - 1].updated_at : timestamp;
 
               return this.messengerService.getOldConferences(timestamp, limit - conferences.length).pipe(
-                // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-                // Let me know if you know a solution how to avoid this
-                tap((conferences: Conference[]) => this.databaseService.bulkConferences(conferences).subscribe()),
+                switchMap((conferences: Conference[]) => merge(
+                  this.databaseService.bulkConferences(conferences).pipe(ignoreElements()),
+                  of(conferences)
+                )),
                 map((c: Conference[]) => c.reduce((acc, cur) => {
                   if (acc.find((conference: Conference) => conference.uuid === cur.uuid)) {
                     acc[acc.findIndex((conference: Conference) => conference.uuid === cur.uuid)] = cur;
@@ -235,9 +248,10 @@ export class RepositoryService implements OnDestroy {
 
         return this.databaseService.getOldConferences(timestamp, limit).pipe(
           switchMap((conferences: Conference[]) => this.messengerService.getOldConferences(timestamp, limit).pipe(
-            // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-            // Let me know if you know a solution how to avoid this
-            tap((conferences: Conference[]) => this.databaseService.bulkConferences(conferences).subscribe()),
+            switchMap((conferences: Conference[]) => merge(
+              this.databaseService.bulkConferences(conferences).pipe(ignoreElements()),
+              of(conferences)
+            )),
             catchError((err: HttpErrorResponse) => {
               // What status codes responsable for timeout errors? 408, 504 what else?
               if (err.status === 408 || err.status === 504)
@@ -258,11 +272,14 @@ export class RepositoryService implements OnDestroy {
       switchMap((conference: Conference|null) => {
         if (!conference) {
           return this.messengerService.getConferenceByParticipant(uuid).pipe(
-            // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-            // Let me know if you know a solution how to avoid this
-            tap((conference: Conference|null) => {
-              if (conference)
-                this.databaseService.upsertConference(conference).subscribe();
+            switchMap((conference: Conference|null) => {
+              if (!conference)
+                return of(conference);
+
+              return merge(
+                this.databaseService.upsertConference(conference).pipe(ignoreElements()),
+                of(conference)
+              );
             }),
             catchError((err: HttpErrorResponse) => {
               // What status codes responsable for timeout errors? 408, 504 what else?
@@ -305,9 +322,10 @@ export class RepositoryService implements OnDestroy {
                     }, [] as Message[])
                   );
                 }),
-                // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-                // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
                 map((m: Message[]) => m.reduce((acc, cur) => {
                   if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                     acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -343,9 +361,10 @@ export class RepositoryService implements OnDestroy {
                 }, [] as Message[])
               );
             }),
-            // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-            // Let me know if you know a solution how to avoid this
-            tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
+            switchMap((messages: Message[]) => merge(
+              this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+              of(messages)
+            )),
             catchError((err: HttpErrorResponse) => {
               // What status codes responsable for timeout errors? 408, 504 what else?
               if (err.status === 408 || err.status === 504)
@@ -386,9 +405,10 @@ export class RepositoryService implements OnDestroy {
                     }, [] as Message[])
                   )
                 }),
-                // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-                // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
                 map((m: Message[]) => m.reduce((acc, cur) => {
                   if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                     acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -423,9 +443,10 @@ export class RepositoryService implements OnDestroy {
               }, [] as Message[])
             );
           }),
-          // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-          // Let me know if you know a solution how to avoid this
-          tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
+          switchMap((messages: Message[]) => merge(
+            this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+            of(messages)
+          )),
           catchError((err: HttpErrorResponse) => {
             // What status codes responsable for timeout errors? 408, 504 what else?
             if (err.status === 408 || err.status === 504)
@@ -465,9 +486,10 @@ export class RepositoryService implements OnDestroy {
                     }, [] as Message[])
                   );
                 }),
-                // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-                // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
                 map((m: Message[]) => m.reduce((acc, cur) => {
                   if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                     acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -504,9 +526,10 @@ export class RepositoryService implements OnDestroy {
                   }, [] as Message[])
                 );
               }),
-              // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-              // Let me know if you know a solution how to avoid this
-              tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
+              switchMap((messages: Message[]) => merge(
+                this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                of(messages)
+              )),
               catchError((err: HttpErrorResponse) => {
                 // What status codes responsable for timeout errors? 408, 504 what else?
                 if (err.status === 408 || err.status === 504)
@@ -548,9 +571,10 @@ export class RepositoryService implements OnDestroy {
                     }, [] as Message[])
                   );
                 }),
-                // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-                // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
                 map((m: Message[]) => m.reduce((acc, cur) => {
                   if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                     acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -587,9 +611,10 @@ export class RepositoryService implements OnDestroy {
                   }, [] as Message[])
                 );
               }),
-              // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-              // Let me know if you know a solution how to avoid this
-              tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe()),
+              switchMap((messages: Message[]) => merge(
+                this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                of(messages)
+              )),
               catchError((err: HttpErrorResponse) => {
                 // What status codes responsable for timeout errors? 408, 504 what else?
                 if (err.status === 408 || err.status === 504)

@@ -8,8 +8,8 @@ import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
-import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, timer, empty, throwError } from 'rxjs';
-import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
+import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, merge, timer, empty, throwError } from 'rxjs';
+import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, ignoreElements, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
 
 import { cloneDeep } from 'lodash';
 
@@ -169,9 +169,10 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
                     }, [] as Message[])
                   );
                 }),
-                // In order to store a records into the IndexeDB in the background, you have to apply a nested subscribes anti-pattern
-                // Let me know if you know a solution how to avoid this
-                tap((messages: Message[]) => this.databaseService.bulkMessages(messages).subscribe())
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                ))
               );
             }
 
