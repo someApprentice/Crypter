@@ -16,7 +16,7 @@ import { cloneDeep } from 'lodash';
 import { CrypterService } from '../../../../../services/crypter.service';
 
 import { AuthService } from '../../../../auth/auth.service';
-import { DatabaseService } from '../../../../../services/database.service';
+import { DatabaseService } from '../../../../../services/database/database.service';
 import { MessengerService } from '../../../messenger.service';
 import { RepositoryService } from '../../../../../services/repository.service';
 import { SocketService } from '../../../../../services/socket.service'
@@ -52,7 +52,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   @ViewChildren('messagesList') private messagesList: QueryList<ElementRef>;
 
-  participant? : User;
+  participant?: User;
   conference?: Conference;
   messages: Message[] = [];
 

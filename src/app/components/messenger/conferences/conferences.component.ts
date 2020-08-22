@@ -7,7 +7,7 @@ import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { Observable, Subject, of, concat } from 'rxjs';
 import { map, tap, switchMap, delayWhen, takeUntil } from 'rxjs/operators';
 
-import { DatabaseService } from '../../../services/database.service';
+import { DatabaseService } from '../../../services/database/database.service';
 import { MessengerService } from '../messenger.service';
 import { RepositoryService } from '../../../services/repository.service';
 

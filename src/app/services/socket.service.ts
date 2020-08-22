@@ -6,7 +6,7 @@ import { Observable, Subject, of, fromEvent, zip } from 'rxjs';
 import { map, concatMap, shareReplay, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../components/auth/auth.service'
-import { DatabaseService } from './database.service';
+import { DatabaseService } from './database/database.service';
 import { CrypterService } from './crypter.service';
 
 import io from 'socket.io-client';

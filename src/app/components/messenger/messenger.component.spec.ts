@@ -13,7 +13,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 
 import { BrowserTransferStateModule } from '@angular/platform-browser';
 
-import { DatabaseService } from '../../services/database.service';
+import { DatabaseService } from '../../services/database/database.service';
 import RxDB, { RxDatabase } from 'rxdb';
 
 import { AuthService } from '../auth/auth.service';

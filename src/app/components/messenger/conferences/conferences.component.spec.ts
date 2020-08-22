@@ -13,7 +13,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 
 import { BrowserTransferStateModule } from '@angular/platform-browser';
 
-import { DatabaseService } from '../../../services/database.service';
+import { DatabaseService } from '../../../services/database/database.service';
 
 import { MessengerComponent } from '../messenger.component';
 import { ConferencesComponent } from './conferences.component';

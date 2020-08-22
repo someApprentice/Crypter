@@ -14,7 +14,7 @@ import { Subject, of, concat, zip } from 'rxjs';
 import { tap, first, switchMap, concatMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../auth/auth.service';
-import { DatabaseService } from '../../services/database.service';
+import { DatabaseService } from '../../services/database/database.service';
 import { MessengerService } from './messenger.service';
 import { RepositoryService } from '../../services/repository.service';
 import { CrypterService } from '../../services/crypter.service';

@@ -17,7 +17,7 @@ import { Router, ActivatedRoute, Data, UrlSegment } from '@angular/router';
 
 import { AuthService } from '../../../../auth/auth.service';
 
-import { DatabaseService } from '../../../../../services/database.service';
+import { DatabaseService } from '../../../../../services/database/database.service';
 
 import { PrivateConferenceComponent } from './private-conference.component';
 

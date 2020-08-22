@@ -7,7 +7,7 @@ import { Observable, Subject, of, from, concat, merge, zip, throwError } from 'r
 import { tap, map, reduce, switchMap, first, ignoreElements, delayWhen, catchError, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../components/auth/auth.service';
-import { DatabaseService } from './database.service';
+import { DatabaseService } from './database/database.service';
 import { MessengerService } from '../components/messenger/messenger.service';
 import { CrypterService } from './crypter.service';
 
