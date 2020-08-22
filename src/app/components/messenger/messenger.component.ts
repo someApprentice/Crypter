@@ -21,9 +21,9 @@ import { CrypterService } from '../../services/crypter.service';
 
 import { SocketService } from '../../services/socket.service'
 
-import { User } from '../../models/user.model';
-import { Conference } from '../../models/conference.model';
-import { Message } from '../../models/message.model';
+import User from '../../models/user.model';
+import Conference from '../../models/conference.model';
+import Message from '../../models/message.model';
 
 @Component({
   selector: 'app-messenger',

@@ -14,16 +14,14 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { BrowserTransferStateModule } from '@angular/platform-browser';
 
 import { DatabaseService } from '../../services/database/database.service';
-import RxDB, { RxDatabase } from 'rxdb';
 
 import { AuthService } from '../auth/auth.service';
-import { User } from '../../models/user.model';
+
+import User from '../../models/user.model';
+import Conference from '../../models/conference.model';
+import Message from '../../models/message.model';
 
 import { MessengerComponent } from './messenger.component';
-
-import { Conference } from '../../models/conference.model';
-import { Message } from '../../models/message.model';
-
 
 describe('MessengerComponent', () => {
   let httpTestingController: HttpTestingController;

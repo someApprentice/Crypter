@@ -7,10 +7,9 @@ import { MessengerService } from './messenger.service';
 
 import { AuthService } from '../auth/auth.service';
 
-import { User } from '../../models/user.model';
-
-import { Conference } from '../../models/conference.model';
-import { Message } from '../../models/message.model';
+import User from '../../models/user.model';
+import Conference from '../../models/conference.model';
+import Message from '../../models/message.model';
 
 describe('MessengerService', () => {
   let httpClient: HttpClient;

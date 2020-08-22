@@ -1,7 +1,7 @@
-import { User } from './user.model';
-import { Conference } from './conference.model';
+import User from './user.model';
+import Conference from './conference.model';
 
-export interface Message {
+export default interface Message {
   uuid: string,
   conference: Conference,
   author: User,

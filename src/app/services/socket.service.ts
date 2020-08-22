@@ -11,9 +11,9 @@ import { CrypterService } from './crypter.service';
 
 import io from 'socket.io-client';
  
-import { User } from '../models/user.model';
-import { Conference } from '../models/conference.model';
-import { Message } from '../models/message.model';
+import User from '../models/user.model';
+import Conference from '../models/conference.model';
+import Message from '../models/message.model';
 
 @Injectable()
 export class SocketService implements OnDestroy {

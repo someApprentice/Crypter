@@ -10,7 +10,7 @@ import { AuthService } from './auth.service';
 import { StorageService } from '../../services/storage/storage.service';
 import { StorageWrapper } from '../../services/storage/StorageWrapper';
 
-import { User } from '../../models/user.model';
+import User from '../../models/user.model';
 
 describe('AuthService', () => {
   let injector: Injector;

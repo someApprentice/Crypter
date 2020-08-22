@@ -9,7 +9,7 @@ import { map, tap, switchMap, takeUntil } from 'rxjs/operators'
 import { AuthService } from '../auth.service';
 import { CrypterService } from '../../../services/crypter.service';
 
-import { User } from '../../../models/user.model';
+import User from '../../../models/user.model';
 
 @Component({
   selector: 'app-login',

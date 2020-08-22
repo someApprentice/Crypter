@@ -13,8 +13,8 @@ import { RepositoryService } from '../../../services/repository.service';
 
 import { SocketService } from '../../../services/socket.service'
 
-import { Conference } from '../../../models/conference.model';
-import { Message } from '../../../models/message.model';
+import Conference from '../../../models/conference.model';
+import Message from '../../../models/message.model';
 
 const CONFERENCES_STATE_KEY = makeStateKey('conferences');
 

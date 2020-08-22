@@ -11,9 +11,9 @@ import { DatabaseService } from './database/database.service';
 import { MessengerService } from '../components/messenger/messenger.service';
 import { CrypterService } from './crypter.service';
 
-import { User } from '../models/user.model';
-import { Conference } from '../models/conference.model';
-import { Message } from '../models/message.model';
+import User from '../models/user.model';
+import Conference from '../models/conference.model';
+import Message from '../models/message.model';
 
 // The purpose of this repository is to encapsulate the logic of getting records from either API or IndexeDB.
 // If the application is synchronized, most of the methods gets records straight from IndexeDB

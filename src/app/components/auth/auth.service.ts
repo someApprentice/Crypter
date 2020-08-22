@@ -6,7 +6,7 @@ import { first, delay, tap, map, catchError } from 'rxjs/operators';
 
 import { StorageService } from '../../services/storage/storage.service';
 
-import { User } from '../../models/user.model';
+import User from '../../models/user.model';
 
 @Injectable({
   providedIn: 'root'

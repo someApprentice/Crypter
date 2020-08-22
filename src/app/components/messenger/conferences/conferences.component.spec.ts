@@ -18,8 +18,8 @@ import { DatabaseService } from '../../../services/database/database.service';
 import { MessengerComponent } from '../messenger.component';
 import { ConferencesComponent } from './conferences.component';
 
-import { Conference } from '../../../models/conference.model';
-import { Message } from '../../../models/message.model';
+import Conference from '../../../models/conference.model';
+import Message from '../../../models/message.model';
 
 describe('ConferencesComponent', () => {
   let httpTestingController: HttpTestingController;

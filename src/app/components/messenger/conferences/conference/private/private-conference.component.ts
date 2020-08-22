@@ -21,9 +21,9 @@ import { MessengerService } from '../../../messenger.service';
 import { RepositoryService } from '../../../../../services/repository.service';
 import { SocketService } from '../../../../../services/socket.service'
 
-import { User } from '../../../../../models/user.model';
-import { Conference } from '../../../../../models/conference.model';
-import { Message }  from '../../../../../models/message.model';
+import User from '../../../../../models/user.model';
+import Conference from '../../../../../models/conference.model';
+import Message  from '../../../../../models/message.model';
 
 const PARTICIPANT_STATE_KEY = makeStateKey('participant');
 const CONFERENCE_STATE_KEY = makeStateKey('conference');

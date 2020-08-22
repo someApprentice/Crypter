@@ -21,9 +21,9 @@ import { DatabaseService } from '../../../../../services/database/database.servi
 
 import { PrivateConferenceComponent } from './private-conference.component';
 
-import { User } from '../../../../../models/user.model';
-import { Conference } from '../../../../../models/conference.model';
-import { Message } from '../../../../../models/message.model';
+import User from '../../../../../models/user.model';
+import Conference from '../../../../../models/conference.model';
+import Message from '../../../../../models/message.model';
 
 describe('PrivateConferenceComponent', () => {
   let activatedRoute: ActivatedRoute;
