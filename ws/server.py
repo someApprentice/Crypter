@@ -611,42 +611,42 @@ async def read_private_message_since(sid, data):
 
     for cr in conference_references:
         c = {
-            'uuid': str(conference_reference.conference.uuid),
-            'type': conference_reference.conference.type,
-            'updated_at': conference_reference.updated_at.timestamp(),
-            'messages_count': conference_reference.messages_count,
-            'unread_messages_count': conference_reference.unread_messages_count,
+            'uuid': str(cr.conference.uuid),
+            'type': cr.conference.type,
+            'updated_at': cr.updated_at.timestamp(),
+            'messages_count': cr.messages_count,
+            'unread_messages_count': cr.unread_messages_count,
             'participant': {
-                'uuid': str(conference_reference.participant.uuid),
-                'name': conference_reference.participant.name,
-                'public_key': conference_reference.participant.public_key
+                'uuid': str(cr.participant.uuid),
+                'name': cr.participant.name,
+                'public_key': cr.participant.public_key
             },
             'last_message': {
-                'uuid': str(conference_reference.last_message.uuid),
+                'uuid': str(cr.last_message.uuid),
                 'author': {
-                    'uuid': str(conference_reference.last_message.author.uuid),
-                    'name': conference_reference.last_message.author.name,
-                    'public_key': conference_reference.last_message.author.public_key
+                    'uuid': str(cr.last_message.author.uuid),
+                    'name': cr.last_message.author.name,
+                    'public_key': cr.last_message.author.public_key
                 },
                 'conference': {
-                    'uuid': str(conference_reference.conference.uuid),
-                    'type': conference_reference.conference.type,
-                    'updated_at': conference_reference.updated_at.timestamp(),
-                    'messages_count': conference_reference.messages_count,
-                    'unread_messages_count': conference_reference.unread_messages_count,
+                    'uuid': str(cr.conference.uuid),
+                    'type': cr.conference.type,
+                    'updated_at': cr.updated_at.timestamp(),
+                    'messages_count': cr.messages_count,
+                    'unread_messages_count': cr.unread_messages_count,
                     'participant': {
-                        'uuid': str(conference_reference.participant.uuid),
-                        'name': conference_reference.participant.name,
-                        'public_key': conference_reference.participant.public_key
+                        'uuid': str(cr.participant.uuid),
+                        'name': cr.participant.name,
+                        'public_key': cr.participant.public_key
                     }
                 },
-                'readed': conference_reference.last_message.readed,
-                'readedAt': conference_reference.last_message.readed_at.timestamp() if conference_reference.last_message.readed_at is not None else conference_reference.last_message.readed_at,
-                'date': conference_reference.last_message.date.timestamp(),
-                'type': conference_reference.last_message.type,
-                'content': conference_reference.last_message.content,
-                'consumed': conference_reference.last_message.consumed,
-                'edited': conference_reference.last_message.edited
+                'readed': cr.last_message.readed,
+                'readedAt': cr.last_message.readed_at.timestamp() if conference_reference.last_message.readed_at is not None else conference_reference.last_message.readed_at,
+                'date': cr.last_message.date.timestamp(),
+                'type': cr.last_message.type,
+                'content': cr.last_message.content,
+                'consumed': cr.last_message.consumed,
+                'edited': cr.last_message.edited
            }
         }
 
