@@ -488,14 +488,19 @@ export class RepositoryService implements OnDestroy {
       first(),
       switchMap((isSynchronized: boolean) => {
         if (isSynchronized) {
-          return this.databaseService.getUnreadMessagesByParticipant(uuid, timestamp, limit).pipe(
-            switchMap((messages: Message[]) => {
-              if (messages.length === limit)
+          return zip(
+            this.databaseService.getConferenceByParticipant(uuid),
+            this.databaseService.getUnreadMessagesByParticipant(uuid, timestamp, limit)
+          ).pipe(
+            switchMap(([ conference, messages ]) => {
+              if (
+                (messages.length === limit && (!!messages[messages.length - 1] && messages[messages.length - 1].uuid !== conference.last_message.uuid)) ||
+                messages.length === conference.messages_count
+              ) {
                 return of(messages);
+              }
 
-              timestamp = !!messages.length ? messages[messages.length - 1].date : timestamp;
-
-              return this.messengerService.getUnreadMessagesByParticipant(uuid, timestamp, limit - messages.length).pipe(
+              return this.messengerService.getUnreadMessagesByParticipant(uuid, timestamp, limit).pipe(
                 delayWhen(() => this.databaseService.user$),
                 switchMap((messages: Message[]) => {
                   let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
@@ -512,15 +517,6 @@ export class RepositoryService implements OnDestroy {
                   this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
                   of(messages)
                 )),
-                map((m: Message[]) => m.reduce((acc, cur) => {
-                  if (acc.find((m: Message) => m.uuid === cur.uuid)) {
-                    acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
-
-                    return acc;
-                  }
-
-                  return [ ...acc, cur ];
-                }, messages)),
                 catchError((err: HttpErrorResponse) => {
                   // What status codes responsable for timeout errors? 408, 504 what else?
                   if (err.status === 408 || err.status === 504)
@@ -654,14 +650,19 @@ export class RepositoryService implements OnDestroy {
       first(),
       switchMap((isSynchronized: boolean) => {
         if (isSynchronized) {
-          return this.databaseService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
-            switchMap((messages: Message[]) => {
-              if (messages.length === limit)
+          return zip(
+            this.databaseService.getConferenceByParticipant(uuid),
+            this.databaseService.getNewMessagesByParticipant(uuid, timestamp, limit)
+          ).pipe(
+            switchMap(([ conference, messages ]) => {
+              if (
+                (messages.length === limit && (!!messages[messages.length - 1] && messages[messages.length - 1].uuid !== conference.last_message.uuid)) ||
+                messages.length === conference.messages_count
+              ) {
                 return of(messages);
+              }
 
-              timestamp = !!messages.length ? messages[messages.length - 1].date : timestamp;
-
-              return this.messengerService.getNewMessagesByParticipant(uuid, timestamp, limit - messages.length).pipe(
+              return this.messengerService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
                 delayWhen(() => this.databaseService.user$),
                 switchMap((messages: Message[]) => {
                   let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
@@ -678,15 +679,6 @@ export class RepositoryService implements OnDestroy {
                   this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
                   of(messages)
                 )),
-                map((m: Message[]) => m.reduce((acc, cur) => {
-                  if (acc.find((m: Message) => m.uuid === cur.uuid)) {
-                    acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
-
-                    return acc;
-                  }
-
-                  return [ ...acc, cur ];
-                }, messages)),
                 catchError((err: HttpErrorResponse) => {
                   // What status codes responsable for timeout errors? 408, 504 what else?
                   if (err.status === 408 || err.status === 504)
