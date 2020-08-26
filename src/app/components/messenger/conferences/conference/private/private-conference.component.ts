@@ -438,7 +438,10 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   }
 
   onScrollDown(timestamp: number) {
-    if (this.conference.unread_messages_count === 0 && this.isScrolledDown) {
+    if (
+      (this.messages[this.messages.length - 1].uuid === this.conference.last_message.uuid) ||
+      (this.conference.unread_messages_count === 0 && this.isScrolledDown)
+    ) {
       return;
     }
 
