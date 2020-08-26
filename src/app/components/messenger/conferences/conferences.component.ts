@@ -154,7 +154,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
   }
 
   onScrollDown(timestamp: number): void {
-    if (this.isOldConferencesLoading)
+    if (this.isOldConferencesLoading || this.conferences.length === this.authService.user.conferences_count)
       return;
 
     this.isOldConferencesLoading = true;
