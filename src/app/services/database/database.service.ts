@@ -178,12 +178,15 @@ export class DatabaseService implements OnDestroy {
   getConference(uuid: string): Observable<Conference|null> {
     return this.db$.pipe(
       switchMap((db: IDBDatabase) => new Observable<Conference|null>(subscriber => {
-        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ]);
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
         let usersStore: IDBObjectStore = transaction.objectStore('users');
         let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
         let c: ConferenceSchema|undefined;
         let p: UserSchema|undefined;
+        let l: MessageSchema|undefined;
+        let a: UserSchema|undefined;
 
         transaction.onerror = (err: Event) => {
           subscriber.error(err);
@@ -198,6 +201,16 @@ export class DatabaseService implements OnDestroy {
           if ('participant' in c) {
             usersStore.get(c.participant).onsuccess = (e: Event) => {
               p = (e.target as IDBRequest).result;
+            };
+          }
+
+          if ('last_message' in c) {
+            messagesStore.get(c.last_message).onsuccess = (e: Event) => {
+              l = (e.target as IDBRequest).result;
+
+              usersStore.get(l.author).onsuccess = (e: Event) => {
+                a = (e.target as IDBRequest).result;
+              };
             };
           }
         };
@@ -215,6 +228,18 @@ export class DatabaseService implements OnDestroy {
           if (p)
             conference.participant = p as User;
 
+          if (l) {
+            let author: User = a;
+
+            let last_message: Message = {
+              ...omit(l, [ 'conference', 'author' ]),
+              conference,
+              author
+            };
+
+            conference.last_message = last_message;
+          }
+
           subscriber.next(conference);
           subscriber.complete();
         };
@@ -225,14 +250,17 @@ export class DatabaseService implements OnDestroy {
   getConferenceByParticipant(uuid: string): Observable<Conference|null> {
     return this.db$.pipe(
       switchMap((db: IDBDatabase) => new Observable<Conference|null>(subscriber => {
-        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ]);
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
         let usersStore: IDBObjectStore = transaction.objectStore('users');
         let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
         let index: IDBIndex = conferencesStore.index('participant');
 
         let c: ConferenceSchema|undefined;
         let p: UserSchema|undefined;
+        let l: MessageSchema|undefined;
+        let a: UserSchema|undefined;
 
         transaction.onerror = (err: Event) => {
           subscriber.error(err);
@@ -247,6 +275,16 @@ export class DatabaseService implements OnDestroy {
           usersStore.get(c.participant).onsuccess = (e: Event) => {
             p = (e.target as IDBRequest).result;
           };
+
+          if ('last_message' in c) {
+            messagesStore.get(c.last_message).onsuccess = (e: Event) => {
+              l = (e.target as IDBRequest).result;
+
+              usersStore.get(l.author).onsuccess = (e: Event) => {
+                a = (e.target as IDBRequest).result;
+              };
+            };
+          }
         };
 
         transaction.oncomplete = (e: Event) => {
@@ -264,6 +302,18 @@ export class DatabaseService implements OnDestroy {
             participant
           };
 
+          if ('last_message' in c) {
+            let author: User = a;
+
+            let last_message: Message = {
+              ...omit(l, [ 'conference', 'author' ]),
+              conference,
+              author
+            };
+
+            conference.last_message = last_message;
+          }
+
           subscriber.next(conference);
           subscriber.complete();
         };
@@ -274,9 +324,10 @@ export class DatabaseService implements OnDestroy {
   getConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
     return this.db$.pipe(
       switchMap((db: IDBDatabase) => new Observable<Conference[]>(subscriber => {
-        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ]);
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
         let usersStore: IDBObjectStore = transaction.objectStore('users');
         let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
         let index: IDBIndex = conferencesStore.index('updated_at');
 
@@ -284,6 +335,8 @@ export class DatabaseService implements OnDestroy {
 
         let cs: ConferenceSchema[] = [] as ConferenceSchema[];
         let ps: UserSchema[] = [] as UserSchema[];
+        let ls: MessageSchema[] = [] as MessageSchema[];
+        let as: UserSchema[] = [] as UserSchema[];
 
         let conferences: Conference[] = [] as Conference[];
 
@@ -311,6 +364,20 @@ export class DatabaseService implements OnDestroy {
               };
             }
 
+            if ('last_message' in c) {
+              messagesStore.get(c.last_message).onsuccess = (e: Event) => {
+                let l: MessageSchema = (e.target as IDBRequest).result;
+
+                ls.push(l);
+
+                usersStore.get(l.author).onsuccess = (e: Event) => {
+                  let a: UserSchema = (e.target as IDBRequest).result;
+
+                  as.push(a);
+                };
+              }
+            }
+
             i++;
 
             cursor.continue();
@@ -322,6 +389,20 @@ export class DatabaseService implements OnDestroy {
 
             if ('participant' in c)
               conference.participant = ps.find((p: UserSchema) => p.uuid === c.participant);
+
+            if ('last_message' in c) {
+              let l: MessageSchema = ls.find((l: MessageSchema) => l.uuid === c.last_message);
+
+              let author: User = as.find((a: UserSchema) => a.uuid === l.author);
+
+              let last_message: Message = {
+                ...omit(l, [ 'conference', 'author' ]),
+                conference,
+                author
+              };
+
+              conference.last_message = last_message;
+            }
 
             return conference;
           });
@@ -341,6 +422,7 @@ export class DatabaseService implements OnDestroy {
         let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ]);
         let usersStore: IDBObjectStore = transaction.objectStore('users');
         let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
         let index: IDBIndex = conferencesStore.index('updated_at');
 
@@ -348,6 +430,8 @@ export class DatabaseService implements OnDestroy {
 
         let cs: ConferenceSchema[] = [] as ConferenceSchema[];
         let ps: UserSchema[] = [] as UserSchema[];
+        let ls: MessageSchema[] = [] as MessageSchema[];
+        let as: UserSchema[] = [] as UserSchema[];
 
         let conferences: Conference[] = [] as Conference[];
 
@@ -375,6 +459,18 @@ export class DatabaseService implements OnDestroy {
               };
             }
 
+            if ('last_message' in c) {
+              messagesStore.get(c.last_message).onsuccess = (e: Event) => {
+                let l: MessageSchema = (e.target as IDBRequest).result;
+
+                ls.push(l);
+
+                usersStore.get(l.author).onsuccess = (e: Event) => {
+                  let a: UserSchema = (e.target as IDBRequest).result;
+                };
+              };
+            }
+
             i++;
 
             cursor.continue();
@@ -386,6 +482,20 @@ export class DatabaseService implements OnDestroy {
 
             if ('participant' in c)
               conference.participant = ps.find((p: UserSchema) => p.uuid === c.participant);
+
+            if ('last_message' in c) {
+              let l: MessageSchema = ls.find((l: MessageSchema) => l.uuid === c.last_message);
+
+              let author: User = as.find((a: UserSchema) => a.uuid === l.author);
+
+              let last_message: Message = {
+                ...omit(l, [ 'conference', 'author' ]),
+                conference,
+                author
+              };
+
+              conference.last_message = last_message;
+            }
 
             return conference;
           });
@@ -402,9 +512,10 @@ export class DatabaseService implements OnDestroy {
   upsertConference(conference: Conference): Observable<Conference> {
     return this.db$.pipe(
       switchMap((db: IDBDatabase) => new Observable<Conference>(subscriber => {
-        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ], 'readwrite');
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ], 'readwrite');
         let usersStore: IDBObjectStore = transaction.objectStore('users');
         let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
         transaction.onerror = (err: Event) => {
           subscriber.error(err);
@@ -414,6 +525,9 @@ export class DatabaseService implements OnDestroy {
 
         if ('participant' in conference)
           c.participant = conference.participant.uuid;
+
+        if ('last_message' in conference)
+          c.last_message = conference.last_message.uuid;
 
         conferencesStore.get(conference.uuid).onsuccess = (e: Event) => {
           if ((e.target as IDBRequest).result) {
@@ -426,6 +540,25 @@ export class DatabaseService implements OnDestroy {
             usersStore.get(conference.participant.uuid).onsuccess = (e: Event) => {
               if (!(e.target as IDBRequest).result)
                 usersStore.put(conference.participant);
+            };
+          }
+
+          if ('last_message' in conference) {
+            messagesStore.get(conference.last_message.uuid).onsuccess = (e: Event) => {
+              if (!(e.target as IDBRequest).result) {
+                usersStore.get(conference.last_message.author.uuid).onsuccess = (e: Event) => {
+                  if (!(e.target as IDBRequest).result)
+                    usersStore.put(conference.last_message.author);
+                };
+
+                let m: MessageSchema = {
+                  ...omit(conference.last_message, [ 'conference', 'author' ]),
+                  conference: conference.last_message.conference.uuid,
+                  author: conference.last_message.author.uuid
+                };
+
+                messagesStore.put(m);
+              }
             };
           }
           
@@ -443,9 +576,10 @@ export class DatabaseService implements OnDestroy {
   bulkConferences(conferences: Conference[]): Observable<Conference[]> {
     return this.db$.pipe(
       switchMap((db: IDBDatabase) => new Observable<Conference[]>(subscriber => {
-        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ], 'readwrite');
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ], 'readwrite');
         let usersStore: IDBObjectStore = transaction.objectStore('users');
         let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
         transaction.onerror = (err: Event) => {
           subscriber.error(err);
@@ -456,6 +590,9 @@ export class DatabaseService implements OnDestroy {
 
           if ('participant' in conference)
             c.participant = conference.participant.uuid;
+
+          if ('last_message' in conference)
+            c.last_message = conference.last_message.uuid;
 
           conferencesStore.get(conference.uuid).onsuccess = (e: Event) => {
             if ((e.target as IDBRequest).result) {
@@ -468,6 +605,25 @@ export class DatabaseService implements OnDestroy {
               usersStore.get(conference.participant.uuid).onsuccess = (e: Event) => {
                 if (!(e.target as IDBRequest).result)
                   usersStore.put(conference.participant);
+              };
+            }
+
+            if ('last_message' in conference) {
+              messagesStore.get(conference.last_message.uuid).onsuccess = (e: Event) => {
+                if (!(e.target as IDBRequest).result) {
+                  usersStore.get(conference.last_message.author.uuid).onsuccess = (e: Event) => {
+                    if (!(e.target as IDBRequest).result)
+                      usersStore.put(conference.last_message.author);
+                  };
+
+                  let m: MessageSchema = {
+                    ...omit(conference.last_message, [ 'conference', 'author' ]),
+                    conference: conference.last_message.conference.uuid,
+                    author: conference.last_message.author.uuid
+                  };
+
+                  messagesStore.put(m);
+                }
               };
             }
             

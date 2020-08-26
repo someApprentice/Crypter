@@ -4,7 +4,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { Observable, Subject, of, from, concat, merge, zip, throwError } from 'rxjs';
-import { tap, map, reduce, switchMap, first, ignoreElements, delayWhen, catchError, takeUntil } from 'rxjs/operators';
+import { tap, map, reduce, switchMap, concatMap, first, ignoreElements, delayWhen, catchError, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../components/auth/auth.service';
 import { DatabaseService } from './database/database.service';
@@ -162,6 +162,27 @@ export class RepositoryService implements OnDestroy {
               timestamp = !!conferences.length ? conferences[conferences.length - 1].updated_at : timestamp;
 
               return this.messengerService.getConferences(timestamp, limit - conferences.length).pipe(
+                switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
+                  concatMap((conference: Conference) => {
+                    if (conference.type !== 'private' || !('last_message' in conference))
+                      return of(conference);
+
+                    return zip(of(conference), this.databaseService.user$).pipe(
+                      switchMap(([ conference, user ]) => {
+                        let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+                        return zip(of(conference), decrypted$).pipe(
+                          map(([ conference, decrypted ]) => {
+                            conference.last_message.content = decrypted;
+
+                            return conference;
+                          })
+                        );
+                      })
+                    );
+                  }),
+                  reduce((acc: Conference[], conference: Conference) => [ ...acc, conference ], [] as Conference[])
+                )),
                 switchMap((conferences: Conference[]) => merge(
                   this.databaseService.bulkConferences(conferences).pipe(ignoreElements()),
                   of(conferences)
@@ -189,6 +210,27 @@ export class RepositoryService implements OnDestroy {
 
         return this.databaseService.getConferences(timestamp, limit).pipe(
           switchMap((conferences: Conference[]) => this.messengerService.getConferences(timestamp, limit).pipe(
+            switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
+              concatMap((conference: Conference) => {
+                if (conference.type !== 'private' || !('last_message' in conference))
+                  return of(conference);
+
+                return zip(of(conference), this.databaseService.user$).pipe(
+                  switchMap(([ conference, user ]) => {
+                    let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+                    return zip(of(conference), decrypted$).pipe(
+                      map(([ conference, decrypted ]) => {
+                        conference.last_message.content = decrypted;
+
+                        return conference;
+                      })
+                    );
+                  })
+                );
+              }),
+              reduce((acc: Conference[], conference: Conference) => [ ...acc, conference ], [] as Conference[])
+            )),
             switchMap((conferences: Conference[]) => merge(
               this.databaseService.bulkConferences(conferences).pipe(ignoreElements()),
               of(conferences)
@@ -221,6 +263,27 @@ export class RepositoryService implements OnDestroy {
               timestamp = !!conferences.length ? conferences[conferences.length - 1].updated_at : timestamp;
 
               return this.messengerService.getOldConferences(timestamp, limit - conferences.length).pipe(
+                switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
+                  concatMap((conference: Conference) => {
+                    if (conference.type !== 'private' || !('last_message' in conference))
+                      return of(conference);
+
+                    return zip(of(conference), this.databaseService.user$).pipe(
+                      switchMap(([ conference, user ]) => {
+                        let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+                        return zip(of(conference), decrypted$).pipe(
+                          map(([ conference, decrypted ]) => {
+                            conference.last_message.content = decrypted;
+
+                            return conference;
+                          })
+                        );
+                      })
+                    );
+                  }),
+                  reduce((acc: Conference[], conference: Conference) => [ ...acc, conference ], [] as Conference[])
+                )),
                 switchMap((conferences: Conference[]) => merge(
                   this.databaseService.bulkConferences(conferences).pipe(ignoreElements()),
                   of(conferences)
@@ -248,6 +311,27 @@ export class RepositoryService implements OnDestroy {
 
         return this.databaseService.getOldConferences(timestamp, limit).pipe(
           switchMap((conferences: Conference[]) => this.messengerService.getOldConferences(timestamp, limit).pipe(
+            switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
+              concatMap((conference: Conference) => {
+                if (conference.type !== 'private' || !('last_message' in conference))
+                  return of(conference);
+
+                return zip(of(conference), this.databaseService.user$).pipe(
+                  switchMap(([ conference, user ]) => {
+                    let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+                    return zip(of(conference), decrypted$).pipe(
+                      map(([ conference, decrypted ]) => {
+                        conference.last_message.content = decrypted;
+
+                        return conference;
+                      })
+                    );
+                  })
+                );
+              }),
+              reduce((acc: Conference[], conference: Conference) => [ ...acc, conference ], [] as Conference[])
+            )),
             switchMap((conferences: Conference[]) => merge(
               this.databaseService.bulkConferences(conferences).pipe(ignoreElements()),
               of(conferences)
@@ -276,9 +360,28 @@ export class RepositoryService implements OnDestroy {
               if (!conference)
                 return of(conference);
 
-              return merge(
-                this.databaseService.upsertConference(conference).pipe(ignoreElements()),
-                of(conference)
+              if (conference.type !== 'private' || !('last_message' in conference))
+                return merge(
+                  this.databaseService.upsertConference(conference).pipe(ignoreElements()),
+                  of(conference)
+                );
+
+              return zip(of(conference), this.databaseService.user$).pipe(
+                switchMap(([ conference, user ]) => {
+                  let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+                  return zip(of(conference), decrypted$).pipe(
+                    map(([ conference, decrypted ]) => {
+                      conference.last_message.content = decrypted;
+
+                      return conference;
+                    })
+                  );
+                }),
+                switchMap((conference: Conference) => merge(
+                  this.databaseService.upsertConference(conference).pipe(ignoreElements()),
+                  of(conference)
+                ))
               );
             }),
             catchError((err: HttpErrorResponse) => {

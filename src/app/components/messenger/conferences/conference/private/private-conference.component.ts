@@ -134,8 +134,35 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           switchMap((participant: User) => {
             // In case Conference already loaded from server-side-rendering
             // Or already came from socket subscription
-            if (this.conference)
-              return of(this.conference);
+            if (this.conference) {
+              let conference: Conference = cloneDeep(this.conference);
+
+              return of(conference).pipe(
+                switchMap((conference: Conference) => {
+                  if (!('last_message' in conference))
+                    return of(conference);
+
+                  return zip(of(conference), this.databaseService.user$).pipe(
+                    switchMap(([ conference, user ]) => {
+                      let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+                      return zip(of(conference), decrypted$).pipe(
+                        map(([ conference, decrypted ]) => {
+                          conference.last_message.content = decrypted;
+
+                          return conference;
+                        })
+                      );
+                    })
+                  );
+                }),
+                tap((conference: Conference) => this.conference = conference),
+                switchMap((conference: Conference) => merge(
+                  this.databaseService.upsertConference(conference).pipe(ignoreElements()),
+                  of(conference)
+                ))
+              );
+            }
 
             return this.repositoryService.getConferenceByParticipant(participant.uuid).pipe(
               tap((conference: Conference|null) => {

@@ -42,6 +42,24 @@ export class SocketService implements OnDestroy {
 
   public conferenceUpdated$: Observable<Conference> = fromEvent(this.socket, 'conference.updated').pipe(
     map(data => data as Conference),
+    concatMap((conference: Conference) => {
+      if (conference.type !== 'private' || !('last_message' in conference))
+        return of(conference);
+
+      return zip(of(conference), this.databaseService.user$).pipe(
+        concatMap(([ conference, user ]) => {
+          let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+          return zip(of(conference), decrypted$).pipe(
+            map(([ conference, decrypted ]) => {
+              conference.last_message.content = decrypted;
+
+              return conference;
+            })
+          );
+        })
+      );
+    }),
     takeUntil(this.unsubscribe$)
   );
 

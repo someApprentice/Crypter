@@ -424,7 +424,11 @@ async def read_private_message(sid, data):
 
     database.session.commit()
 
-    if conference_reference:
+    conference_references = database.session.query(Conference_Reference) \
+        .filter(Conference_Reference.conference_uuid == conference_reference.conference.uuid) \
+        .all()
+
+    for cr in conference_references:
         c = {
             'uuid': str(conference_reference.conference.uuid),
             'type': conference_reference.conference.type,
@@ -435,16 +439,38 @@ async def read_private_message(sid, data):
                 'uuid': str(conference_reference.participant.uuid),
                 'name': conference_reference.participant.name,
                 'public_key': conference_reference.participant.public_key
-            }
+            },
+            'last_message': {
+                'uuid': str(conference_reference.last_message.uuid),
+                'author': {
+                    'uuid': str(conference_reference.last_message.author.uuid),
+                    'name': conference_reference.last_message.author.name,
+                    'public_key': conference_reference.last_message.author.public_key
+                },
+                'conference': {
+                    'uuid': str(conference_reference.conference.uuid),
+                    'type': conference_reference.conference.type,
+                    'updated_at': conference_reference.updated_at.timestamp(),
+                    'messages_count': conference_reference.messages_count,
+                    'unread_messages_count': conference_reference.unread_messages_count,
+                    'participant': {
+                        'uuid': str(conference_reference.participant.uuid),
+                        'name': conference_reference.participant.name,
+                        'public_key': conference_reference.participant.public_key
+                    }
+                },
+                'readed': conference_reference.last_message.readed,
+                'readedAt': conference_reference.last_message.readed_at.timestamp() if conference_reference.last_message.readed_at is not None else conference_reference.last_message.readed_at,
+                'date': conference_reference.last_message.date.timestamp(),
+                'type': conference_reference.last_message.type,
+                'content': conference_reference.last_message.content,
+                'consumed': conference_reference.last_message.consumed,
+                'edited': conference_reference.last_message.edited
+           }
         }
 
-        await sio.emit('conference.updated', c, room=str(user['uuid']))
+        await sio.emit('conference.updated', c, room=str(cr.user.uuid))
 
-    conference_references = database.session.query(Conference_Reference) \
-        .filter(Conference_Reference.conference_uuid == conference_reference.conference.uuid) \
-        .all()
-
-    for cr in conference_references:
         m = {
             'uuid': str(message.uuid),
             'author': {
@@ -579,7 +605,11 @@ async def read_private_message_since(sid, data):
 
     database.session.commit()
 
-    if conference_reference:
+    conference_references = database.session.query(Conference_Reference) \
+        .filter(Conference_Reference.conference_uuid == conference_reference.conference.uuid) \
+        .all()
+
+    for cr in conference_references:
         c = {
             'uuid': str(conference_reference.conference.uuid),
             'type': conference_reference.conference.type,
@@ -590,16 +620,38 @@ async def read_private_message_since(sid, data):
                 'uuid': str(conference_reference.participant.uuid),
                 'name': conference_reference.participant.name,
                 'public_key': conference_reference.participant.public_key
-            }
+            },
+            'last_message': {
+                'uuid': str(conference_reference.last_message.uuid),
+                'author': {
+                    'uuid': str(conference_reference.last_message.author.uuid),
+                    'name': conference_reference.last_message.author.name,
+                    'public_key': conference_reference.last_message.author.public_key
+                },
+                'conference': {
+                    'uuid': str(conference_reference.conference.uuid),
+                    'type': conference_reference.conference.type,
+                    'updated_at': conference_reference.updated_at.timestamp(),
+                    'messages_count': conference_reference.messages_count,
+                    'unread_messages_count': conference_reference.unread_messages_count,
+                    'participant': {
+                        'uuid': str(conference_reference.participant.uuid),
+                        'name': conference_reference.participant.name,
+                        'public_key': conference_reference.participant.public_key
+                    }
+                },
+                'readed': conference_reference.last_message.readed,
+                'readedAt': conference_reference.last_message.readed_at.timestamp() if conference_reference.last_message.readed_at is not None else conference_reference.last_message.readed_at,
+                'date': conference_reference.last_message.date.timestamp(),
+                'type': conference_reference.last_message.type,
+                'content': conference_reference.last_message.content,
+                'consumed': conference_reference.last_message.consumed,
+                'edited': conference_reference.last_message.edited
+           }
         }
 
-        await sio.emit('conference.updated', c, room=str(user['uuid']))
+        await sio.emit('conference.updated', c, room=str(cr.user.uuid))
 
-    conference_references = database.session.query(Conference_Reference) \
-        .filter(Conference_Reference.conference_uuid == conference_reference.conference.uuid) \
-        .all()
-
-    for cr in conference_references:
         ms = []
 
         for m in messages:

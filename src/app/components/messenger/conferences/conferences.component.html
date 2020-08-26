@@ -20,10 +20,29 @@
 
         <li *ngFor="let conference of conferences" class="dialog clearfix">
             <a [routerLink]="['/conference/u', conference.participant.uuid]" class="d-block mx-2 p-2">
-                <div class="title clearfix"><span class="name float-left font-weight-bold font-italic">{{ conference.participant.name }}</span><span class="date float-right">{{ conference.updated * 1000 | date:'short' }}</span></div>
+                <div class="title clearfix">
+                  <span class="name float-left font-weight-bold font-italic">{{ conference.participant.name }}</span>
+                  <span class="date float-right">
+                    <i *ngIf="
+                        conference.hasOwnProperty('last_message') &&
+                        conference.last_message.author.uuid == authService.user.uuid &&
+                        !conference.last_message.readed
+                      "
+                      class="material-icons px-1"
+                    >done</i>
+                    <i *ngIf="
+                        conference.hasOwnProperty('last_message') &&
+                        conference.last_message.author.uuid == authService.user.uuid &&
+                        conference.last_message.readed
+                      "
+                      class="material-icons px-1"
+                    >done_all</i>
+                    {{ conference.updated_at * 1000 | date:'short' }}
+                  </span>
+                </div>
                 <div class="info d-flex">
-                    <div class="content flex-grow-1"><!-- @TODO: last message --></div>
-                    <span class="badge badge-primary badge-pill mx-2">{{ conference.unread_messages_count }}</span>
+                  <div *ngIf="conference.hasOwnProperty('last_message')" class="content flex-grow-1">{{ conference.last_message.content }}</div>
+                  <span class="badge badge-primary badge-pill mx-2">{{ conference.unread_messages_count }}</span>
                 </div>
             </a>
         </li>

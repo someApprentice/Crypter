@@ -4,9 +4,14 @@ import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
-import { Observable, Subject, of, concat } from 'rxjs';
-import { map, tap, switchMap, delayWhen, takeUntil } from 'rxjs/operators';
+import { Observable, Subject, of, concat, merge, zip } from 'rxjs';
+import { map, tap, reduce, ignoreElements, switchMap, concatMap, delayWhen, takeUntil } from 'rxjs/operators';
 
+import { cloneDeep } from 'lodash';
+
+import { CrypterService } from '../../../services/crypter.service';
+
+import { AuthService } from '../../auth/auth.service';
 import { DatabaseService } from '../../../services/database/database.service';
 import { MessengerService } from '../messenger.service';
 import { RepositoryService } from '../../../services/repository.service';
@@ -39,7 +44,9 @@ export class ConferencesComponent implements OnInit, OnDestroy {
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
+    private crypterService: CrypterService,
     private messengerService: MessengerService,
+    public authService: AuthService,
     private state: TransferState,
     private injector: Injector
   ) {
@@ -67,8 +74,47 @@ export class ConferencesComponent implements OnInit, OnDestroy {
       this.conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at);
 
       // In case Conferences already loaded from server-side-rendering
-      if (!!this.conferences.length)
-        this.databaseService.bulkConferences(this.conferences).subscribe();
+      if (!!this.conferences.length) {
+        let conferences: Conference[] = cloneDeep(this.conferences);
+
+        of(conferences).pipe(
+          switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
+            concatMap((conference: Conference) => {
+              if (conference.type !== 'private' || !('last_message' in conference))
+                return of(conference);
+
+              return zip(of(conference), this.databaseService.user$).pipe(
+                switchMap(([ conference, user ]) => {
+                  let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+                  return zip(of(conference), decrypted$).pipe(
+                    map(([ conference, decrypted ]) => {
+                      conference.last_message.content = decrypted;
+
+                      return conference;
+                    })
+                  );
+                })
+              );
+            }),
+            reduce((acc: Conference[], conference: Conference) => [ ...acc, conference ], [] as Conference[])
+          )),
+          switchMap((conferences: Conference[]) => merge(
+            this.databaseService.bulkConferences(conferences).pipe(ignoreElements()),
+            of(conferences)
+          ))
+        ).subscribe((conferences: Conference[]) => {
+          this.conferences = conferences.reduce((acc, cur) => {
+            if (acc.find((c: Conference) => c.uuid === cur.uuid)) {
+              acc[acc.findIndex((c: Conference) => c.uuid === cur.uuid)] = cur;
+
+              return acc;
+            }
+
+            return [ ...acc, cur ];
+          }, this.conferences);
+        });
+      }
 
       if (!this.conferences.length) {
         this.isConferencesLoading = true;
