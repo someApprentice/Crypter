@@ -43,6 +43,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   @ViewChild('scroller') private scroller: ElementRef;
   isScrolledDown: boolean = false;
+  isFocused: boolean = true;
 
   isParticipantLoading: boolean = false;
 
@@ -490,7 +491,14 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   @HostListener('window:focus', ['$event'])
   onFocus(event: Event): void {
+    this.isFocused = true;
+
     this.read$().subscribe();
+  }
+
+  @HostListener('window:blur', ['$event'])
+  onBlur(event: Event): void {
+    this.isFocused = false;
   }
 
   onSubmit(e: Event) {
@@ -615,6 +623,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       this.read$().subscribe();
 
       fromEvent(this.scroller.nativeElement as HTMLElement, 'scroll').pipe(
+        filter(() => this.isFocused),
         concatMap((e: Event) => this.read$()),
         retry(),
         takeUntil(this.unsubscribe$)
