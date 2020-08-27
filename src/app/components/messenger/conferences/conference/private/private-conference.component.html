@@ -52,8 +52,8 @@
                     <div class="title clearfix">
                         <span class="author float-left font-weight-bold font-italic"><a>{{ message.author.name }}</a></span>
                         <span class="date float-right">
-                          <i *ngIf="message.author.uuid == authService.user.uuid && !message.readed" class="material-icons px-1">done</i>
-                          <i *ngIf="message.author.uuid == authService.user.uuid && message.readed" class="material-icons px-1">done_all</i>
+                          <i *ngIf="message.author.uuid == authService.user.uuid && !message.read" class="material-icons px-1">done</i>
+                          <i *ngIf="message.author.uuid == authService.user.uuid && message.read" class="material-icons px-1">done_all</i>
                           <a>{{ message.date * 1000 | date:'short' }}</a>
                         </span>
                     </div>

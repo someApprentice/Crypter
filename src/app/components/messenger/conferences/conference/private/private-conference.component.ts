@@ -221,7 +221,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
               if (!!this.messages.length) {
                 this.read$().subscribe();
 
-                let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.readed);
+                let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.read);
 
                 if (unreadMessages.length === 0) {
                   this.messagesList.last.nativeElement.scrollIntoView();
@@ -297,7 +297,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             ).subscribe((ql: QueryList<ElementRef>) => {
               this.read$().subscribe();
 
-              let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.readed);
+              let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.read);
 
               if (unreadMessages.length === 0) {
                 this.messagesList.last.nativeElement.scrollIntoView();
@@ -355,8 +355,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
         if (unread) {
           // abusing muttable js behavior
-          unread.readed = message.readed;
-          unread.readedAt = message.readedAt;
+          unread.read = message.read;
+          unread.readAt = message.readAt;
         }
       });
 
@@ -369,8 +369,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
           if (unread) {
             // abusing muttable js behavior
-            unread.readed = message.readed;
-            unread.readedAt = message.readedAt;
+            unread.read = message.read;
+            unread.readAt = message.readAt;
           }
         }
       });
@@ -568,7 +568,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       .map(ref => {
         return this.messages.find((m: Message) => m.uuid == ref.nativeElement.getAttribute('data-uuid'));
       })
-      .filter((m: Message) => m.author.uuid !== this.authService.user.uuid && !m.readed);
+      .filter((m: Message) => m.author.uuid !== this.authService.user.uuid && !m.read);
 
     if (!messages.length)
       return empty();
@@ -583,8 +583,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
           if (unread) {
             // abusing muttable js behavior
-            unread.readed = message.readed;
-            unread.readedAt = message.readedAt;
+            unread.read = message.read;
+            unread.readAt = message.readAt;
           }
         }
       })
@@ -598,7 +598,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         takeUntil(this.unsubscribe$)
       ).subscribe((ql: QueryList<ElementRef>) => {
         if (this.isScrolledDown) {
-          let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.readed);
+          let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.read);
 
           if (!!this.messages.length && !unreadMessages.length) {
             this.messagesList.last.nativeElement.scrollIntoView();

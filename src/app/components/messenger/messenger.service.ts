@@ -76,9 +76,9 @@ export class MessengerService {
     );
   }
 
-  getReadedMessages(timestamp: number = 0): Observable<Message[]> {
+  getReadMessages(timestamp: number = 0): Observable<Message[]> {
     return this.http.get<Message[]>(
-      `/api/messenger/readed_messages/?timestamp=${timestamp}`,
+      `/api/messenger/read_messages/?timestamp=${timestamp}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()

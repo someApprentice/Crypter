@@ -120,8 +120,8 @@ class MessengerController extends AbstractController
                         'messages_count' => $conferenceReference->getMessagesCount(),
                         'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     ],
-                    'readed' => $lastMessage->getReaded(),
-                    'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                    'read' => $lastMessage->getRead(),
+                    'readAt' => ($lastMessage->getReadAt()) ? (float) $lastMessage->getReadAt()->format('U.u') : $lastMessage->getReadAt(),
                     'date' => (float) $lastMessage->getDate()->format('U.u'),
                     'type' => $lastMessage->getType(),
                     'content' => $lastMessage->getContent(),
@@ -215,8 +215,8 @@ class MessengerController extends AbstractController
                         'messages_count' => $conferenceReference->getMessagesCount(),
                         'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     ],
-                    'readed' => $lastMessage->getReaded(),
-                    'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                    'read' => $lastMessage->getRead(),
+                    'readAt' => ($lastMessage->getReadAt()) ? (float) $lastMessage->getReadAt()->format('U.u') : $lastMessage->getReadAt(),
                     'date' => (float) $lastMessage->getDate()->format('U.u'),
                     'type' => $lastMessage->getType(),
                     'content' => $lastMessage->getContent(),
@@ -310,8 +310,8 @@ class MessengerController extends AbstractController
                         'messages_count' => $conferenceReference->getMessagesCount(),
                         'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                     ],
-                    'readed' => $lastMessage->getReaded(),
-                    'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                    'read' => $lastMessage->getRead(),
+                    'readAt' => ($lastMessage->getReadAt()) ? (float) $lastMessage->getReadAt()->format('U.u') : $lastMessage->getReadAt(),
                     'date' => (float) $lastMessage->getDate()->format('U.u'),
                     'type' => $lastMessage->getType(),
                     'content' => $lastMessage->getContent(),
@@ -410,8 +410,8 @@ class MessengerController extends AbstractController
                     'messages_count' => $conferenceReference->getMessagesCount(),
                     'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                 ],
-                'readed' => $lastMessage->getReaded(),
-                'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                'read' => $lastMessage->getRead(),
+                'readAt' => ($lastMessage->getReadAt()) ? (float) $lastMessage->getReadAt()->format('U.u') : $lastMessage->getReadAt(),
                 'date' => (float) $lastMessage->getDate()->format('U.u'),
                 'type' => $lastMessage->getType(),
                 'content' => $lastMessage->getContent(),
@@ -511,8 +511,8 @@ class MessengerController extends AbstractController
                     'messages_count' => $conferenceReference->getMessagesCount(),
                     'unread_messages_count' => $conferenceReference->getUnreadMessagesCount(),
                 ],
-                'readed' => $lastMessage->getReaded(),
-                'readedAt' => ($lastMessage->getReadedAt()) ? (float) $lastMessage->getReadedAt()->format('U.u') : $lastMessage->getReadedAt(),
+                'read' => $lastMessage->getRead(),
+                'readAt' => ($lastMessage->getReadAt()) ? (float) $lastMessage->getReadAt()->format('U.u') : $lastMessage->getReadAt(),
                 'date' => (float) $lastMessage->getDate()->format('U.u'),
                 'type' => $lastMessage->getType(),
                 'content' => $lastMessage->getContent(),
@@ -568,8 +568,8 @@ class MessengerController extends AbstractController
                 'conference' => [
                     'uuid' => $message->getConference()->getUuid()
                 ],
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -582,18 +582,18 @@ class MessengerController extends AbstractController
     }
 
     /**
-     * @Route("/api/messenger/readed_messages/", name="get_readed_messages")
+     * @Route("/api/messenger/read_messages/", name="get_read_messages")
      *
      * @IsGranted("ROLE_USER")
      */
-    public function getReadedMessages(Request $request): Response
+    public function getReadMessages(Request $request): Response
     {
         // for some reason DateTime round milliseconds from unix timestamp
         $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::createFromTimestampMs(0);
 
         $user = $this->getUser();
 
-        $messages = $this->em->getRepository(User::class)->getReadedMessages($user, $date);
+        $messages = $this->em->getRepository(User::class)->getReadMessages($user, $date);
 
         $json = [];
 
@@ -637,8 +637,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -720,8 +720,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -805,8 +805,8 @@ class MessengerController extends AbstractController
                     'public_key' => $author->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -888,8 +888,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' =>  (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -971,8 +971,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' =>  (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -1064,8 +1064,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -1155,8 +1155,8 @@ class MessengerController extends AbstractController
                     'public_key' => $author->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -1244,8 +1244,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' =>  (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -1333,8 +1333,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' =>  (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -1365,7 +1365,7 @@ class MessengerController extends AbstractController
 
         $conferenceReferences = $this->em->getRepository(User::class)->getUpdatedConferences($user, $maxDate);
         $messages = $this->em->getRepository(User::class)->getUpdatedMessages($user, $maxDate);
-        $readMessages = $this->em->getRepository(User::class)->getReadedMessages($user, $maxDate);
+        $readMessages = $this->em->getRepository(User::class)->getReadMessages($user, $maxDate);
         $unreadMessages = $this->em->getRepository(User::class)->getUnreadMessages($user, $minDate);
 
         $json = [
@@ -1450,8 +1450,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -1504,8 +1504,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -1558,8 +1558,8 @@ class MessengerController extends AbstractController
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
                 'conference' => $conference,
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => (float) $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),
@@ -1737,8 +1737,8 @@ class MessengerController extends AbstractController
                     'name' => $message->getAuthor()->getName(),
                     'public_key' => $message->getAuthor()->getPublicKey()
                 ],
-                'readed' => $message->getReaded(),
-                'readedAt' => ($message->getReadedAt()) ? (float) $message->getReadedAt()->format('U.u') : $message->getReadedAt(),
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
                 'date' => $message->getDate()->format('U.u'),
                 'type' => $message->getType(),
                 'content' => $message->getContent(),

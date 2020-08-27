@@ -88,7 +88,7 @@ export class RepositoryService implements OnDestroy {
         let max = Math.max(
           conference ? conference.updated_at : 0,
           message ? message.date : 0,
-          readMessage ? readMessage.readedAt : 0
+          readMessage ? readMessage.readAt : 0
         );
 
         if (max > 0)

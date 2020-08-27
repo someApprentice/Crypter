@@ -44,7 +44,7 @@ export class DatabaseService implements OnDestroy {
       let messages = db.createObjectStore('messages', { keyPath: 'uuid' });
       messages.createIndex('conference', 'conference');
       messages.createIndex('date', 'date');
-      messages.createIndex('readedAt', 'readedAt');
+      messages.createIndex('readAt', 'readAt');
     };
 
     db.onsuccess = (e: Event) => {
@@ -827,7 +827,7 @@ export class DatabaseService implements OnDestroy {
 
             let m: MessageSchema = cursor.value;
 
-            if (m.readed) {
+            if (m.read) {
               cursor.continue();
 
               return;
@@ -897,7 +897,7 @@ export class DatabaseService implements OnDestroy {
         let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
         let messagesStore: IDBObjectStore = transaction.objectStore('messages');
 
-        let index: IDBIndex = messagesStore.index('readedAt');
+        let index: IDBIndex = messagesStore.index('readAt');
 
         let i = 0;
 
@@ -922,7 +922,7 @@ export class DatabaseService implements OnDestroy {
 
             let m: MessageSchema = cursor.value;
 
-            if (!m.readed) {
+            if (!m.read) {
               cursor.continue();
 
               return;
@@ -1122,7 +1122,7 @@ export class DatabaseService implements OnDestroy {
 
               let m: MessageSchema = cursor.value;
 
-              if (m.conference !== c.uuid || m.readed) {
+              if (m.conference !== c.uuid || m.read) {
                 cursor.continue();
 
                 return;
@@ -1496,7 +1496,7 @@ export class DatabaseService implements OnDestroy {
 
               let m: MessageSchema = cursor.value;
 
-              if (m.conference !== c.uuid || m.readed) {
+              if (m.conference !== c.uuid || m.read) {
                 cursor.continue();
 
                 return;
@@ -1879,8 +1879,8 @@ export class DatabaseService implements OnDestroy {
 
           store.put({
             ...m,
-            readed: message.readed,
-            readedAt: message.readedAt
+            read: message.read,
+            readAt: message.readAt
           });
         };
 
@@ -1911,8 +1911,8 @@ export class DatabaseService implements OnDestroy {
 
             store.put({
               ...m,
-              readed: message.readed,
-              readedAt: message.readedAt
+              read: message.read,
+              readAt: message.readAt
             });
           };
         });

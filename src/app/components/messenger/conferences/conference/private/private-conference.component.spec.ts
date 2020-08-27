@@ -72,7 +72,7 @@ describe('PrivateConferenceComponent', () => {
       "conference": {
         "uuid": "14e5cf2b-4d63-43c2-85bb-fbf37f4fbe87"
       },
-      "readed":false,
+      "read":false,
       "date":1559016403,
       "type":"text\/plain",
       "content":"Hey, Bob",
@@ -180,7 +180,7 @@ describe('PrivateConferenceComponent', () => {
           "messages_count": 2,
           "unread_messages_count": 2,
         },
-        "readed":false,
+        "read":false,
         "date":1559016403,
         "type":"text\/plain",
         "content":"Hey, Bob",
@@ -200,7 +200,7 @@ describe('PrivateConferenceComponent', () => {
           "messages_count": 2,
           "unread_messages_count": 2,
         },
-        "readed":false,
+        "read":false,
         "date":1559016403,
         "type":"audio\/ogg",
         "content":"path\/to\/Hey_Alice.ogg",

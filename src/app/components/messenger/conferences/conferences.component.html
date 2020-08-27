@@ -26,14 +26,14 @@
                     <i *ngIf="
                         conference.hasOwnProperty('last_message') &&
                         conference.last_message.author.uuid == authService.user.uuid &&
-                        !conference.last_message.readed
+                        !conference.last_message.read
                       "
                       class="material-icons px-1"
                     >done</i>
                     <i *ngIf="
                         conference.hasOwnProperty('last_message') &&
                         conference.last_message.author.uuid == authService.user.uuid &&
-                        conference.last_message.readed
+                        conference.last_message.read
                       "
                       class="material-icons px-1"
                     >done_all</i>

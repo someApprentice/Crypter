@@ -98,13 +98,13 @@ ALTER TABLE public.conference_reference OWNER TO crypter;
 CREATE TABLE public.message (
     uuid uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     author uuid NOT NULL,
-    readed boolean DEFAULT false NOT NULL,
+    read boolean DEFAULT false NOT NULL,
     date timestamp with time zone DEFAULT now() NOT NULL,
     type public.message_type NOT NULL,
     content text NOT NULL,
     consumed boolean,
     edited boolean,
-    readed_at timestamp with time zone,
+    read_at timestamp with time zone,
     conference uuid NOT NULL
 );
 

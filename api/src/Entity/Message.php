@@ -40,12 +40,12 @@ class Message
     /**
      * @ORM\Column(type="boolean", options={"default": false})
      */
-    private $readed = false;
+    private $read = false;
 
     /**
-     * @ORM\Column(name="readed_at", type="datetimetz", nullable=true)
+     * @ORM\Column(name="read_at", type="datetimetz", nullable=true)
      */
-    private $readedAt;
+    private $readAt;
 
     /**
      * @ORM\Column(type="datetimetz")
@@ -112,26 +112,26 @@ class Message
         return $this;
     }
 
-    public function getReaded(): ?bool
+    public function getRead(): ?bool
     {
-        return $this->readed;
+        return $this->read;
     }
 
-    public function setReaded(bool $readed): self
+    public function setRead(bool $read): self
     {
-        $this->readed = $readed;
+        $this->read = $read;
 
         return $this;
     }
 
-    public function getReadedAt(): ?\DateTimeInterface
+    public function getReadAt(): ?\DateTimeInterface
     {
-        return $this->readedAt;
+        return $this->readAt;
     }
 
-    public function setReadedAt(\DateTimeInterface $date): self
+    public function setReadAt(\DateTimeInterface $date): self
     {
-        $this->readedAt = $readedAt;
+        $this->readAt = $readAt;
 
         return $this;
     }

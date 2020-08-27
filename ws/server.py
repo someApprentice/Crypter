@@ -282,8 +282,8 @@ async def send_private_message(sid, data):
                         'public_key': conference_reference.participant.public_key
                     }
                 },
-                'readed': message.readed,
-                'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
+                'read': message.read,
+                'readAt': message.read_at.timestamp() if message.read_at is not None else message.read_at,
                 'date': message.date.timestamp(),
                 'type': message.type,
                 'content': message.content,
@@ -313,8 +313,8 @@ async def send_private_message(sid, data):
                     'public_key': conference_reference.participant.public_key
                 }
             },
-            'readed': message.readed,
-            'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
+            'read': message.read,
+            'readAt': message.read_at.timestamp() if message.read_at is not None else message.read_at,
             'date': message.date.timestamp(),
             'type': message.type,
             'content': message.content,
@@ -343,8 +343,8 @@ async def send_private_message(sid, data):
                 'public_key': sender_conference_reference.participant.public_key
             }
         },
-        'readed': message.readed,
-        'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
+        'read': message.read,
+        'readAt': message.read_at.timestamp() if message.read_at is not None else message.read_at,
         'date': message.date.timestamp(),
         'type': message.type,
         'content': message.content,
@@ -387,7 +387,7 @@ async def read_private_message(sid, data):
 
         return json
 
-    if message.readed:
+    if message.read:
         json['errors'] = { 'message': "Message already read" }
 
         return json
@@ -401,8 +401,8 @@ async def read_private_message(sid, data):
 
         return json
 
-    message.readed = True
-    message.readed_at = datetime.datetime.utcnow()
+    message.read = True
+    message.read_at = datetime.datetime.utcnow()
 
     database.session.add(message)
 
@@ -459,8 +459,8 @@ async def read_private_message(sid, data):
                         'public_key': conference_reference.participant.public_key
                     }
                 },
-                'readed': conference_reference.last_message.readed,
-                'readedAt': conference_reference.last_message.readed_at.timestamp() if conference_reference.last_message.readed_at is not None else conference_reference.last_message.readed_at,
+                'read': conference_reference.last_message.read,
+                'readAt': conference_reference.last_message.read_at.timestamp() if conference_reference.last_message.read_at is not None else conference_reference.last_message.read_at,
                 'date': conference_reference.last_message.date.timestamp(),
                 'type': conference_reference.last_message.type,
                 'content': conference_reference.last_message.content,
@@ -490,8 +490,8 @@ async def read_private_message(sid, data):
                     'public_key': cr.participant.public_key
                 }
             },
-            'readed': message.readed,
-            'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
+            'read': message.read,
+            'readAt': message.read_at.timestamp() if message.read_at is not None else message.read_at,
             'date': message.date.timestamp(),
             'type': message.type,
             'content': message.content,
@@ -520,8 +520,8 @@ async def read_private_message(sid, data):
                 'public_key': conference_reference.participant.public_key
             }
         },
-        'readed': message.readed,
-        'readedAt': message.readed_at.timestamp() if message.readed_at is not None else message.readed_at,
+        'read': message.read,
+        'readAt': message.read_at.timestamp() if message.read_at is not None else message.read_at,
         'date': message.date.timestamp(),
         'type': message.type,
         'content': message.content,
@@ -576,14 +576,14 @@ async def read_private_message_since(sid, data):
     messages = database.session.query(Message) \
         .filter(
             Message.conference_uuid == message.conference_uuid,
-            Message.readed == False,
+            Message.read == False,
             Message.date <= message.date
         ) \
         .all()
 
     for m in messages:
-        m.readed = True
-        m.readed_at = datetime.datetime.utcnow()
+        m.read = True
+        m.read_at = datetime.datetime.utcnow()
 
     database.session.add_all(messages)
 
@@ -640,8 +640,8 @@ async def read_private_message_since(sid, data):
                         'public_key': cr.participant.public_key
                     }
                 },
-                'readed': cr.last_message.readed,
-                'readedAt': cr.last_message.readed_at.timestamp() if conference_reference.last_message.readed_at is not None else conference_reference.last_message.readed_at,
+                'read': cr.last_message.read,
+                'readAt': cr.last_message.read_at.timestamp() if conference_reference.last_message.read_at is not None else conference_reference.last_message.read_at,
                 'date': cr.last_message.date.timestamp(),
                 'type': cr.last_message.type,
                 'content': cr.last_message.content,
@@ -674,8 +674,8 @@ async def read_private_message_since(sid, data):
                         'public_key': cr.participant.public_key
                     }
                 },
-                'readed': m.readed,
-                'readedAt': m.readed_at.timestamp() if m.readed_at is not None else m.readed_at,
+                'read': m.read,
+                'readAt': m.read_at.timestamp() if m.read_at is not None else m.read_at,
                 'date': m.date.timestamp(),
                 'type': m.type,
                 'content': m.content,
@@ -707,8 +707,8 @@ async def read_private_message_since(sid, data):
                     'public_key': conference_reference.participant.public_key
                 }
             },
-            'readed': m.readed,
-            'readedAt': m.readed_at.timestamp() if m.readed_at is not None else m.readed_at,
+            'read': m.read,
+            'readAt': m.read_at.timestamp() if m.read_at is not None else m.read_at,
             'date': m.date.timestamp(),
             'type': m.type,
             'content': m.content,

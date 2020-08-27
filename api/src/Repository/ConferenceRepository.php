@@ -95,7 +95,7 @@ class ConferenceRepository extends ServiceEntityRepository
             WHERE
                 m.conference = :conference
                 AND mr.user = :user
-                AND m.readed = FALSE
+                AND m.read = FALSE
                 AND m.author != :user
                 AND m.date > :date
             ORDER BY m.date ASC

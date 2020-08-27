@@ -145,13 +145,13 @@ class UserRepository extends ServiceEntityRepository
         return $messages;
     }
 
-    public function getReadedMessages(User $user, \DateTime $date): array
+    public function getReadMessages(User $user, \DateTime $date): array
     {
         $dql = '
             SELECT m
             FROM Crypter\Entity\Message m
             JOIN Crypter\Entity\MessageReference mr WITH m.uuid = mr.message
-            WHERE mr.user = :user AND m.readedAt > :date
+            WHERE mr.user = :user AND m.readAt > :date
             ORDER BY m.date ASC
         ';
 
@@ -214,7 +214,7 @@ class UserRepository extends ServiceEntityRepository
             JOIN Crypter\Entity\ConferenceReference cr WITH c.uuid = cr.conference
             JOIN Crypter\Entity\MessageReference mr WITH mr.message = m.uuid
             WHERE
-                m.readed = FALSE AND
+                m.read = FALSE AND
                 m.author != :user AND
                 m.date > :date AND
                 mr.user = :user
