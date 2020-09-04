@@ -112,11 +112,36 @@ class UserRepository extends ServiceEntityRepository
             SELECT
                 cr
             FROM Crypter\Entity\ConferenceReference cr
-            WHERE cr.user = :user AND cr.participant = :uuid
+            JOIN Crypter\Entity\Conference c WITH c.uuid = cr.conference 
+            WHERE
+                c.type = :type AND
+                cr.user = :user AND
+                cr.participant = :uuid
         ';
 
         $query = $this->getEntityManager()->createQuery($dql);
-        $query->setParameters(['uuid' => $uuid, 'user' => $user->getUuid()]);
+        $query->setParameters(['uuid' => $uuid, 'user' => $user->getUuid(), 'type' => 'private']);
+
+        $conferenceReference = $query->getOneOrNullResult();
+
+        return $conferenceReference;
+    }
+
+    public function getSecretConferenceByParticipant(string $uuid, User $user)
+    {
+        $dql = '
+            SELECT
+                cr
+            FROM Crypter\Entity\ConferenceReference cr
+            JOIN Crypter\Entity\Conference c WITH c.uuid = cr.conference 
+            WHERE
+                c.type = :type AND
+                cr.user = :user AND
+                cr.participant = :uuid
+        ';
+
+        $query = $this->getEntityManager()->createQuery($dql);
+        $query->setParameters(['uuid' => $uuid, 'user' => $user->getUuid(), 'type' => 'secret']);
 
         $conferenceReference = $query->getOneOrNullResult();
 

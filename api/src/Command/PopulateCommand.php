@@ -457,14 +457,6 @@ EOT;
 
         $progress->setMessage('Message population\'s progress between Alice and Bob');
 
-        $gpg = new \gnupg();
-
-        $gpg->import($alicePublicKey);
-        $gpg->import($bobPublicKey);
-
-        $gpg->addencryptkey($gpg->keyinfo('Alice')[0]['subkeys'][0]['fingerprint']);
-        $gpg->addencryptkey($gpg->keyinfo('Bobby')[0]['subkeys'][0]['fingerprint']);
-
         for ($i = 0; $i < $input->getOption('iterations'); $i++) {
             $client->request(
                 $method = 'POST',
@@ -475,7 +467,8 @@ EOT;
                         'CONTENT_TYPE' => 'application/json'
                     ],
                     'json' => [
-                        'text' => $gpg->encrypt("{$i} Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
+                        'text' => "{$i} Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+
                     ]
                 ],
                 // $files = [],
@@ -493,14 +486,6 @@ EOT;
 
         $progress->setMessage('Message population\'s progress between Bob and Tester');
 
-        $gpg = new \gnupg();
-
-        $gpg->import($bobPublicKey);
-        $gpg->import($testerPublicKey);
-
-        $gpg->addencryptkey($gpg->keyinfo('Bobby')[0]['subkeys'][0]['fingerprint']);
-        $gpg->addencryptkey($gpg->keyinfo('Tester')[0]['subkeys'][0]['fingerprint']);
-
         for ($i = 0; $i < $input->getOption('iterations'); $i++) {
             $client->request(
                 $method = 'POST',
@@ -511,7 +496,7 @@ EOT;
                         'CONTENT_TYPE' => 'application/json'
                     ],
                     'json' => [
-                        'text' => $gpg->encrypt("{$i} Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
+                        'text' => "{$i} Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
                     ]
                 ],
                 // $files = [],
@@ -526,6 +511,69 @@ EOT;
             $progress->advance();
         }
 
+        $progress->finish();
+
+        $output->writeln('');
+        $output->writeln('Start Secret Chat between Alice and Bob');
+
+        $response = $client->request(
+            $method = 'POST',
+            $uri = "/api/messenger/start_secret_chat/{$bob['uuid']}",
+            $options = [
+                'headers' => [
+                    'Authorization' => "Bearer {$alice['hash']}",
+                    'CONTENT_TYPE' => 'application/json'
+                ],
+                // 'json' => [
+                //     'text' => $gpg->encrypt("{$i} Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
+                // ]
+            ],
+            // $files = [],
+            // $server = [
+            //     'HTTP_AUTHORIZATION' => "Bearer {$tester['hash']}",
+            //     'CONTENT_TYPE' => 'application/json'
+            // ]
+        );
+
+        $secretChat = json_decode($response->getBody(), $assoc = true);
+
+        $progress = new ProgressBar($output, $input->getOption('iterations'));
+        $progress->start();
+
+        $progress->setMessage('Secret Message population\'s progress between Alice and Bob');
+
+        $gpg = new \gnupg();
+
+        $gpg->import($alicePublicKey);
+        $gpg->import($bobPublicKey);
+
+        $gpg->addencryptkey($gpg->keyinfo('Alice')[0]['subkeys'][0]['fingerprint']);
+        $gpg->addencryptkey($gpg->keyinfo('Bobby')[0]['subkeys'][0]['fingerprint']);
+
+        for ($i = 0; $i < $input->getOption('iterations'); $i++) {
+            $client->request(
+                $method = 'POST',
+                $uri = "/api/messenger/secret_message/{$bob['uuid']}",
+                $options = [
+                    'headers' => [
+                        'Authorization' => "Bearer {$alice['hash']}",
+                        'CONTENT_TYPE' => 'application/json'
+                    ],
+                    'json' => [
+                        'text' => $gpg->encrypt("{$i} Secret Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
+                    ]
+                ],
+                // $files = [],
+                // $server = [
+                //     'HTTP_AUTHORIZATION' => "Bearer {$tester['hash']}",
+                //     'CONTENT_TYPE' => 'application/json'
+                // ]
+            );
+
+            sleep(1);
+
+            $progress->advance();
+        }
 
         $progress->finish();
 

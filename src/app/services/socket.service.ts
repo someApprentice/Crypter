@@ -3,7 +3,7 @@ import { environment } from '../../environments/environment';
 import { Injectable, OnDestroy } from '@angular/core';
 
 import { Observable, Subject, of, fromEvent, zip } from 'rxjs';
-import { map, concatMap, shareReplay, takeUntil } from 'rxjs/operators';
+import { map, concatMap, first, shareReplay, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../components/auth/auth.service'
 import { DatabaseService } from './database/database.service';
@@ -40,13 +40,13 @@ export class SocketService implements OnDestroy {
     takeUntil(this.unsubscribe$)
   );
 
-  public conferenceUpdated$: Observable<Conference> = fromEvent(this.socket, 'conference.updated').pipe(
+  public secretChatStarted$: Observable<Conference> = fromEvent(this.socket, 'secret.chat.started').pipe(
     map(data => data as Conference),
     concatMap((conference: Conference) => {
-      if (conference.type !== 'private' || !('last_message' in conference))
+      if (!('last_message' in conference))
         return of(conference);
 
-      return zip(of(conference), this.databaseService.user$).pipe(
+      return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
         concatMap(([ conference, user ]) => {
           let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
 
@@ -63,7 +63,30 @@ export class SocketService implements OnDestroy {
     takeUntil(this.unsubscribe$)
   );
 
-  public privateMessage$: Observable<Message> = fromEvent(this.socket, 'private.message.sent').pipe(
+  public conferenceUpdated$: Observable<Conference> = fromEvent(this.socket, 'conference.updated').pipe(
+    map(data => data as Conference),
+    concatMap((conference: Conference) => {
+      if (conference.type !== 'secret' || !('last_message' in conference))
+        return of(conference);
+
+      return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
+        concatMap(([ conference, user ]) => {
+          let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+          return zip(of(conference), decrypted$).pipe(
+            map(([ conference, decrypted ]) => {
+              conference.last_message.content = decrypted;
+
+              return conference;
+            })
+          );
+        })
+      );
+    }),
+    takeUntil(this.unsubscribe$)
+  );
+
+  public secretMessage$: Observable<Message> = fromEvent(this.socket, 'secret.message.sent').pipe(
     map(data => data as Message),
     concatMap((message: Message) => zip(of(message), this.databaseService.user$)),
     concatMap(([ message, user ]) => {
@@ -80,13 +103,23 @@ export class SocketService implements OnDestroy {
     takeUntil(this.unsubscribe$)
   );
 
-  public privateMessageRead$: Observable<Message> = fromEvent(this.socket, 'private.message.read').pipe(
+  public privateMessage$: Observable<Message> = fromEvent(this.socket, 'private.message.sent').pipe(
     map(data => data as Message),
     takeUntil(this.unsubscribe$)
   );
 
-  public privateMessageReadSince$: Observable<Message[]> = fromEvent(this.socket, 'private.message.read_since').pipe(
+  public messageRead$: Observable<Message> = fromEvent(this.socket, 'message.read').pipe(
+    map(data => data as Message),
+    takeUntil(this.unsubscribe$)
+  );
+
+  public messagesReadSince$: Observable<Message[]> = fromEvent(this.socket, 'messages.read.since').pipe(
     map(data => data as Message[]),
+    takeUntil(this.unsubscribe$)
+  );
+
+  public wroteToSecretConference$: Observable<User> = fromEvent(this.socket, 'wrote.to.secret.conference').pipe(
+    map(data => data as User),
     takeUntil(this.unsubscribe$)
   );
 

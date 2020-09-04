@@ -9,7 +9,7 @@ import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
 import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, merge, timer, empty, throwError } from 'rxjs';
-import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, ignoreElements, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
+import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, ignoreElements, debounceTime, distinctUntilChanged, retry, catchError, takeUntil } from 'rxjs/operators';
 
 import { cloneDeep } from 'lodash';
 
@@ -30,21 +30,20 @@ const CONFERENCE_STATE_KEY = makeStateKey('conference');
 const MESSAGES_STATE_KEY = makeStateKey('messages');
 
 @Component({
-  selector: 'app-private-conference',
-  templateUrl: './private-conference.component.html',
-  styleUrls: ['./private-conference.component.css']
+  selector: 'app-secret-conference',
+  templateUrl: './secret-conference.component.html',
+  styleUrls: ['./secret-conference.component.css']
 })
-export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDestroy {
+export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestroy {
   form = new FormGroup({
     message: new FormControl('', [
       Validators.required
     ])
   });
 
-  onOptionsClosed$ = new Subject<void>();
+  @ViewChild('backToNormalChat', { read: ElementRef }) private backToNormalChat: ElementRef;
 
-  @ViewChild('startSecretChat', { read: ElementRef }) private startSecretChat: ElementRef;
-  isSecretChatLoading = false;
+  onOptionsClosed$ = new Subject<void>();
 
   @ViewChild('scroller') private scroller: ElementRef;
   isScrolledDown: boolean = false;
@@ -96,35 +95,28 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       this.route.params.pipe(
         first(),
         map(params => params['uuid']),
-        switchMap((uuid: string) => this.authService.getUser(uuid)),
-        switchMap((participant: User|null) => {
-          if (!participant)
-            return throwError(new Error("User doesn't exist"));
-
-          return of(participant);
-        }),
-        tap((participant: User) => {
-          this.participant = participant;
-
-          this.state.set(PARTICIPANT_STATE_KEY, participant as User);
-        }),
-        switchMap((participant: User) => this.messengerService.getConferenceByParticipant(participant.uuid).pipe(
-          tap((conference: Conference|null) => {
-            if (conference) {
-              this.conference = conference;
-
-              this.state.set(CONFERENCE_STATE_KEY, conference as Conference);
-            }
-          })
-        )),
+        switchMap((uuid: string) => this.messengerService.getSecretConferenceByParticipant(uuid)),
         switchMap((conference: Conference|null) => {
           if (!conference)
+            return throwError(new Error("Conference doesn't exist"));
+
+          return of(conference);
+        }),
+        tap((conference: Conference) => {
+          this.conference = conference;
+          this.participant = conference.participant;
+
+          this.state.set(CONFERENCE_STATE_KEY, conference);
+          this.state.set(PARTICIPANT_STATE_KEY, conference.participant);
+        }),
+        switchMap((conference: Conference) => {
+          if (!conference.messages_count)
             return of([] as Message[]);
 
           if (conference.unread_messages_count > environment.batch_size)
-            return this.messengerService.getUnreadMessagesByParticipant(conference.participant.uuid);
+            return this.messengerService.getUnreadSecretMessagesByParticipant(conference.participant.uuid);
 
-          return this.messengerService.getMessagesByParticipant(conference.participant.uuid);
+          return this.messengerService.getSecretMessagesByParticipant(conference.participant.uuid);
         })
       ).subscribe({
         next: (messages: Message[]) => {
@@ -134,7 +126,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
           this.state.set(MESSAGES_STATE_KEY, messages as Message[]);
         },
-        error: err => this.router.navigate([''])
+        error: () => this.router.navigate([''])
       });
     }
 
@@ -143,54 +135,37 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       this.conference = this.state.get(CONFERENCE_STATE_KEY, undefined);
       this.messages = this.state.get(MESSAGES_STATE_KEY, [] as Message[]);
 
-      if (this.participant) {
-        this.databaseService.upsertUser(this.participant).subscribe();
+      if (this.conference) {
+        if (!this.participant)
+          this.participant = this.conference.participant;
 
-        of(this.participant).pipe(
-          switchMap((participant: User) => {
-            // In case Conference already loaded from server-side-rendering
-            // Or already came from socket subscription
-            if (this.conference) {
-              let conference: Conference = cloneDeep(this.conference);
+        let conference = cloneDeep(this.conference);
 
-              return of(conference).pipe(
-                switchMap((conference: Conference) => {
-                  if (!('last_message' in conference))
-                    return of(conference);
+        of(conference).pipe(
+          switchMap((conference: Conference) => {
+            if (!('last_message' in conference))
+              return of(conference);
 
-                  return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
-                    switchMap(([ conference, user ]) => {
-                      let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+            return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
+              switchMap(([ conference, user ]) => {
+                let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
 
-                      return zip(of(conference), decrypted$).pipe(
-                        map(([ conference, decrypted ]) => {
-                          conference.last_message.content = decrypted;
+                return zip(of(conference), decrypted$).pipe(
+                  map(([ conference, decrypted ]) => {
+                    conference.last_message.content = decrypted;
 
-                          return conference;
-                        })
-                      );
-                    })
-                  );
-                }),
-                tap((conference: Conference) => this.conference = conference),
-                switchMap((conference: Conference) => merge(
-                  this.databaseService.upsertConference(conference).pipe(ignoreElements()),
-                  of(conference)
-                ))
-              );
-            }
-
-            return this.repositoryService.getConferenceByParticipant(participant.uuid).pipe(
-              tap((conference: Conference|null) => {
-                if (conference)
-                  this.conference = conference;
+                    return conference;
+                  })
+                );
               })
             );
           }),
-          switchMap((conference: Conference|null) => {
-            if (!conference)
-              return of([] as Message[]);
-
+          tap((conference: Conference) => this.conference = conference),
+          switchMap((conference: Conference) => merge(
+            this.databaseService.upsertConference(conference).pipe(ignoreElements()),
+            of(conference)
+          )),
+          switchMap((conference: Conference) => {
             if (!conference.messages_count)
               return of([] as Message[]);
 
@@ -222,9 +197,9 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             this.isMessagesLoading = true;
 
             if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
+              return this.repositoryService.getUnreadSecretMessagesByParticipant(conference.participant.uuid);
 
-            return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
+            return this.repositoryService.getSecretMessagesByParticipant(conference.participant.uuid);
           }),
           takeUntil(this.unsubscribe$)
         ).subscribe((messages: Message[]) => {
@@ -268,43 +243,40 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         });
       }
 
-      if (!this.participant) {
-        this.route.params.pipe(
+      if (!this.conference) {
+        this.route.data.pipe(
           first(),
-          map(params => params['uuid']),
-          tap(() => this.isParticipantLoading = true),
-          switchMap((uuid: string) => this.repositoryService.getUser(uuid)),
-          switchMap((participant: User|null) => {
-            if (!participant)
-              return throwError(new Error("User doesn't exist"));
+          switchMap(data => {
+            if ('conference' in data)
+              return of(data['conference']);
 
-            return of(participant);
+            return this.route.params.pipe(
+              first(),
+              map(params => params['uuid']),
+              tap(() => this.isParticipantLoading = true),
+              switchMap((uuid: string) => this.repositoryService.getSecretConferenceByParticipant(uuid)),
+              switchMap((conference: Conference|null) => {
+                if (!conference)
+                  return throwError(new Error("Conference doesn't exist"));
+                  
+                return of(conference);
+              })
+            );
           }),
-          tap((participant: User) => {
-            this.participant = participant;
-
-            this.isParticipantLoading = false;
-          }),
-          switchMap((participant: User) => this.repositoryService.getConferenceByParticipant(participant.uuid).pipe(
-            tap((conference: Conference|null) => {
-              if (conference)
-                this.conference = conference;
-            })
-          )),
-          switchMap((conference: Conference|null) => {
-            if (!conference)
-              return of([] as Message[]);
-
+          tap((conference: Conference) => this.conference = conference),
+          tap((conference: Conference) => this.participant = conference.participant),
+          tap(() => this.isParticipantLoading = false),
+          tap(() => this.isMessagesLoading = true),
+          switchMap((conference: Conference) => {
             if (conference && !conference.messages_count)
               return of([] as Message[]);
 
-            this.isMessagesLoading = true;
-
             if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
+              return this.repositoryService.getUnreadSecretMessagesByParticipant(conference.participant.uuid);
 
-            return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
+            return this.repositoryService.getSecretMessagesByParticipant(conference.participant.uuid);
           }),
+          tap(() => this.isMessagesLoading = false),
           takeUntil(this.unsubscribe$)
         ).subscribe({
           next: (messages: Message[]) => {
@@ -344,24 +316,19 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
             this.isMessagesLoading = false;
           },
-          error: err => this.router.navigate([''])
+          error: (err) => this.router.navigate([''])
         });
       }
 
       this.socketService.conferenceUpdated$.pipe(
-        filter((conference: Conference) => (
-          conference.type === 'private' &&
-          conference.participant &&
-          conference.participant.uuid === this.participant.uuid
-        )),
+        filter((conference: Conference) => conference.uuid === this.conference.uuid),
         takeUntil(this.unsubscribe$)
       ).subscribe((conference: Conference) => {
         this.conference = conference;
       });
 
-      this.socketService.privateMessage$.pipe(
+      this.socketService.secretMessage$.pipe(
         filter((message: Message) =>  (
-          message.conference.type === 'private' &&
           message.conference.participant &&
           message.conference.participant.uuid === this.participant.uuid
         )),
@@ -374,11 +341,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       });
 
       this.socketService.messageRead$.pipe(
-        filter((message: Message) => (
-          message.conference.type === 'private' &&
-          message.conference.participant &&
-          message.conference.participant.uuid === this.participant.uuid
-        )),
+        filter((message: Message) => message.conference.participant && message.conference.participant.uuid === this.participant.uuid),
         takeUntil(this.unsubscribe$)
       ).subscribe((message: Message) => {
         let unread = this.messages.find(m => m.uuid == message.uuid);
@@ -391,11 +354,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       });
 
       this.socketService.messagesReadSince$.pipe(
-        map((messages: Message[]) => messages.filter((m: Message) => (
-          m.conference.type === 'private' &&
-          m.conference.participant &&
-          m.conference.participant.uuid === this.participant.uuid
-        ))),
+        map((messages: Message[]) => messages.filter((m: Message) => m.conference.participant && m.conference.participant.uuid === this.participant.uuid)),
         takeUntil(this.unsubscribe$)
       ).subscribe((messages: Message[]) => {
         for (let message of messages) {
@@ -415,11 +374,11 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         // Uncomment if you experiencing overload issues
         // debounceTime(333),
         distinctUntilChanged(),
-        exhaustMap(() => this.socketService.emit('write.to.user', { 'user': this.participant.uuid })),
+        exhaustMap(() => this.socketService.emit('write.to.secret.conference', { 'conference': this.conference.uuid })),
         takeUntil(this.unsubscribe$)
       ).subscribe();
 
-      this.socketService.wroteToUser$.pipe(
+      this.socketService.wroteToSecretConference$.pipe(
         filter((user: User) => user.uuid === this.participant.uuid),
         tap(() => this.writing = true),
         switchMap(() => timer(2333)),
@@ -441,7 +400,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     if (!this.isOldMessagesLoading) {
       this.isOldMessagesLoading = true;
 
-      this.repositoryService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+      this.repositoryService.getOldSecretMessagesByParticipant(this.participant.uuid, timestamp).pipe(
         takeUntil(this.unsubscribe$)
       ).subscribe((messages: Message[]) => {
         // scroll to the last obtained message in case if a scroll was at the very top
@@ -486,7 +445,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     if (!this.isNewMessagesLoading) {
       this.isNewMessagesLoading = true;
 
-      this.repositoryService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+      this.repositoryService.getNewSecretMessagesByParticipant(this.participant.uuid, timestamp).pipe(
         takeUntil(this.unsubscribe$)
       ).subscribe((messages: Message[]) => {
         // scroll to the first obtained message in case if a scroll was at the very bottom
@@ -548,7 +507,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   }
 
   onEnter(e: KeyboardEvent) {
-    if (e.key == "Enter" && !e.shiftKey) {      
+    if (e.key == "Enter" && !e.shiftKey) {
       e.preventDefault();
 
       let text = this.form.get('message').value
@@ -565,12 +524,20 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   send(text: string) {
     this.form.get('message').reset();
 
+    // Wait unit User initialize from IndexeDB
+    // Encrypt message
     // Then send message to the ws service
     // Then handle response errors
     // Then push message to the template
     // Then upsert conference
     // Then upsert message
-    this.socketService.emit('private.message.sent', { 'to': this.participant.uuid, 'text': text }).pipe(
+    this.databaseService.user$.pipe(
+      first(),
+      switchMap(() => this.crypterService.encrypt(text, [ this.authService.user.public_key, this.participant.public_key  ])),
+      map(encrypted => {
+        return { 'to': this.participant.uuid, 'encrypted': encrypted };
+      }),
+      switchMap(data => this.socketService.emit('secret.message.sent', data)),
       switchMap(data => 'errors' in data ? throwError(JSON.stringify(data.errors)) : of(data)),
       map(data => {
         let message: Message = data.message;
@@ -658,59 +625,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
       this.read$().subscribe();
 
-      fromEvent(this.startSecretChat.nativeElement as HTMLElement, 'click').pipe(
-        tap(() => this.isSecretChatLoading = true),
-        exhaustMap(() => this.repositoryService.getSecretConferenceByParticipant(this.participant.uuid).pipe(
-          switchMap((conference: Conference|null) => {
-            if (!conference) {
-              return this.socketService.emit('start.secret.chat', { user: this.participant.uuid }).pipe(
-                switchMap(data => {
-                  if ('errors' in data)
-                    return throwError(data['errors']);
-
-                  let conference: Conference = data['conference'] as Conference;
-
-                  return of(conference);
-                }),
-                switchMap((conference: Conference) => {
-                  if (!('last_message' in conference))
-                    return of(conference);
-
-                  return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
-                    switchMap(([ conference, user ]) => {
-                      let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
-
-                      return zip(of(conference), decrypted$).pipe(
-                        map(([ conference, decrypted ]) => {
-                          conference.last_message.content = decrypted;
-
-                          return conference;
-                        })
-                      );
-                    })
-                  );
-                })
-              );
-            }
-
-            return of(conference);
-          }),
-          takeUntil(this.onOptionsClosed$.pipe(
-            tap(() => this.isSecretChatLoading = false)
-          ))
-        )),
-        tap(() => this.isSecretChatLoading = false),
-        tap((conference: Conference) => {
-          // https://github.com/angular/angular/issues/25658
-          let route = this.router.config
-            .find(r => r.path === '')
-            .children
-            .find(r => r.path === 'conference/s/:uuid');
-
-          route.data['conference'] = conference;
-
-          this.router.navigate([`conference/s/${this.participant.uuid}`]);
-        }),
+      fromEvent(this.backToNormalChat.nativeElement as HTMLElement, 'click').pipe(
+        tap(() => this.router.navigate([`conference/u/${this.participant.uuid}`])),
         takeUntil(this.unsubscribe$)
       ).subscribe();
 
@@ -727,6 +643,13 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     this.state.remove(PARTICIPANT_STATE_KEY);
     this.state.remove(CONFERENCE_STATE_KEY);
     this.state.remove(MESSAGES_STATE_KEY);
+    
+    let route = this.router.config
+      .find(r => r.path === '')
+      .children
+      .find(r => r.path === 'conference/s/:uuid');
+
+    delete route.data['conference'];
 
     this.unsubscribe$.next();
     this.unsubscribe$.complete();

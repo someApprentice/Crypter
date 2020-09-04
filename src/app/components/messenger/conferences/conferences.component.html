@@ -19,9 +19,12 @@
         </div>
 
         <li *ngFor="let conference of conferences" class="dialog clearfix">
-            <a [routerLink]="['/conference/u', conference.participant.uuid]" class="d-block mx-2 p-2">
+            <a *ngIf="conference.type === 'secret'" [routerLink]="['/conference/s', conference.participant.uuid]" class="d-block mx-2 p-2">
                 <div class="title clearfix">
-                  <span class="name float-left font-weight-bold font-italic">{{ conference.participant.name }}</span>
+                  <span [class.text-success]="conference.type === 'secret'" class="name float-left font-weight-bold font-italic">
+                    {{ conference.participant.name }}
+                    <span *ngIf="conference.type === 'secret'">&#160;<i class="glyphicon glyphicon-lock"></i></span>
+                  </span>
                   <span class="date float-right">
                     <i *ngIf="
                         conference.hasOwnProperty('last_message') &&
@@ -41,7 +44,36 @@
                   </span>
                 </div>
                 <div class="info d-flex">
-                  <div *ngIf="conference.hasOwnProperty('last_message')" class="content flex-grow-1">{{ conference.last_message.content }}</div>
+                  <div class="content flex-grow-1"><span *ngIf="conference.hasOwnProperty('last_message')">{{ conference.last_message.content }}</span></div>
+                  <span class="badge badge-primary badge-pill mx-2">{{ conference.unread_messages_count }}</span>
+                </div>
+            </a>
+            <a *ngIf="conference.type === 'private'" [routerLink]="['/conference/u', conference.participant.uuid]" class="d-block mx-2 p-2">
+                <div class="title clearfix">
+                  <span [class.text-success]="conference.type === 'secret'" class="name float-left font-weight-bold font-italic">
+                    {{ conference.participant.name }}
+                    <span *ngIf="conference.type === 'secret'">&#160;<i class="glyphicon glyphicon-lock"></i></span>
+                  </span>
+                  <span class="date float-right">
+                    <i *ngIf="
+                        conference.hasOwnProperty('last_message') &&
+                        conference.last_message.author.uuid == authService.user.uuid &&
+                        !conference.last_message.read
+                      "
+                      class="material-icons px-1"
+                    >done</i>
+                    <i *ngIf="
+                        conference.hasOwnProperty('last_message') &&
+                        conference.last_message.author.uuid == authService.user.uuid &&
+                        conference.last_message.read
+                      "
+                      class="material-icons px-1"
+                    >done_all</i>
+                    {{ conference.updated_at * 1000 | date:'short' }}
+                  </span>
+                </div>
+                <div class="info d-flex">
+                  <div class="content flex-grow-1"><span *ngIf="conference.hasOwnProperty('last_message')">{{ conference.last_message.content }}</span></div>
                   <span class="badge badge-primary badge-pill mx-2">{{ conference.unread_messages_count }}</span>
                 </div>
             </a>

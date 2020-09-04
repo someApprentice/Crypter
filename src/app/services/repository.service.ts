@@ -97,29 +97,70 @@ export class RepositoryService implements OnDestroy {
         return [ minTimestamp, maxTimestamp ];
       }),
       switchMap(([ minTimestamp, maxTimestamp ]) => this.messengerService.synchronize(minTimestamp, maxTimestamp)),
-      delayWhen(() => this.databaseService.user$),
       switchMap((data: { conferences: Conference[], messages: Message[], read_messages: Message[], unread_messages: Message[] }) => zip(
-        of(data['conferences']),
-        zip(
-          from(data['messages']),
-          concat(...data['messages'].map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)))
-        ).pipe(
-          reduce((acc, [ message, decrypted ]) => {
-            message.content = decrypted;
+        concat(...data['conferences'].map((c: Conference) => of(c))).pipe(
+          concatMap((conference: Conference) => {
+            if (conference.type !== 'secret' || !('last_message' in conference))
+              return of(conference);
 
-            return [ ...acc, message ];
-          }, [] as Message[]),
+            return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
+              switchMap(([ conference, user ]) => {
+                let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+                return zip(of(conference), decrypted$).pipe(
+                  map(([ conference, decrypted ]) => {
+                    conference.last_message.content = decrypted;
+
+                    return conference;
+                  })
+                );
+              })
+            );
+          }),
+          reduce((acc: Conference[], conference: Conference) => [ ...acc, conference ], [] as Conference[])
+        ),
+        concat(...data['messages'].map((m: Message) => of(m))).pipe(
+          concatMap((message: Message) => {
+            if (message.conference.type !== 'secret')
+              return of(message);
+
+            return zip(of(message), this.databaseService.user$.pipe(first())).pipe(
+              switchMap(([ message, user ]) => {
+                let decrypted$ = this.crypterService.decrypt(message.content, user.private_key);
+
+                return zip(of(message), decrypted$).pipe(
+                  map(([ message, decrypted ]) => {
+                    message.content = decrypted;
+
+                    return message;
+                  })
+                );
+              })
+            );
+          }),
+          reduce((acc: Message[], message: Message) => [ ...acc, message ], [] as Message[])
         ),
         of(data['read_messages']),
-        zip(
-          from(data['unread_messages']),
-          concat(...data['unread_messages'].map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)))
-        ).pipe(
-          reduce((acc, [ message, decrypted ]) => {
-            message.content = decrypted;
+        concat(...data['unread_messages'].map((m: Message) => of(m))).pipe(
+          concatMap((message: Message) => {
+            if (message.conference.type !== 'secret')
+              return of(message);
 
-            return [ ...acc, message ];
-          }, [] as Message[]),
+            return zip(of(message), this.databaseService.user$.pipe(first())).pipe(
+              switchMap(([ message, user ]) => {
+                let decrypted$ = this.crypterService.decrypt(message.content, user.private_key);
+
+                return zip(of(message), decrypted$).pipe(
+                  map(([ message, decrypted ]) => {
+                    message.content = decrypted;
+
+                    return message;
+                  })
+                );
+              })
+            );
+          }),
+          reduce((acc: Message[], message: Message) => [ ...acc, message ], [] as Message[])
         ),
       )),
       switchMap(([ conferences, messages, read_messages, unread_messages ]) => this.databaseService.synchronize(conferences, messages, read_messages, unread_messages)),
@@ -164,10 +205,10 @@ export class RepositoryService implements OnDestroy {
               return this.messengerService.getConferences(timestamp, limit - conferences.length).pipe(
                 switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
                   concatMap((conference: Conference) => {
-                    if (conference.type !== 'private' || !('last_message' in conference))
+                    if (conference.type !== 'secret' || !('last_message' in conference))
                       return of(conference);
 
-                    return zip(of(conference), this.databaseService.user$).pipe(
+                    return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
                       switchMap(([ conference, user ]) => {
                         let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
 
@@ -212,10 +253,10 @@ export class RepositoryService implements OnDestroy {
           switchMap((conferences: Conference[]) => this.messengerService.getConferences(timestamp, limit).pipe(
             switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
               concatMap((conference: Conference) => {
-                if (conference.type !== 'private' || !('last_message' in conference))
+                if (conference.type !== 'secret' || !('last_message' in conference))
                   return of(conference);
 
-                return zip(of(conference), this.databaseService.user$).pipe(
+                return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
                   switchMap(([ conference, user ]) => {
                     let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
 
@@ -265,10 +306,10 @@ export class RepositoryService implements OnDestroy {
               return this.messengerService.getOldConferences(timestamp, limit - conferences.length).pipe(
                 switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
                   concatMap((conference: Conference) => {
-                    if (conference.type !== 'private' || !('last_message' in conference))
+                    if (conference.type !== 'secret' || !('last_message' in conference))
                       return of(conference);
 
-                    return zip(of(conference), this.databaseService.user$).pipe(
+                    return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
                       switchMap(([ conference, user ]) => {
                         let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
 
@@ -313,10 +354,10 @@ export class RepositoryService implements OnDestroy {
           switchMap((conferences: Conference[]) => this.messengerService.getOldConferences(timestamp, limit).pipe(
             switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
               concatMap((conference: Conference) => {
-                if (conference.type !== 'private' || !('last_message' in conference))
+                if (conference.type !== 'secret' || !('last_message' in conference))
                   return of(conference);
 
-                return zip(of(conference), this.databaseService.user$).pipe(
+                return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
                   switchMap(([ conference, user ]) => {
                     let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
 
@@ -360,13 +401,62 @@ export class RepositoryService implements OnDestroy {
               if (!conference)
                 return of(conference);
 
-              if (conference.type !== 'private' || !('last_message' in conference))
+              if (conference.type !== 'secret' || !('last_message' in conference))
                 return merge(
                   this.databaseService.upsertConference(conference).pipe(ignoreElements()),
                   of(conference)
                 );
 
-              return zip(of(conference), this.databaseService.user$).pipe(
+              return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
+                switchMap(([ conference, user ]) => {
+                  let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
+
+                  return zip(of(conference), decrypted$).pipe(
+                    map(([ conference, decrypted ]) => {
+                      conference.last_message.content = decrypted;
+
+                      return conference;
+                    })
+                  );
+                }),
+                switchMap((conference: Conference) => merge(
+                  this.databaseService.upsertConference(conference).pipe(ignoreElements()),
+                  of(conference)
+                ))
+              );
+            }),
+            catchError((err: HttpErrorResponse) => {
+              // What status codes responsable for timeout errors? 408, 504 what else?
+              if (err.status === 408 || err.status === 504)
+                return of(null);
+
+              return throwError(err);
+            })
+          );
+        }
+
+        return of(conference);
+      }),
+      takeUntil(this.unsubscribe$)
+    );
+  }
+
+  getSecretConferenceByParticipant(uuid: string): Observable<Conference|null> {
+    return this.databaseService.getSecretConferenceByParticipant(uuid).pipe(
+      switchMap((conference: Conference|null) => {
+        if (!conference) {
+          return this.messengerService.getSecretConferenceByParticipant(uuid).pipe(
+            switchMap((conference: Conference|null) => {
+              if (!conference)
+                return of(conference);
+
+              if (!('last_message' in conference))
+                return merge(
+                  this.databaseService.upsertConference(conference).pipe(ignoreElements()),
+                  of(conference)
+                );
+
+              return zip(of(conference), this.databaseService.user$.pipe(first())).pipe(
                 switchMap(([ conference, user ]) => {
                   let decrypted$ = this.crypterService.decrypt(conference.last_message.content, user.private_key);
 
@@ -413,18 +503,6 @@ export class RepositoryService implements OnDestroy {
               timestamp = !!messages.length ? messages[0].date : timestamp;
 
               return this.messengerService.getMessagesByParticipant(uuid, timestamp, limit - messages.length).pipe(
-                delayWhen(() => this.databaseService.user$),
-                switchMap((messages: Message[]) => {
-                  let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
-
-                  return zip(from(messages), decrypted$).pipe(
-                    reduce((acc, [ message, decrypted ]) => {
-                      message.content = decrypted;
-
-                      return [ ...acc, message ];
-                    }, [] as Message[])
-                  );
-                }),
                 switchMap((messages: Message[]) => merge(
                   this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
                   of(messages)
@@ -452,18 +530,6 @@ export class RepositoryService implements OnDestroy {
 
         return this.databaseService.getMessagesByParticipant(uuid, timestamp, limit).pipe(
           switchMap((messages: Message[]) => this.messengerService.getMessagesByParticipant(uuid, timestamp, limit).pipe(
-            delayWhen(() => this.databaseService.user$),
-            switchMap((messages: Message[]) => {
-              let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
-
-              return zip(from(messages), decrypted$).pipe(
-                reduce((acc, [ message, decrypted ]) => {
-                  message.content = decrypted;
-
-                  return [ ...acc, message ];
-                }, [] as Message[])
-              );
-            }),
             switchMap((messages: Message[]) => merge(
               this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
               of(messages)
@@ -501,18 +567,6 @@ export class RepositoryService implements OnDestroy {
               }
 
               return this.messengerService.getUnreadMessagesByParticipant(uuid, timestamp, limit).pipe(
-                delayWhen(() => this.databaseService.user$),
-                switchMap((messages: Message[]) => {
-                  let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
-
-                  return zip(from(messages), decrypted$).pipe(
-                    reduce((acc, [ message, decrypted ]) => {
-                      message.content = decrypted;
-
-                      return [ ...acc, message ];
-                    }, [] as Message[])
-                  )
-                }),
                 switchMap((messages: Message[]) => merge(
                   this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
                   of(messages)
@@ -530,18 +584,6 @@ export class RepositoryService implements OnDestroy {
         }
 
         return this.messengerService.getUnreadMessagesByParticipant(uuid, timestamp, limit).pipe(
-          delayWhen(() => this.databaseService.user$),
-          switchMap((messages: Message[]) => {
-            let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
-
-            return zip(from(messages), decrypted$).pipe(
-              reduce((acc, [ message, decrypted ]) => {
-                message.content = decrypted;
-
-                return [ ...acc, message ];
-              }, [] as Message[])
-            );
-          }),
           switchMap((messages: Message[]) => merge(
             this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
             of(messages)
@@ -571,20 +613,8 @@ export class RepositoryService implements OnDestroy {
                 return of(messages);
 
               timestamp = !!messages.length ? messages[0].date : timestamp;
-              
+
               return this.messengerService.getOldMessagesByParticipant(uuid, timestamp, limit - messages.length).pipe(
-                delayWhen(() => this.databaseService.user$),
-                switchMap((messages: Message[]) => {
-                  let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
-
-                  return zip(from(messages), decrypted$).pipe(
-                    reduce((acc, [ message, decrypted ]) => {
-                      message.content = decrypted;
-
-                      return [ ...acc, message ];
-                    }, [] as Message[])
-                  );
-                }),
                 switchMap((messages: Message[]) => merge(
                   this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
                   of(messages)
@@ -613,18 +643,6 @@ export class RepositoryService implements OnDestroy {
         return this.databaseService.getOldMessagesByParticipant(uuid, timestamp, limit).pipe(
           switchMap((messages: Message[]) => {
             return this.messengerService.getOldMessagesByParticipant(uuid, timestamp, limit).pipe(
-              delayWhen(() => this.databaseService.user$),
-              switchMap((messages: Message[]) => {
-                let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
-
-                return zip(from(messages), decrypted$).pipe(
-                  reduce((acc, [ message, decrypted ]) => {
-                    message.content = decrypted;
-
-                    return [ ...acc, message ];
-                  }, [] as Message[])
-                );
-              }),
               switchMap((messages: Message[]) => merge(
                 this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
                 of(messages)
@@ -663,6 +681,308 @@ export class RepositoryService implements OnDestroy {
               }
 
               return this.messengerService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
+                catchError((err: HttpErrorResponse) => {
+                  // What status codes responsable for timeout errors? 408, 504 what else?
+                  if (err.status === 408 || err.status === 504)
+                    return of(messages);
+
+                  return throwError(err);
+                })
+              );
+            })
+          );
+        }
+
+        return this.databaseService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
+          switchMap((messages: Message[]) => {
+            return this.messengerService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
+              switchMap((messages: Message[]) => merge(
+                this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                of(messages)
+              )),
+              catchError((err: HttpErrorResponse) => {
+                // What status codes responsable for timeout errors? 408, 504 what else?
+                if (err.status === 408 || err.status === 504)
+                  return of(messages);
+
+                return throwError(err);
+              })
+            );
+          })
+        );
+      }),
+      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date)),
+      takeUntil(this.unsubscribe$)
+    );
+  }
+
+  getSecretMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.databaseService.isSynchronized$.pipe(
+      first(),
+      switchMap((isSynchronized: boolean) => {
+        if (isSynchronized) {
+          return this.databaseService.getSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
+            switchMap((messages: Message[]) => {
+              if (messages.length === limit)
+                return of(messages);
+
+              timestamp = !!messages.length ? messages[0].date : timestamp;
+
+              return this.messengerService.getSecretMessagesByParticipant(uuid, timestamp, limit - messages.length).pipe(
+                delayWhen(() => this.databaseService.user$),
+                switchMap((messages: Message[]) => {
+                  let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
+
+                  return zip(from(messages), decrypted$).pipe(
+                    reduce((acc, [ message, decrypted ]) => {
+                      message.content = decrypted;
+
+                      return [ ...acc, message ];
+                    }, [] as Message[])
+                  );
+                }),
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
+                map((m: Message[]) => m.reduce((acc, cur) => {
+                  if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+                    acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+                    return acc;
+                  }
+
+                  return [ ...acc, cur ];
+                }, messages)),
+                catchError((err: HttpErrorResponse) => {
+                  // What status codes responsable for timeout errors? 408, 504 what else?
+                  if (err.status === 408 || err.status === 504)
+                    return of(messages);
+
+                  return throwError(err);
+                })
+              )
+            })
+          );
+        }
+
+        return this.databaseService.getSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
+          switchMap((messages: Message[]) => this.messengerService.getSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
+            delayWhen(() => this.databaseService.user$),
+            switchMap((messages: Message[]) => {
+              let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
+
+              return zip(from(messages), decrypted$).pipe(
+                reduce((acc, [ message, decrypted ]) => {
+                  message.content = decrypted;
+
+                  return [ ...acc, message ];
+                }, [] as Message[])
+              );
+            }),
+            switchMap((messages: Message[]) => merge(
+              this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+              of(messages)
+            )),
+            catchError((err: HttpErrorResponse) => {
+              // What status codes responsable for timeout errors? 408, 504 what else?
+              if (err.status === 408 || err.status === 504)
+                return of(messages);
+
+              return throwError(err);
+            })
+          ))
+        );
+      }),
+      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date)),
+      takeUntil(this.unsubscribe$)
+    );
+  }
+
+  getUnreadSecretMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.databaseService.isSynchronized$.pipe(
+      first(),
+      switchMap((isSynchronized: boolean) => {
+        if (isSynchronized) {
+          return zip(
+            this.databaseService.getSecretConferenceByParticipant(uuid),
+            this.databaseService.getUnreadSecretMessagesByParticipant(uuid, timestamp, limit)
+          ).pipe(
+            switchMap(([ conference, messages ]) => {
+              if (
+                (messages.length === limit && (!!messages[messages.length - 1] && messages[messages.length - 1].uuid !== conference.last_message.uuid)) ||
+                messages.length === conference.messages_count
+              ) {
+                return of(messages);
+              }
+
+              return this.messengerService.getUnreadSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
+                delayWhen(() => this.databaseService.user$),
+                switchMap((messages: Message[]) => {
+                  let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
+
+                  return zip(from(messages), decrypted$).pipe(
+                    reduce((acc, [ message, decrypted ]) => {
+                      message.content = decrypted;
+
+                      return [ ...acc, message ];
+                    }, [] as Message[])
+                  )
+                }),
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
+                catchError((err: HttpErrorResponse) => {
+                  // What status codes responsable for timeout errors? 408, 504 what else?
+                  if (err.status === 408 || err.status === 504)
+                    return of(messages);
+
+                  return throwError(err);
+                })
+              );
+            })
+          );
+        }
+
+        return this.messengerService.getUnreadSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
+          delayWhen(() => this.databaseService.user$),
+          switchMap((messages: Message[]) => {
+            let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
+
+            return zip(from(messages), decrypted$).pipe(
+              reduce((acc, [ message, decrypted ]) => {
+                message.content = decrypted;
+
+                return [ ...acc, message ];
+              }, [] as Message[])
+            );
+          }),
+          switchMap((messages: Message[]) => merge(
+            this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+            of(messages)
+          )),
+          catchError((err: HttpErrorResponse) => {
+            // What status codes responsable for timeout errors? 408, 504 what else?
+            if (err.status === 408 || err.status === 504)
+              return of([] as Message[]);
+
+            return throwError(err);
+          })
+        );
+      }),
+      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date)),
+      takeUntil(this.unsubscribe$)
+    );
+  }
+
+  getOldSecretMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.databaseService.isSynchronized$.pipe(
+      first(),
+      switchMap((isSynchronized: boolean) => {
+        if (isSynchronized) {
+          return this.databaseService.getOldSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
+            switchMap((messages: Message[]) => {
+              if (messages.length === limit)
+                return of(messages);
+
+              timestamp = !!messages.length ? messages[0].date : timestamp;
+              
+              return this.messengerService.getOldSecretMessagesByParticipant(uuid, timestamp, limit - messages.length).pipe(
+                delayWhen(() => this.databaseService.user$),
+                switchMap((messages: Message[]) => {
+                  let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
+
+                  return zip(from(messages), decrypted$).pipe(
+                    reduce((acc, [ message, decrypted ]) => {
+                      message.content = decrypted;
+
+                      return [ ...acc, message ];
+                    }, [] as Message[])
+                  );
+                }),
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
+                map((m: Message[]) => m.reduce((acc, cur) => {
+                  if (acc.find((m: Message) => m.uuid === cur.uuid)) {
+                    acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
+
+                    return acc;
+                  }
+
+                  return [ ...acc, cur ];
+                }, messages)),
+                catchError((err: HttpErrorResponse) => {
+                  // What status codes responsable for timeout errors? 408, 504 what else?
+                  if (err.status === 408 || err.status === 504)
+                    return of(messages);
+
+                  return throwError(err);
+                })
+              );
+            })
+          );
+        }
+
+        return this.databaseService.getOldSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
+          switchMap((messages: Message[]) => {
+            return this.messengerService.getOldSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
+              delayWhen(() => this.databaseService.user$),
+              switchMap((messages: Message[]) => {
+                let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
+
+                return zip(from(messages), decrypted$).pipe(
+                  reduce((acc, [ message, decrypted ]) => {
+                    message.content = decrypted;
+
+                    return [ ...acc, message ];
+                  }, [] as Message[])
+                );
+              }),
+              switchMap((messages: Message[]) => merge(
+                this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                of(messages)
+              )),
+              catchError((err: HttpErrorResponse) => {
+                // What status codes responsable for timeout errors? 408, 504 what else?
+                if (err.status === 408 || err.status === 504)
+                  return of(messages);
+
+                return throwError(err);
+              })
+            )
+          })
+        );
+      }),
+      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date)),
+      takeUntil(this.unsubscribe$)
+    );
+  }
+
+  getNewSecretMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.databaseService.isSynchronized$.pipe(
+      first(),
+      switchMap((isSynchronized: boolean) => {
+        if (isSynchronized) {
+          return zip(
+            this.databaseService.getSecretConferenceByParticipant(uuid),
+            this.databaseService.getNewSecretMessagesByParticipant(uuid, timestamp, limit)
+          ).pipe(
+            switchMap(([ conference, messages ]) => {
+              if (
+                (messages.length === limit && (!!messages[messages.length - 1] && messages[messages.length - 1].uuid !== conference.last_message.uuid)) ||
+                messages.length === conference.messages_count
+              ) {
+                return of(messages);
+              }
+
+              return this.messengerService.getNewSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
                 delayWhen(() => this.databaseService.user$),
                 switchMap((messages: Message[]) => {
                   let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
@@ -691,9 +1011,9 @@ export class RepositoryService implements OnDestroy {
           );
         }
 
-        return this.databaseService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
+        return this.databaseService.getNewSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
           switchMap((messages: Message[]) => {
-            return this.messengerService.getNewMessagesByParticipant(uuid, timestamp, limit).pipe(
+            return this.messengerService.getNewSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
               delayWhen(() => this.databaseService.user$),
               switchMap((messages: Message[]) => {
                 let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));

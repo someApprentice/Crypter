@@ -31,7 +31,7 @@ import Message from '../../models/message.model';
   styleUrls: ['./messenger.component.css'],
   animations: [
     trigger('routeAnimations', [
-      transition('ConferencesPage => ConferencePage', [
+      transition('ConferencesPage => PrivateConferencePage', [
         style({ position: 'relative' }),
         query(':enter, :leave', [
           style({
@@ -52,7 +52,91 @@ import Message from '../../models/message.model';
         ]),
         query(':enter', animateChild()),
       ]),
-      transition('ConferencePage => ConferencesPage', [
+      transition('ConferencesPage => SecretConferencePage', [
+        style({ position: 'relative' }),
+        query(':enter, :leave', [
+          style({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%'
+          })
+        ]),
+        query(':enter', [
+          style({ left: '100%', zIndex: 999 })
+        ]),
+        query(':leave', animateChild()),
+        group([
+          query(':enter', [
+            animate('333ms ease-out', style({ left: '0%' }))
+          ])
+        ]),
+        query(':enter', animateChild()),
+      ]),
+      transition('PrivateConferencePage => SecretConferencePage', [
+        style({ position: 'relative' }),
+        query(':enter, :leave', [
+          style({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%'
+          })
+        ]),
+        query(':enter', [
+          style({ left: '100%', zIndex: 999 })
+        ]),
+        query(':leave', animateChild()),
+        group([
+          query(':enter', [
+            animate('333ms ease-out', style({ left: '0%' }))
+          ])
+        ]),
+        query(':enter', animateChild()),
+      ]),
+      transition('PrivateConferencePage => ConferencesPage', [
+        style({ position: 'relative' }),
+        query(':enter, :leave', [
+          style({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%'
+          })
+        ]),
+        query(':leave', [
+          style({ zIndex: 999 })
+        ]),
+        query(':leave', animateChild()),
+        group([
+          query(':leave', [
+            animate('333ms ease-out', style({ left: '100%' }))
+          ])
+        ]),
+        query(':enter', animateChild()),
+      ]),
+      transition('SecretConferencePage => ConferencesPage', [
+        style({ position: 'relative' }),
+        query(':enter, :leave', [
+          style({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%'
+          })
+        ]),
+        query(':leave', [
+          style({ zIndex: 999 })
+        ]),
+        query(':leave', animateChild()),
+        group([
+          query(':leave', [
+            animate('333ms ease-out', style({ left: '100%' }))
+          ])
+        ]),
+        query(':enter', animateChild()),
+      ]),
+      transition('SecretConferencePage => PrivateConferencePage', [
         style({ position: 'relative' }),
         query(':enter, :leave', [
           style({
@@ -161,8 +245,18 @@ export class MessengerComponent implements OnInit, OnDestroy {
         takeUntil(this.unsubscribe$)
       ).subscribe();
 
+      this.socketService.secretChatStarted$.pipe(
+        concatMap((conference: Conference) => this.databaseService.upsertConference(conference)),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
+
       this.socketService.conferenceUpdated$.pipe(
         concatMap((conference: Conference) => this.databaseService.upsertConference(conference)),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
+
+      this.socketService.secretMessage$.pipe(
+        concatMap((message: Message) => this.databaseService.upsertMessage(message)),
         takeUntil(this.unsubscribe$)
       ).subscribe();
 
@@ -171,12 +265,12 @@ export class MessengerComponent implements OnInit, OnDestroy {
         takeUntil(this.unsubscribe$)
       ).subscribe();
 
-      this.socketService.privateMessageRead$.pipe(
+      this.socketService.messageRead$.pipe(
         concatMap((message: Message) => this.databaseService.readMessage(message)),
         takeUntil(this.unsubscribe$)
       ).subscribe();
 
-      this.socketService.privateMessageReadSince$.pipe(
+      this.socketService.messagesReadSince$.pipe(
         concatMap((messages: Message[]) => this.databaseService.readMessages(messages)),
         takeUntil(this.unsubscribe$)
       ).subscribe();

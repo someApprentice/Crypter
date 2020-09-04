@@ -76,6 +76,21 @@ export class MessengerService {
     );
   }
 
+  getSecretConferenceByParticipant(uuid: string): Observable<Conference|null> {
+    return this.http.get<Conference>(
+      `/api/messenger/secret_conference_by_participant/${uuid}`,
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
+    ).pipe(
+      first(),
+      catchError(err => {
+        if (err.status === 404)
+          return of(null);
+
+        return throwError(err);
+      })
+    );
+  }
+
   getReadMessages(timestamp: number = 0): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/read_messages/?timestamp=${timestamp}`,
@@ -166,9 +181,45 @@ export class MessengerService {
     );
   }
 
+  getSecretMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.http.get<Message[]>(
+      `/api/messenger/secret_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
+    ).pipe(
+      first()
+    );
+  }
+
+  getUnreadSecretMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.http.get<Message[]>(
+      `/api/messenger/unread_secret_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
+    ).pipe(
+      first()
+    );
+  }
+
+  getOldSecretMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.http.get<Message[]>(
+      `/api/messenger/old_secret_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
+    ).pipe(
+      first()
+    );
+  }
+
+  getNewSecretMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.http.get<Message[]>(
+      `/api/messenger/new_secret_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
+    ).pipe(
+      first()
+    );
+  }
+
   synchronize(min_timestamp: number = Date.now() / 1000, max_timestamp: number = 0): Observable<{ conferences: Conference[], messages: Message[], read_messages: Message[], unread_messages: Message[] }> {
     return this.http.get<{ conferences: Conference[], messages: Message[], read_messages: Message[], unread_messages: Message[] }>(
-      `/api/messenger/sync/?min_timestamp=${min_timestamp}&max_timestamp=${max_timestamp}`,
+      `/api/messenger/synchronize/?min_timestamp=${min_timestamp}&max_timestamp=${max_timestamp}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()

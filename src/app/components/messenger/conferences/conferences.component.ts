@@ -80,7 +80,7 @@ export class ConferencesComponent implements OnInit, OnDestroy {
         of(conferences).pipe(
           switchMap((conferences: Conference[]) => concat(...conferences.map((c: Conference) => of(c))).pipe(
             concatMap((conference: Conference) => {
-              if (conference.type !== 'private' || !('last_message' in conference))
+              if (conference.type !== 'secret' || !('last_message' in conference))
                 return of(conference);
 
               return zip(of(conference), this.databaseService.user$).pipe(
@@ -137,6 +137,15 @@ export class ConferencesComponent implements OnInit, OnDestroy {
           this.isConferencesLoading = false;
         });
       }
+
+      this.socketService.secretChatStarted$.pipe(
+        takeUntil(this.unsubscribe$),
+      ).subscribe((conference: Conference) => {
+        if (this.conferences.find(c => c.uuid === conference.uuid))
+          return this.conferences[this.conferences.findIndex(c => c.uuid === conference.uuid)] = conference;
+
+        return this.conferences.unshift(conference);
+      });
 
       this.socketService.conferenceUpdated$.pipe(
         takeUntil(this.unsubscribe$),

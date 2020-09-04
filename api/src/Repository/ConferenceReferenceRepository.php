@@ -6,6 +6,9 @@ use Crypter\Entity\ConferenceReference;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 
+use Crypter\Entity\Conference;
+use Crypter\Entity\User;
+
 /**
  * @method ConferenceReference|null find($id, $lockMode = null, $lockVersion = null)
  * @method ConferenceReference|null findOneBy(array $criteria, array $orderBy = null)
@@ -19,32 +22,45 @@ class ConferenceReferenceRepository extends ServiceEntityRepository
         parent::__construct($registry, ConferenceReference::class);
     }
 
-    // /**
-    //  * @return ConferenceReference[] Returns an array of ConferenceReference objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    public function getConferenceByParticipant(string $uuid, User $user)
     {
-        return $this->createQueryBuilder('c')
-            ->andWhere('c.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('c.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
+        $dql = '
+            SELECT
+                cr
+            FROM Crypter\Entity\ConferenceReference cr
+            JOIN Crypter\Entity\Conference c WITH c.uuid = cr.conference 
+            WHERE
+                c.type = :type AND
+                cr.user = :user AND
+                cr.participant = :uuid
+        ';
 
-    /*
-    public function findOneBySomeField($value): ?ConferenceReference
-    {
-        return $this->createQueryBuilder('c')
-            ->andWhere('c.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        $query = $this->getEntityManager()->createQuery($dql);
+        $query->setParameters(['uuid' => $uuid, 'user' => $user->getUuid(), 'type' => 'private']);
+
+        $conferenceReference = $query->getOneOrNullResult();
+
+        return $conferenceReference;
     }
-    */
+
+    public function getSecretConferenceByParticipant(string $uuid, User $user)
+    {
+        $dql = '
+            SELECT
+                cr
+            FROM Crypter\Entity\ConferenceReference cr
+            JOIN Crypter\Entity\Conference c WITH c.uuid = cr.conference 
+            WHERE
+                c.type = :type AND
+                cr.user = :user AND
+                cr.participant = :uuid
+        ';
+
+        $query = $this->getEntityManager()->createQuery($dql);
+        $query->setParameters(['uuid' => $uuid, 'user' => $user->getUuid(), 'type' => 'secret']);
+
+        $conferenceReference = $query->getOneOrNullResult();
+
+        return $conferenceReference;
+    }
 }
