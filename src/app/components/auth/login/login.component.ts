@@ -1,4 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { environment } from '../../../../environments/environment';
+
+import { Component, ViewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
 
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -17,6 +19,10 @@ import User from '../../../models/user.model';
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent implements OnInit, OnDestroy {
+  environments = environment;
+
+  @ViewChild('password') passwordEl: ElementRef;
+
   form = new FormGroup({
     email: new FormControl('', [
       Validators.pattern(/^([^@\s]+@[^@\s]+\.[^@\s]+)$/), //email with top-level domain
@@ -25,8 +31,10 @@ export class LoginComponent implements OnInit, OnDestroy {
       Validators.required
     ]),
     password: new FormControl('', [
-      Validators.required
-    ])
+      Validators.required,
+      Validators.minLength(6)
+    ]),
+    recaptcha: new FormControl('')
   });
 
   pending: boolean = false
@@ -43,6 +51,10 @@ export class LoginComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
+    if (this.environments.production) {
+      this.form.get('recaptcha').setValidators([ Validators.required ]);
+    }
+
     this.route.data.pipe(takeUntil(this.unsubscribe$)).subscribe(d => {
       if ('email' in d) {
         this.form.get('email').setValue(d['email']);
@@ -60,8 +72,9 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     let email = this.form.get('email').value;
     let password = this.form.get('password').value;
+    let recaptcha_token = this.form.get('recaptcha').value;
 
-    this.authService.login(email, password).pipe(
+    this.authService.login(email, password, recaptcha_token).pipe(
       switchMap((user: User) =>  {
         return zip(of(user), this.crypterService.decryptPrivateKey(user.private_key, password)).pipe(
           map(([user, decryptedPrivateKey]) => {
@@ -93,6 +106,11 @@ export class LoginComponent implements OnInit, OnDestroy {
 
         if (err.status === 404) {
           this.error = "No matches found";
+
+          this.form.get('password').reset();
+          this.form.get('recaptcha').reset();
+
+          this.passwordEl.nativeElement.focus();
 
           return;
         }

@@ -18,6 +18,7 @@
         </div>
 
         <input
+            #password
             formControlName="password"
             type="password"
             name="password"
@@ -29,8 +30,10 @@
             [class.is-invalid]="form.controls['password'].invalid && form.controls['password'].dirty"
         >
         <div class="invalid-feedback d-none" [class.d-block]="form.controls['password'].invalid && form.controls['password'].dirty">
-            Password required.
+            Password must be at least 6 characters long.
         </div>
+
+        <div *ngIf="environments.production" gRecaptcha [key]="environments.recaptcha_sitekey" formControlName="recaptcha" class="my-2"></div>
 
         <button type="submit" name="login" [disabled]="!form.valid" class="btn btn-outline-primary btn-block">
             <span>Log In</span>

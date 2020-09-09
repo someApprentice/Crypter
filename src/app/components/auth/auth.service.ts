@@ -27,17 +27,37 @@ export class AuthService {
     }
   }
 
-  registrate(email: string, name: string, password: string, publicKey: string, privateKey: string, revocationCertificate: string): Observable<User> {
+  registrate(
+      email: string, name: string,
+      password: string,
+      public_key: string,
+      private_key: string,
+      revocation_certificate: string,
+      recaptcha_token?: string
+  ): Observable<User> {
+    let data: {
+      email: string,
+      name: string,
+      password: string,
+      public_key: string,
+      private_key: string,
+      revocation_certificate: string,
+      recaptcha_token?:string
+    } = {
+      email,
+      name,
+      password,
+      public_key,
+      private_key,
+      revocation_certificate
+    };
+
+    if (recaptcha_token)
+      data['recaptcha_token'] = recaptcha_token;
+
     return this.http.post<User>(
       '/api/auth/registrate',
-      {
-        email,
-        name,
-        password,
-        public_key: publicKey,
-        private_key: privateKey,
-        revocation_certificate: revocationCertificate
-      },
+      data,
       {
         headers: new HttpHeaders({ 'Content-Type': 'application/json' }),
         withCredentials: true
@@ -47,8 +67,20 @@ export class AuthService {
     );
   }
 
-  login(email: string, password: string): Observable<User> {
-    return this.http.post<User>('/api/auth/login', { email, password }, { withCredentials: true }).pipe(
+  login(email: string, password: string, recaptcha_token?: string): Observable<User> {
+    let data: {
+      email: string,
+      password: string,
+      recaptcha_token?: string
+    } = {
+      email,
+      password
+    };
+
+    if (recaptcha_token)
+      data['recaptcha_token'] = recaptcha_token;
+
+    return this.http.post<User>('/api/auth/login', data, { withCredentials: true }).pipe(
       first()
     );
   }

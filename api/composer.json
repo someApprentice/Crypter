@@ -7,6 +7,7 @@
         "ext-iconv": "*",
         "doctrine/annotations": "^1.6",
         "firebase/php-jwt": "^5.0",
+        "google/recaptcha": "^1.2",
         "guzzlehttp/guzzle": "~6.0",
         "nesbot/carbon": "^2.19",
         "sensio/framework-extra-bundle": "^5.3",

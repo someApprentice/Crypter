@@ -33,6 +33,7 @@
     "@ng-bootstrap/ng-bootstrap": "^4.2.1",
     "@nguniversal/express-engine": "^7.1.1",
     "@nguniversal/module-map-ngfactory-loader": "^7.1.1",
+    "@types/grecaptcha": "^3.0.1",
     "@types/pouchdb-adapter-idb": "^6.1.3",
     "@types/pouchdb-adapter-memory": "^6.1.3",
     "bootstrap": "^4.3.1",

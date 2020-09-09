@@ -21,6 +21,8 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 
 use \Firebase\JWT\JWT;
 
+use \ReCaptcha\ReCaptcha;
+
 class AuthController extends AbstractController
 {
     private $validator;
@@ -53,6 +55,22 @@ class AuthController extends AbstractController
             !(array_key_exists('revocation_certificate', $data) && !empty($data['revocation_certificate']))
         ) {
             return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($this->getParameter('APP_ENV') === 'prod') {
+            if (!(array_key_exists('recaptcha_token', $data) && !empty($data['recaptcha_token']))) {
+                return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+            }
+
+            $recaptcha = new ReCaptcha($this->getParamter($this->getParamter('RECAPTCHA_SECRET')));
+
+            $r = $recaptcha
+                ->setExpectedHostname($request->getHost())
+                ->verify($data['recaptcha_token']);
+
+            if (!$r->isSuccess()) {
+                return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+            }
         }
 
         $email = strtolower($data['email']);
@@ -128,6 +146,22 @@ class AuthController extends AbstractController
             !(array_key_exists('password', $data) && !empty($data['password']))
         ) {
             return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($this->getParameter('APP_ENV') === 'prod') {
+            if (!(array_key_exists('recaptcha_token', $data) && !empty($data['recaptcha_token']))) {
+                return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+            }
+
+            $recaptcha = new ReCaptcha($this->getParamter($this->getParamter('RECAPTCHA_SECRET')));
+
+            $r = $recaptcha
+                ->setExpectedHostname($request->getHost())
+                ->verify($data['recaptcha_token']);
+
+            if (!$r->isSuccess()) {
+                return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+            }
         }
 
         $email = strtolower($data['email']);

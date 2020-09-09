@@ -5,8 +5,12 @@
 # https://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
 parameters:
     locale: 'en'
+
+    APP_ENV: '%env(APP_ENV)'
     
     JWT_SECRET: '%env(JWT_SECRET)%'
+
+    RECAPTCHA_SECRET: '%env(RECAPTCHA_SECRET)'
 
     BATCH_SIZE: '%env(BATCH_SIZE)%'
 

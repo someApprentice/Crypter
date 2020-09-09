@@ -1,3 +1,5 @@
+import { environment } from '../../../../environments/environment';
+
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormGroup, FormControl, Validators, AbstractControl } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -16,6 +18,8 @@ import User from '../../../models/user.model';
   styleUrls: ['./registration.component.css'],
 })
 export class RegistrationComponent implements OnInit, OnDestroy {
+  environments = environment;
+
   form = new FormGroup(
     {
       email: new FormControl(
@@ -42,17 +46,18 @@ export class RegistrationComponent implements OnInit, OnDestroy {
       ),
       name: new FormControl('', [
         Validators.required,
-        Validators.min(1),
-        Validators.max(255)
+        Validators.minLength(1),
+        Validators.maxLength(255)
       ]),
       password: new FormControl('', [
         Validators.required,
-        Validators.min(6)
+        Validators.minLength(6)
       ]),
       retryPassword: new FormControl('', [
         Validators.required,
-        Validators.min(6)
-      ])
+        Validators.minLength(6)
+      ]),
+      recaptcha: new FormControl('')
     },
     [
       function validatePasswordsMatch(control: AbstractControl): void | null {
@@ -82,6 +87,10 @@ export class RegistrationComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
+    if (this.environments.production) {
+      this.form.get('recaptcha').setValidators([ Validators.required ]);
+    }
+
     this.route.data.pipe(
       takeUntil(this.unsubscribe$)
     ).subscribe(d => {
@@ -102,6 +111,7 @@ export class RegistrationComponent implements OnInit, OnDestroy {
     let email = this.form.get('email').value;
     let name = this.form.get('name').value;
     let password = this.form.get('password').value;
+    let recaptcha_token = this.form.get('recaptcha').value;
 
     this.crypterService.generateKey(name, email, password).pipe(
       switchMap((key) => {
@@ -111,7 +121,8 @@ export class RegistrationComponent implements OnInit, OnDestroy {
           password,
           key.publicKeyArmored,
           key.privateKeyArmored,
-          key.revocationCertificate
+          key.revocationCertificate,
+          recaptcha_token
         ).pipe(
           switchMap((user: User) => {
             return zip(of(user), this.crypterService.decryptPrivateKey(user.private_key, password));
@@ -141,6 +152,8 @@ export class RegistrationComponent implements OnInit, OnDestroy {
         this.router.navigate([redirect]);
       },
       err => {
+        this.form.get('recaptcha').reset();
+
         if (err instanceof Error || 'message' in err) { // TypeScript instance of interface check 
           this.error = err.message;
         }
