@@ -30,6 +30,7 @@ export class AuthService {
   registrate(
       email: string, name: string,
       password: string,
+      fingerprint: string,
       public_key: string,
       private_key: string,
       revocation_certificate: string,
@@ -39,6 +40,7 @@ export class AuthService {
       email: string,
       name: string,
       password: string,
+      fingerprint: string,
       public_key: string,
       private_key: string,
       revocation_certificate: string,
@@ -47,6 +49,7 @@ export class AuthService {
       email,
       name,
       password,
+      fingerprint,
       public_key,
       private_key,
       revocation_certificate

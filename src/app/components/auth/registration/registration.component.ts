@@ -114,14 +114,15 @@ export class RegistrationComponent implements OnInit, OnDestroy {
     let recaptcha_token = this.form.get('recaptcha').value;
 
     this.crypterService.generateKey(name, email, password).pipe(
-      switchMap((key) => {
+      switchMap((keys) => {
         return this.authService.registrate(
           email,
           name,
           password,
-          key.publicKeyArmored,
-          key.privateKeyArmored,
-          key.revocationCertificate,
+          keys.key.getFingerprint(),
+          keys.publicKeyArmored,
+          keys.privateKeyArmored,
+          keys.revocationCertificate,
           recaptcha_token
         ).pipe(
           switchMap((user: User) => {

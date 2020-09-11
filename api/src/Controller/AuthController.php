@@ -50,6 +50,7 @@ class AuthController extends AbstractController
             !(array_key_exists('email', $data) && !empty($data['email'])) ||
             !(array_key_exists('name', $data) && !empty($data['name'])) ||
             !(array_key_exists('password', $data) && !empty($data['password'])) ||
+            !(array_key_exists('fingerprint', $data) && !empty($data['fingerprint'])) ||
             !(array_key_exists('public_key', $data) && !empty($data['public_key'])) ||
             !(array_key_exists('private_key', $data) && !empty($data['private_key'])) ||
             !(array_key_exists('revocation_certificate', $data) && !empty($data['revocation_certificate']))
@@ -76,6 +77,7 @@ class AuthController extends AbstractController
         $email = strtolower($data['email']);
         $name = $data['name'];
         $password = $data['password'];
+        $fingerprint = $data['fingerprint'];
         $publicKey = $data['public_key'];
         $privateKey = $data['private_key'];
         $revocationCertificate = $data['revocation_certificate'];
@@ -84,6 +86,7 @@ class AuthController extends AbstractController
         $user->setEmail(($email));
         $user->setName($name);
         $user->setPassword($password);
+        $user->setFingerprint($fingerprint);
         $user->setPublicKey($publicKey);
         $user->setPrivateKey($privateKey);
         $user->setRevocationCertificate($revocationCertificate);
@@ -117,6 +120,7 @@ class AuthController extends AbstractController
             'hash' => $jwt,
             'last_seen' => $lastSeen,
             'conferences_count' => $conferencesCount,
+            'fingerprint' => $fingerprint,
             'public_key' => $publicKey,
             'private_key' => $privateKey,
             'revocation_certificate' => $revocationCertificate
@@ -197,6 +201,7 @@ class AuthController extends AbstractController
         $hash = $user->getPassword();
         $lastSeen = (float) $user->getLastSeen()->format('U.u');
         $conferencesCount = $user->getConferencesCount();
+        $fingerprint = $user->getFingerprint();
         $publicKey = $user->getPublicKey();
         $privateKey = $user->getPrivateKey();
         $revocationCertificate = $user->getRevocationCertificate();
@@ -210,6 +215,7 @@ class AuthController extends AbstractController
             'hash' => $jwt,
             'last_seen' => $lastSeen,
             'conferences_count' => $conferencesCount,
+            'fingerprint' => $fingerprint,
             'public_key' => $publicKey,
             'private_key' => $privateKey,
             'revocation_certificate' => $revocationCertificate

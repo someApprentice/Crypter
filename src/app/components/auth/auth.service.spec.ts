@@ -69,6 +69,7 @@ describe('AuthService', () => {
     let email = 'tester@crypter.com';
     let name = 'Tester';
     let password = 'password';
+    let fingerprint = '0eebcee99c36adec3a1b824320702715426e2e7c';
     let publicKey = '-----BEGIN PGP PUBLIC KEY BLOCK ... ';
     let privateKey = '-----BEGIN PGP PRIVATE KEY BLOCK ... ';
     let revocationCertificate = '-----BEGIN PGP PUBLIC KEY BLOCK ... ';
@@ -78,12 +79,13 @@ describe('AuthService', () => {
       email,
       name,
       hash: 'BmsjIrAJvqz9V3HD8GlQwMXKMJ4Qm_NHLOQWiUZO_HY',
+      fingerprint,
       public_key: publicKey,
       private_key: privateKey,
       revocation_certificate: revocationCertificate
     }
 
-    service.registrate(email, name, password, publicKey, privateKey, revocationCertificate).subscribe(d => {
+    service.registrate(email, name, password, fingerprint, publicKey, privateKey, revocationCertificate).subscribe(d => {
       expect(d).toEqual(user);
     });
 

@@ -19,6 +19,7 @@ class User(Base):
     hash = Column(VARCHAR(60), nullable=False)
     last_seen = Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.datetime.utcnow)
     conferences_count = Column(INTEGER, nullable=False, default=0)
+    fingerprint = Column(VARCHAR(255), nullable=False)
     public_key = Column(TEXT, nullable=False)
     private_key = Column(TEXT, nullable=False)
     revocation_certificate = Column(TEXT, nullable=False)

@@ -59,6 +59,14 @@ class User implements UserInterface
     private $conferencesCount = 0;
 
     /**
+     * @ORM\Column(type="string")
+     *
+     * @Assert\NotBlank
+     * @Assert\Type("string")
+     */
+    private $fingerprint;
+
+    /**
      * @ORM\Column(name="public_key", type="text")
      *
      * @Assert\NotBlank
@@ -196,6 +204,18 @@ class User implements UserInterface
     public function setConferencesCount(int $conferencesCount): self
     {
         $this->conferencesCount = $conferencesCount;
+
+        return $this;
+    }
+
+    public function getFingerprint(): string
+    {
+        return $this->fingerprint;
+    }
+
+    public function setFingerprint(string $fingerprint): self
+    {
+        $this->fingerprint = $fingerprint;
 
         return $this;
     }

@@ -58,6 +58,7 @@ async def connect(sid, environ):
         'hash': token,
         'last_seen': user.last_seen.timestamp(),
         'conferences_count': user.conferences_count,
+        'fingerprint': user.fingerprint,
         'public_key': user.public_key,
         'private_key': user.private_key,
         'revocation_certificate': user.revocation_certificate
