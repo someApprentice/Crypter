@@ -1,3 +1,5 @@
+import { environment } from '../../environments/environment';
+
 import { Injectable, OnDestroy } from '@angular/core';
 
 import { Observable, from, concat, zip } from 'rxjs';
@@ -21,7 +23,7 @@ export class CrypterService implements OnDestroy {
   }> {
     let options = {
       userIds: [{ name, email }],
-      rsaBits: 4096,
+      rsaBits: environment.rsa_bits,
       passphrase
     };
 

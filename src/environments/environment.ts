@@ -8,6 +8,7 @@ export const environment = {
   socket_url: 'http://localhost',
   socket_path: '/ws',
   batch_size: 20,
+  rsa_bits: 2048,
   recaptcha_url: 'https://www.google.com/recaptcha/api.js?onload=gRecaptchaOnLoad&render=explicit&hl=en',
   recaptcha_sitekey: ''
 };

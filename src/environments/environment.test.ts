@@ -3,7 +3,10 @@ export const environment = {
   test: true,
   socket_url: 'http://localhost',
   socket_path: '/ws',
-  batch_size: 20
+  batch_size: 20,
+  rsa_bits: 2048,
+  recaptcha_url: 'https://www.google.com/recaptcha/api.js?onload=gRecaptchaOnLoad&render=explicit&hl=en',
+  recaptcha_sitekey: ''
 };
 
 // ignore zone.js errors 
