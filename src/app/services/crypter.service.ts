@@ -13,7 +13,12 @@ export class CrypterService implements OnDestroy {
     initWorker({ path: 'openpgp.worker.min.js' });
   }
   
-  generateKey(name: string, email: string, passphrase: string): Observable<any> {
+  generateKey(name: string, email: string, passphrase: string): Observable<{
+    key: key.Key,
+    privateKeyArmored: string,
+    publicKeyArmored: string,
+    revocationCertificate: string
+  }> {
     let options = {
       userIds: [{ name, email }],
       rsaBits: 4096,
@@ -49,7 +54,7 @@ export class CrypterService implements OnDestroy {
     );
   } 
 
-  decrypt(encrypted: string, privateKey: string): Observable<any> {
+  decrypt(encrypted: string, privateKey: string): Observable<string> {
     let message$ = from(message.readArmored(encrypted));
 
     let privateKeyObj$ = from(key.readArmored(privateKey)).pipe(map(k => k.keys[0]));
@@ -57,7 +62,7 @@ export class CrypterService implements OnDestroy {
     return zip(message$, privateKeyObj$).pipe(
       map(([ message, privateKeys ]) => ({ message, privateKeys })),
       switchMap(options => from(decrypt(options))),
-      map(decrypted => decrypted.data)
+      map(decrypted => decrypted.data as string)
     );
   }
 
