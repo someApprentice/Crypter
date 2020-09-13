@@ -233,6 +233,85 @@ class AuthController extends AbstractController
     }
 
     /**
+     * @Route("/api/auth/change_password", methods={"POST"}, name="change_password")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function changePassword(Request $request): Response
+    {
+        // x-www-urlencoded or json
+        $data = empty($request->request->all()) ? json_decode($request->getContent(), $assoc = true) : $request->request->all();
+
+        if (
+            !(array_key_exists('current_password', $data) && !empty($data['current_password'])) ||
+            !(array_key_exists('new_password', $data) && !empty($data['new_password'])) ||
+            !(array_key_exists('new_private_key', $data) && !empty($data['new_private_key']))
+        ) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $user = $this->getUser();
+
+        $currentPassword = $data['current_password'];
+        $newPassword = $data['new_password'];
+        $newPrivateKey = $data['new_private_key'];
+
+        if (password_verify($currentPassword, $user->getPassword())) {
+            $user->setPassword($newPassword);
+            $user->setPrivateKey($newPrivateKey);
+
+            $errors = $this->validator->validate($user);
+
+            if (count($errors) > 0) {
+                return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+            }
+
+            $user->setPassword($this->passwordEncoder->encodePassword($user, $newPassword));
+
+            $this->em->persist($user);
+            $this->em->flush();
+
+            $uuid = $user->getUuid();
+            $email = $user->getEmail();
+            $name = $user->getName();
+            $hash = $user->getPassword();
+            $lastSeen = (float) $user->getLastSeen()->format('U.u');
+            $conferencesCount = $user->getConferencesCount();
+            $fingerprint = $user->getFingerprint();
+            $publicKey = $user->getPublicKey();
+            $privateKey = $user->getPrivateKey();
+            $revocationCertificate = $user->getRevocationCertificate();
+
+            $jwt = JWT::encode(['uuid' => $uuid, 'hash' => $hash], $this->getParameter('JWT_SECRET'));
+
+            $response = new JsonResponse([
+                'uuid' => $uuid,
+                'email' => $email,
+                'name' => $name,
+                'hash' => $jwt,
+                'last_seen' => $lastSeen,
+                'conferences_count' => $conferencesCount,
+                'fingerprint' => $fingerprint,
+                'public_key' => $publicKey,
+                'private_key' => $privateKey,
+                'revocation_certificate' => $revocationCertificate
+            ]);
+
+            // @TODO set secure flag to true when https will be implemented
+            $response->headers->setCookie(new Cookie('uuid', $uuid, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+            $response->headers->setCookie(new Cookie('email', $email, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+            $response->headers->setCookie(new Cookie('name', $name, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+            $response->headers->setCookie(new Cookie('hash', $jwt, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+            $response->headers->setCookie(new Cookie('last_seen', $lastSeen, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+            $response->headers->setCookie(new Cookie('conferences_count', $conferencesCount, $expire = strtotime('+1 year'), $path = '/', $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null));
+
+            return $response;
+        }
+
+        return new Response('Current password is wrong', Response::HTTP_FORBIDDEN);
+    }
+
+    /**
       * @Route("/api/auth/logout", methods={"POST"}, name="logout")
       *
       * @IsGranted("ROLE_USER")
@@ -242,6 +321,44 @@ class AuthController extends AbstractController
          // controller can be blank: it will never be executed!
          throw new \Exception('Don\'t forget to activate logout in security.yaml');
      }
+
+    /**
+     * @Route("/api/auth/self", name="self")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getSelf(Request $request): Response
+    {
+        $user = $this->getUser();
+
+        $uuid = $user->getUuid();
+        $email = $user->getEmail();
+        $name = $user->getName();
+        $hash = $user->getPassword();
+        $lastSeen = (float) $user->getLastSeen()->format('U.u');
+        $conferencesCount = $user->getConferencesCount();
+        $fingerprint = $user->getFingerprint();
+        $publicKey = $user->getPublicKey();
+        $privateKey = $user->getPrivateKey();
+        $revocationCertificate = $user->getRevocationCertificate();
+
+        $jwt = JWT::encode(['uuid' => $uuid, 'hash' => $hash], $this->getParameter('JWT_SECRET'));
+
+        $json = [
+            'uuid' => $uuid,
+            'email' => $email,
+            'name' => $name,
+            'hash' => $jwt,
+            'last_seen' => $lastSeen,
+            'conferences_count' => $conferencesCount,
+            'fingerprint' => $fingerprint,
+            'public_key' => $publicKey,
+            'private_key' => $privateKey,
+            'revocation_certificate' => $revocationCertificate
+        ];
+
+        return new JsonResponse($json);
+    }
 
     /**
       * @Route("/api/auth/user/{uuid}", name="get_user")

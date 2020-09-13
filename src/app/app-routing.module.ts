@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
 import { MainComponent } from './components/main/main.component';
+import { SettingsComponent } from './components/messenger/settings/settings.component';
 import { ConferencesComponent } from './components/messenger/conferences/conferences.component';
 import { PrivateConferenceComponent } from './components/messenger/conferences/conference/private/private-conference.component';
 import { SecretConferenceComponent } from './components/messenger/conferences/conference/secret/secret-conference.component';
@@ -17,8 +18,9 @@ const routes: Routes = [
     children: [
       { path: '', component: ConferencesComponent, data: { animation: 'ConferencesPage' } },
       { path: 'conference/u/:uuid', component: PrivateConferenceComponent, data: { animation: 'PrivateConferencePage' } },
-      { path: 'conference/s/:uuid', component: SecretConferenceComponent, data: { animation: 'SecretConferencePage' } }
+      { path: 'conference/s/:uuid', component: SecretConferenceComponent, data: { animation: 'SecretConferencePage' } },
       // { path: 'conference/p/:uuid', component: PublicConferenceComponent }
+      { path: 'settings', component: SettingsComponent },
     ]
   },
   { path: '**', component: NotFoundComponent},

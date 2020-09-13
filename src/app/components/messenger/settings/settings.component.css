@@ -1,0 +1,10 @@
+code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (min-width: 1200px) {
+    .settings {
+        border-radius: 0.25rem !important;
+    }
+}

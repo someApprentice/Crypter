@@ -48,7 +48,7 @@ async def connect(sid, environ):
 
     user = database.session.query(User).get(payload['uuid'])
 
-    if not user or user.hash != payload['hash']:
+    if not user:
         raise ConnectionRefusedError('Access denied: Matches not found')
 
     json = {

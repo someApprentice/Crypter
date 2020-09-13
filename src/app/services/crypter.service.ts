@@ -5,7 +5,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { Observable, from, concat, zip } from 'rxjs';
 import { map, reduce, switchMap, delayWhen } from 'rxjs/operators';
 
-import { initWorker, key, message, generateKey, encrypt, decrypt, destroyWorker } from 'openpgp';
+import { initWorker, config, key, message, generateKey, encrypt, decrypt, destroyWorker } from 'openpgp';
 
 @Injectable({
   providedIn: 'root'
@@ -13,6 +13,9 @@ import { initWorker, key, message, generateKey, encrypt, decrypt, destroyWorker 
 export class CrypterService implements OnDestroy {
   constructor() {
     initWorker({ path: 'openpgp.worker.min.js' });
+
+    config.show_version = false;
+    config.show_comment = false;
   }
   
   generateKey(name: string, email: string, passphrase: string): Observable<{
@@ -34,6 +37,14 @@ export class CrypterService implements OnDestroy {
     return from(key.readArmored(privateKey)).pipe(
       map(k => k.keys[0]),
       delayWhen(privateKeyObj => from(privateKeyObj.decrypt(passphrase))),
+      map(k => k.armor())
+    );
+  }
+
+  changePassphrase(passphrase: string, decryptedPrivateKey: string): Observable<string> {
+    return from(key.readArmored(decryptedPrivateKey)).pipe(
+      map(k => k.keys[0]),
+      delayWhen(privateKeyObj => from(privateKeyObj.encrypt(passphrase))),
       map(k => k.armor())
     );
   }

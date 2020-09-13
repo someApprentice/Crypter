@@ -11,6 +11,7 @@ import { AutofocusModule } from '../../modules/autofocus/autofocus.module';
 import { MessengerRoutingModule } from './messenger-routing.module';
 
 import { MessengerComponent } from './messenger.component';
+import { SettingsComponent } from './settings/settings.component';
 import { ConferencesComponent } from './conferences/conferences.component';
 import { PrivateConferenceComponent } from './conferences/conference/private/private-conference.component';
 import { SecretConferenceComponent } from './conferences/conference/secret/secret-conference.component';
@@ -19,6 +20,7 @@ import { SearchUserComponent } from './search-user/search-user.component';
 @NgModule({
   declarations: [
     MessengerComponent,
+    SettingsComponent,
     ConferencesComponent,
     PrivateConferenceComponent,
     SecretConferenceComponent,

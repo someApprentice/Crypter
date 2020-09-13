@@ -88,6 +88,19 @@ export class AuthService {
     );
   }
 
+  changePassword(current_password: string, new_password: string, new_private_key: string): Observable<User> {
+    return this.http.post<User>(
+      `/api/auth/change_password`,
+      { current_password, new_password, new_private_key },
+      {
+        headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.hash}`, 'Content-Type': 'application/json' }),
+        withCredentials: true
+      }
+    ).pipe(
+      first()
+    );
+  }
+
   logout(): Observable<boolean> {
     // responseType: 'text' as 'json' https://github.com/angular/angular/issues/18586
     return this.http.post<any>(
@@ -101,6 +114,12 @@ export class AuthService {
       first(),
       map(d => true)
     )
+  }
+
+  getSelf(): Observable<User> {
+    return this.http.get<User>(`/api/auth/self`, { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.user.hash}` }) }).pipe(
+      first()
+    );
   }
 
   isEmailExist(email: string): Observable<boolean> {

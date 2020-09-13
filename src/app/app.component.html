@@ -6,6 +6,7 @@
     <li *ngIf="!authService.user" class="nav-item"><a routerLink="/registration" class="nav-link p-2">Registration</a></li>
   </ul>
 
+  <a *ngIf="authService.user" [routerLink]="['/settings']" role="button" class="btn btn-sm btn-outline-dark mx-1"><i class="glyphicon glyphicon-cog"></i></a>
   <app-logout *ngIf="authService.user"></app-logout>
 </nav>
 
