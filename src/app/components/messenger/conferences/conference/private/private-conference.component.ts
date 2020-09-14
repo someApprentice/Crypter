@@ -179,30 +179,6 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           }),
           takeUntil(this.unsubscribe$)
         ).subscribe((messages: Message[]) => {
-          // read & scroll down on init
-          if (!!messages.length) {
-            this.messagesList.changes.pipe(
-              first((ql: QueryList<ElementRef>) => !!ql.length),
-              takeUntil(this.unsubscribe$)
-            ).subscribe((ql: QueryList<ElementRef>) => {
-              if (!!this.messages.length) {
-                this.read$().subscribe();
-
-                let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.read);
-
-                if (unreadMessages.length === 0) {
-                  this.messagesList.last.nativeElement.scrollIntoView();
-                }
-
-                if (!!unreadMessages.length) {
-                  let firstUnreadMessage = this.messagesList.find(el => el.nativeElement.getAttribute('data-uuid') === unreadMessages[0].uuid);
-
-                  firstUnreadMessage.nativeElement.scrollIntoView();
-                }
-              }
-            });
-          }
-
           this.messages = messages.reduce((acc, cur) => {
             if (acc.find((m: Message) => m.uuid === cur.uuid)) {
               acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -259,28 +235,6 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           takeUntil(this.unsubscribe$)
         ).subscribe({
           next: (messages: Message[]) => {
-            // read & scroll down on init
-            if (!!messages.length) {
-              this.messagesList.changes.pipe(
-                first((ql: QueryList<ElementRef>) => !!ql.length),
-                takeUntil(this.unsubscribe$)
-              ).subscribe((ql: QueryList<ElementRef>) => {
-                this.read$().subscribe();
-
-                let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.read);
-
-                if (unreadMessages.length === 0) {
-                  this.messagesList.last.nativeElement.scrollIntoView();
-                }
-
-                if (!!unreadMessages.length) {
-                  let firstUnreadMessage = this.messagesList.find(el => el.nativeElement.getAttribute('data-uuid') === unreadMessages[0].uuid);
-
-                  firstUnreadMessage.nativeElement.scrollIntoView();
-                }
-              });
-            }
-
             this.messages = messages.reduce((acc, cur) => {
               if (acc.find((m: Message) => m.uuid === cur.uuid)) {
                 acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -586,8 +540,43 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     );
   }
 
+  scrollDown(): void {
+    let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.read);
+
+    if (unreadMessages.length === 0) {
+      this.messagesList.last.nativeElement.scrollIntoView();
+    }
+
+    if (!!unreadMessages.length) {
+      let firstUnreadMessage = this.messagesList.find(el => el.nativeElement.getAttribute('data-uuid') === unreadMessages[0].uuid);
+
+      firstUnreadMessage.nativeElement.scrollIntoView();
+    }
+  }
+
   ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
+      // read & scroll down on init
+      if (!!this.messagesList.length) {
+        this.scrollDown();
+
+        this.read$().subscribe();
+      }
+
+      if (!this.messagesList.length) {
+        this.messagesList.changes.pipe(
+          first((ql: QueryList<ElementRef>) => !!ql.length),
+          tap(() => this.scrollDown()),
+          switchMap((ql: QueryList<ElementRef>) => merge(
+            this.read$().pipe(
+              ignoreElements()
+            ),
+            of(ql)
+          )),
+          takeUntil(this.unsubscribe$)
+        ).subscribe();
+      }
+
       // autoscroll on new message
       this.messagesList.changes.pipe(
         takeUntil(this.unsubscribe$)
@@ -606,8 +595,6 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           }
         }
       });
-
-      this.read$().subscribe();
 
       fromEvent(this.startSecretChat.nativeElement as HTMLElement, 'click').pipe(
         tap(() => this.isSecretChatLoading = true),
