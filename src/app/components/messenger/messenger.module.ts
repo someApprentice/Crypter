@@ -16,6 +16,8 @@ import { ConferencesComponent } from './conferences/conferences.component';
 import { PrivateConferenceComponent } from './conferences/conference/private/private-conference.component';
 import { SecretConferenceComponent } from './conferences/conference/secret/secret-conference.component';
 import { SearchUserComponent } from './search-user/search-user.component';
+import { SanitizePipe } from '../../pipes/ng/sanitize/sanitize.pipe';
+import { LinkifyPipe } from '../../pipes/ng/linkify/linkify.pipe';
 
 @NgModule({
   declarations: [
@@ -24,7 +26,9 @@ import { SearchUserComponent } from './search-user/search-user.component';
     ConferencesComponent,
     PrivateConferenceComponent,
     SecretConferenceComponent,
-    SearchUserComponent
+    SearchUserComponent,
+    SanitizePipe,
+    LinkifyPipe,
   ],
   imports: [
     CommonModule,
