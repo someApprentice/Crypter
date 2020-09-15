@@ -346,23 +346,32 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     if (!this.isOldMessagesLoading) {
       this.isOldMessagesLoading = true;
 
+      let firstMessage = this.messages[0];
+
       this.repositoryService.getOldMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+        switchMap((messages: Message[]) => {
+          if (!!messages.length) {
+            return merge(
+              // scroll to the first message before request in case if a scroll was at the very top
+              this.messagesList.changes.pipe(
+                first((ql: QueryList<ElementRef>) => ql.first.nativeElement.getAttribute('data-uuid') === messages[0].uuid),
+                tap((ql: QueryList<ElementRef>) => {
+                  if (this.scroller.nativeElement.scrollTop === 0) {
+                    let firstMessageBeforeRequest = ql.find(el => el.nativeElement.getAttribute('data-uuid') === firstMessage.uuid);
+
+                    firstMessageBeforeRequest.nativeElement.scrollIntoView();
+                  }
+                }),
+                ignoreElements()
+              ),
+              of(messages)
+            );
+          }
+
+          return of(messages);
+        }),
         takeUntil(this.unsubscribe$)
       ).subscribe((messages: Message[]) => {
-        // scroll to the last obtained message in case if a scroll was at the very top
-        if (!!messages.length) {
-          this.messagesList.changes.pipe(
-            first((ql: QueryList<ElementRef>) => ql.first.nativeElement.getAttribute('data-uuid') === messages[0].uuid),
-            takeUntil(this.unsubscribe$)
-          ).subscribe((ql: QueryList<ElementRef>) => {
-            if (this.scroller.nativeElement.scrollTop === 0) {
-              let lastMessage = ql.find(el => el.nativeElement.getAttribute('data-uuid') === messages[messages.length - 1].uuid);
-
-              lastMessage.nativeElement.scrollIntoView();
-            }
-          });
-        }
-
         this.messages = messages.reduce((acc, cur) => {
           if (acc.find((m: Message) => m.uuid === cur.uuid)) {
             acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
@@ -391,23 +400,32 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     if (!this.isNewMessagesLoading) {
       this.isNewMessagesLoading = true;
 
+      let lastMessage = this.messages[this.messages.length - 1];
+
       this.repositoryService.getNewMessagesByParticipant(this.participant.uuid, timestamp).pipe(
+        switchMap((messages: Message[]) => {
+          if (!!messages.length) {
+            return merge(
+              // scroll to the last message before request in case if a scroll was at the very bottom
+              this.messagesList.changes.pipe(
+                first((ql: QueryList<ElementRef>) => !!ql.find(el => el.nativeElement.getAttribute('data-uuid') === messages[0].uuid)),
+                tap((ql: QueryList<ElementRef>) => {
+                  if (this.isScrolledDown) {
+                    let lastMessageBeforeRequest = ql.find(el => el.nativeElement.getAttribute('data-uuid') === lastMessage.uuid);
+
+                    lastMessageBeforeRequest.nativeElement.scrollIntoView({ block: 'end' });
+                  }
+                }),
+                ignoreElements()
+              ),
+              of(messages)
+            );
+          }
+
+          of(messages);
+        }),
         takeUntil(this.unsubscribe$)
       ).subscribe((messages: Message[]) => {
-        // scroll to the first obtained message in case if a scroll was at the very bottom
-        if (!!messages.length) {
-          this.messagesList.changes.pipe(
-            first((ql: QueryList<ElementRef>) => !!ql.find(el => el.nativeElement.getAttribute('data-uuid') === messages[0].uuid)),
-            takeUntil(this.unsubscribe$)
-          ).subscribe((ql: QueryList<ElementRef>) => {
-            if (this.isScrolledDown) {
-              let firstMessage = ql.find(el => el.nativeElement.getAttribute('data-uuid') === messages[0].uuid);
-
-              firstMessage.nativeElement.scrollIntoView({ block: 'end' });
-            }
-          });
-        }
-
         this.messages = messages.reduce((acc, cur) => {
           if (acc.find((m: Message) => m.uuid === cur.uuid)) {
             acc[acc.findIndex((m: Message) => m.uuid === cur.uuid)] = cur;
