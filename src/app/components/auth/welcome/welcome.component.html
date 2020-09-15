@@ -14,7 +14,7 @@
         >
 
         <button type="submit" name="next" [disabled]="!form.valid" class="btn btn-outline-primary mx-1">
-            <span>Next</span>
+            <span *ngIf="!pending">Next</span>
             <span *ngIf="pending" class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>
         </button>
     </form>

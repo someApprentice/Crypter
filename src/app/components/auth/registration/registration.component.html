@@ -68,8 +68,8 @@
         <div *ngIf="environments.production" gRecaptcha [key]="environments.recaptcha_sitekey" formControlName="recaptcha" class="my-2"></div>
 
         <button type="submit" name="registrate" [disabled]="!form.valid" class="btn btn-outline-primary btn-block">
-            <span>Registrate</span>
-            <span *ngIf="pending" class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>
+            <span *ngIf="!pending">Registrate</span>
+            <span *ngIf="pending"><span class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>&#160;<span class="ellipsis">Generating keys</span></span>
         </button>
     </form>
 </div>

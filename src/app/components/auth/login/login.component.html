@@ -36,7 +36,7 @@
         <div *ngIf="environments.production" gRecaptcha [key]="environments.recaptcha_sitekey" formControlName="recaptcha" class="my-2"></div>
 
         <button type="submit" name="login" [disabled]="!form.valid" class="btn btn-outline-primary btn-block">
-            <span>Log In</span>
+            <span *ngIf="!pending">Log In</span>
             <span *ngIf="pending" class="spinner-border spinner-border-sm mx-1" role="status" aria-hidden="true"></span>
         </button> 
     </form>
