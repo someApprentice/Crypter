@@ -45,6 +45,8 @@ class PopulateCommand extends Command
 
         $output->writeln('Populate Alice');
 
+        $aliceFingerprint = "C5190AC53244CC10793AD67CFAF83C102BD66F1A";
+
         // should probably be somewhere in a file
         $alicePublicKey = <<<EOT
 -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -166,6 +168,7 @@ EOT;
                     'email' => 'alice@crypter.com',
                     'name' => 'Alice',
                     'password' => 'password',
+                    'fingerprint' => $aliceFingerprint,
                     'public_key' => $alicePublicKey,
                     'private_key' => $alicePrivateKey,
                     'revocation_certificate' => $aliceRevocationCertificate
@@ -181,6 +184,8 @@ EOT;
 
 
         $output->writeln('Populate Bob');
+
+        $bobFingerprint = "1BFD23F03D7427D9179ADA856C708B0738ADD36A";
 
         $bobPublicKey = <<<EOT
 -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -300,6 +305,7 @@ EOT;
                     'email' => 'bob@crypter.com',
                     'name' => 'Bob',
                     'password' => 'password',
+                    'fingerprint' => $bobFingerprint,
                     'public_key' => $bobPublicKey,
                     'private_key' => $bobPrivateKey,
                     'revocation_certificate' => $bobRevocationCertificate
@@ -315,6 +321,8 @@ EOT;
 
 
         $output->writeln('Populate Tester');
+
+        $testerFingerprint = "B3CE2A8007FABA8C01D61508AD865D582D71D5A6";
 
         $testerPublicKey = <<<EOT
 -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -437,6 +445,7 @@ EOT;
                     'email' => 'tester@crypter.com',
                     'name' => 'Tester',
                     'password' => 'password',
+                    'fingerprint' => $testerFingerprint,
                     'public_key' => $testerPublicKey,
                     'private_key' => $testerPrivateKey,
                     'revocation_certificate' => $testerRevocationCertificate
