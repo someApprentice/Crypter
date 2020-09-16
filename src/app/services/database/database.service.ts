@@ -1447,6 +1447,189 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
+  getUnreadMessagesWithMessagesBeforeByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
+
+        let conferenceIndex: IDBIndex = conferencesStore.index('participant');
+        let messagesIndex: IDBIndex = messagesStore.index('date');
+
+        let i = 0;
+        let j = 0;
+
+        let c: ConferenceSchema|undefined;
+        let p: UserSchema|undefined;
+        let msb: MessageSchema[] = [] as MessageSchema[];
+        let ums: MessageSchema[] = [] as MessageSchema[];
+        let as: UserSchema[] = [] as UserSchema[];
+
+        let messagesBefore: Message[] = [] as Message[];
+        let unreadMessages: Message[] = [] as Message[];
+
+        let messages: Message[] = [] as Message[];
+
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+
+        transaction.onabort = (e: Event) => {
+          subscriber.error(e);
+        };
+
+        conferenceIndex
+          .openCursor(IDBKeyRange.only(uuid))
+          .onsuccess = (e: Event) => {
+            let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+            if (!cursor)
+              return;
+
+            if (cursor.value.type !== 'private') {
+              cursor.continue();
+
+              return;
+            }
+
+            c = cursor.value;
+
+            usersStore.get(c.participant).onsuccess = (e: Event) => {
+              if (!(e.target as IDBRequest).result) {
+                transaction.abort();
+
+                return;
+              }
+
+              p = (e.target as IDBRequest).result;
+            };
+
+            messagesIndex
+              .openCursor(IDBKeyRange.lowerBound(timestamp, true)) 
+              .onsuccess = (e: Event) => {
+                let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+                if (!cursor || i === limit) {
+                  if (!!ums.length) {
+                    messagesIndex
+                      .openCursor(IDBKeyRange.upperBound(ums[0].date, true), 'prev') 
+                      .onsuccess = (e: Event) => {
+                        let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+                        if (!cursor || j === limit)
+                          return;
+
+                        let m: MessageSchema = cursor.value;
+
+                        if (m.conference !== c.uuid) {
+                          cursor.continue();
+
+                          return;
+                        }
+
+                        msb.unshift(m);
+
+                        usersStore.get(m.author).onsuccess = (e: Event) => {
+                          if (!(e.target as IDBRequest).result) {
+                            transaction.abort();
+
+                            return;
+                          }
+
+                          let a: UserSchema = (e.target as IDBRequest).result;
+
+                          as.unshift(a);
+                        };
+
+                        j++;
+
+                        cursor.continue();
+                      };
+                  }
+
+                  return;
+                }
+
+                let m: MessageSchema = cursor.value;
+
+                if (m.conference !== c.uuid || m.read) {
+                  cursor.continue();
+
+                  return;
+                }
+
+                ums.push(m);
+
+                usersStore.get(m.author).onsuccess = (e: Event) => {
+                  if (!(e.target as IDBRequest).result) {
+                    transaction.abort();
+
+                    return;
+                  }
+
+                  let a: UserSchema = (e.target as IDBRequest).result;
+
+                  as.push(a);
+                };
+
+                i++;
+
+                cursor.continue();
+              };
+          };
+
+        transaction.oncomplete = (e: Event) => {
+          unreadMessages = ums.map((m: MessageSchema) => {
+            let participant: User = p;
+
+            let conference: Conference = {
+              ...omit(c, [ 'participant', 'last_message' ]),
+              participant
+            };
+
+            let author: User = as.find((a: UserSchema) => a.uuid === m.author);
+
+            let message: Message = {
+              ...m,
+              conference,
+              author
+            };
+
+            return message;
+          });
+
+          messagesBefore = msb.map((m: MessageSchema) => {
+            let participant: User = p;
+
+            let conference: Conference = {
+              ...omit(c, [ 'participant', 'last_message' ]),
+              participant
+            };
+
+            let author: User = as.find((a: UserSchema) => a.uuid === m.author);
+
+            let message: Message = {
+              ...m,
+              conference,
+              author
+            };
+
+            return message;
+          });
+
+          messages = messagesBefore.concat(unreadMessages);
+
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
+    );
+  }
+
   getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.db$.pipe(
       switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
@@ -1923,6 +2106,189 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
+  getUnreadSecretMessagesWithMessagesBeforeByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
+
+        let conferenceIndex: IDBIndex = conferencesStore.index('participant');
+        let messagesIndex: IDBIndex = messagesStore.index('date');
+
+        let i = 0;
+        let j = 0;
+
+        let c: ConferenceSchema|undefined;
+        let p: UserSchema|undefined;
+        let msb: MessageSchema[] = [] as MessageSchema[];
+        let ums: MessageSchema[] = [] as MessageSchema[];
+        let as: UserSchema[] = [] as UserSchema[];
+
+        let messagesBefore: Message[] = [] as Message[];
+        let unreadMessages: Message[] = [] as Message[];
+
+        let messages: Message[] = [] as Message[];
+
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+
+        transaction.onabort = (e: Event) => {
+          subscriber.error(e);
+        };
+
+        conferenceIndex
+          .openCursor(IDBKeyRange.only(uuid))
+          .onsuccess = (e: Event) => {
+            let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+            if (!cursor)
+              return;
+
+            if (cursor.value.type !== 'secret') {
+              cursor.continue();
+
+              return;
+            }
+
+            c = cursor.value;
+
+            usersStore.get(c.participant).onsuccess = (e: Event) => {
+              if (!(e.target as IDBRequest).result) {
+                transaction.abort();
+
+                return;
+              }
+
+              p = (e.target as IDBRequest).result;
+            };
+
+            messagesIndex
+              .openCursor(IDBKeyRange.lowerBound(timestamp, true)) 
+              .onsuccess = (e: Event) => {
+                let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+                if (!cursor || i === limit) {
+                  if (!!ums.length) {
+                    messagesIndex
+                      .openCursor(IDBKeyRange.upperBound(ums[ums.length - 1].date, true), 'prev') 
+                      .onsuccess = (e: Event) => {
+                        let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+                        if (!cursor || j === limit)
+                          return;
+
+                        let m: MessageSchema = cursor.value;
+
+                        if (m.conference !== c.uuid) {
+                          cursor.continue();
+
+                          return;
+                        }
+
+                        msb.unshift(m);
+
+                        usersStore.get(m.author).onsuccess = (e: Event) => {
+                          if (!(e.target as IDBRequest).result) {
+                            transaction.abort();
+
+                            return;
+                          }
+
+                          let a: UserSchema = (e.target as IDBRequest).result;
+
+                          as.unshift(a);
+                        };
+
+                        j++;
+
+                        cursor.continue();
+                      };
+                  }
+
+                  return;
+                }
+
+                let m: MessageSchema = cursor.value;
+
+                if (m.conference !== c.uuid || m.read) {
+                  cursor.continue();
+
+                  return;
+                }
+
+                ums.push(m);
+
+                usersStore.get(m.author).onsuccess = (e: Event) => {
+                  if (!(e.target as IDBRequest).result) {
+                    transaction.abort();
+
+                    return;
+                  }
+
+                  let a: UserSchema = (e.target as IDBRequest).result;
+
+                  as.push(a);
+                };
+
+                i++;
+
+                cursor.continue();
+              };
+          };
+
+        transaction.oncomplete = (e: Event) => {
+          messagesBefore = msb.map((m: MessageSchema) => {
+            let participant: User = p;
+
+            let conference: Conference = {
+              ...omit(c, [ 'participant', 'last_message' ]),
+              participant
+            };
+
+            let author: User = as.find((a: UserSchema) => a.uuid === m.author);
+
+            let message: Message = {
+              ...m,
+              conference,
+              author
+            };
+
+            return message;
+          });
+
+          unreadMessages = ums.map((m: MessageSchema) => {
+            let participant: User = p;
+
+            let conference: Conference = {
+              ...omit(c, [ 'participant', 'last_message' ]),
+              participant
+            };
+
+            let author: User = as.find((a: UserSchema) => a.uuid === m.author);
+
+            let message: Message = {
+              ...m,
+              conference,
+              author
+            };
+
+            return message;
+          });
+
+          messages = messagesBefore.concat(unreadMessages);
+
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
+    );
+  }
+
   getOldSecretMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.db$.pipe(
       switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
@@ -2371,6 +2737,180 @@ export class DatabaseService implements OnDestroy {
 
             return message;
           });
+
+          messages.sort((a: Message, b: Message) => a.date - b.date);
+
+          subscriber.next(messages);
+          subscriber.complete();
+        };
+      }))
+    );
+  }
+
+  getUnreadMessagesWithMessagesBeforeByConference(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message[]>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
+
+        let index: IDBIndex = messagesStore.index('date');
+
+        let i = 0;
+        let j = 0;
+
+        let c: ConferenceSchema|undefined;
+        let p: UserSchema|undefined;
+        let msb: MessageSchema[] = [] as MessageSchema[];
+        let ums: MessageSchema[] = [] as MessageSchema[];
+        let as: UserSchema[] = [] as UserSchema[];
+
+        let messagesBefore: Message[] = [] as Message[];
+        let unreadMessages: Message[] = [] as Message[];
+
+        let messages: Message[] = [] as Message[];
+
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+
+        transaction.onabort = (e: Event) => {
+          subscriber.error(e);
+        };
+
+        conferencesStore.get(uuid).onsuccess = (e: Event) => {
+          c = (e.target as IDBRequest).result;
+
+          if (!c)
+            return;
+
+          if ('participant' in c) {
+            usersStore.get(c.participant).onsuccess = (e: Event) => {
+              if (!(e.target as IDBRequest).result) {
+                transaction.abort();
+
+                return;
+              }
+
+              p = (e.target as IDBRequest).result;
+            };
+          }
+
+          index
+            .openCursor(IDBKeyRange.lowerBound(timestamp, true))
+            .onsuccess = (e: Event) => {
+              let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+              if (!cursor || i === limit) {
+                if (!!ums.length) {
+                  index
+                    .openCursor(IDBKeyRange.upperBound(ums[ums.length - 1].date, true), 'prev')
+                    .onsuccess = (e: Event) => {
+                      let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
+
+                      if (!cursor || j === limit)
+                        return;
+
+                      let m: MessageSchema = cursor.value;
+
+                      if (m.conference !== c.uuid) {
+                        cursor.continue();
+
+                        return;
+                      }
+
+                      msb.unshift(m);
+
+                      usersStore.get(m.author).onsuccess = (e: Event) => {
+                        if (!(e.target as IDBRequest).result) {
+                          transaction.abort();
+
+                          return;
+                        }
+
+                        let a: UserSchema = (e.target as IDBRequest).result;
+
+                        as.unshift(a);
+                      };
+
+                      j++;
+
+                      cursor.continue();
+                    };
+                }
+
+                return;
+              }
+
+              let m: MessageSchema = cursor.value;
+
+              if (m.conference !== c.uuid || m.read) {
+                cursor.continue();
+
+                return;
+              }
+
+              ums.push(m);
+
+              usersStore.get(m.author).onsuccess = (e: Event) => {
+                if (!(e.target as IDBRequest).result) {
+                  transaction.abort();
+
+                  return;
+                }
+
+                let a: UserSchema = (e.target as IDBRequest).result;
+
+                as.push(a);
+              };
+
+              i++;
+
+              cursor.continue();
+            };
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          messagesBefore = msb.map((m: MessageSchema) => {
+            let participant: User = p;
+
+            let conference: Conference = {
+              ...omit(c, [ 'participant', 'last_message' ]),
+              participant
+            };
+
+            let author: User = as.find((a: UserSchema) => a.uuid === m.author);
+
+            let message: Message = {
+              ...m,
+              conference,
+              author
+            };
+
+            return message;
+          });
+
+          unreadMessages = ums.map((m: MessageSchema) => {
+            let participant: User = p;
+
+            let conference: Conference = {
+              ...omit(c, [ 'participant', 'last_message' ]),
+              participant
+            };
+
+            let author: User = as.find((a: UserSchema) => a.uuid === m.author);
+
+            let message: Message = {
+              ...m,
+              conference,
+              author
+            };
+
+            return message;
+          });
+
+          messages = messagesBefore.concat(unreadMessages);
 
           messages.sort((a: Message, b: Message) => a.date - b.date);
 

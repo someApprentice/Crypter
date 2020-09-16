@@ -602,6 +602,59 @@ export class RepositoryService implements OnDestroy {
     );
   }
 
+  getUnreadMessagesWithMessagesBeforeByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.databaseService.isSynchronized$.pipe(
+      first(),
+      switchMap((isSynchronized: boolean) => {
+        if (isSynchronized) {
+          return zip(
+            this.databaseService.getConferenceByParticipant(uuid),
+            this.databaseService.getUnreadMessagesWithMessagesBeforeByParticipant(uuid, timestamp, limit)
+          ).pipe(
+            switchMap(([ conference, messages ]) => {
+              if (
+                (messages.length === limit * 2 && (!!messages[messages.length - 1] && messages[messages.length - 1].uuid !== conference.last_message.uuid)) ||
+                messages.length === conference.messages_count
+              ) {
+                return of(messages);
+              }
+
+              return this.messengerService.getUnreadMessagesWithMessagesBeforeByParticipant(uuid, timestamp, limit).pipe(
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
+                catchError((err: HttpErrorResponse) => {
+                  // What status codes responsable for timeout errors? 408, 504 what else?
+                  if (err.status === 408 || err.status === 504)
+                    return of(messages);
+
+                  return throwError(err);
+                })
+              );
+            })
+          );
+        }
+
+        return this.messengerService.getUnreadMessagesWithMessagesBeforeByParticipant(uuid, timestamp, limit).pipe(
+          switchMap((messages: Message[]) => merge(
+            this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+            of(messages)
+          )),
+          catchError((err: HttpErrorResponse) => {
+            // What status codes responsable for timeout errors? 408, 504 what else?
+            if (err.status === 408 || err.status === 504)
+              return of([] as Message[]);
+
+            return throwError(err);
+          })
+        );
+      }),
+      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date)),
+      takeUntil(this.unsubscribe$)
+    );
+  }
+
   getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.databaseService.isSynchronized$.pipe(
       first(),
@@ -850,6 +903,83 @@ export class RepositoryService implements OnDestroy {
         }
 
         return this.messengerService.getUnreadSecretMessagesByParticipant(uuid, timestamp, limit).pipe(
+          delayWhen(() => this.databaseService.user$),
+          switchMap((messages: Message[]) => {
+            let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
+
+            return zip(from(messages), decrypted$).pipe(
+              reduce((acc, [ message, decrypted ]) => {
+                message.content = decrypted;
+
+                return [ ...acc, message ];
+              }, [] as Message[])
+            );
+          }),
+          switchMap((messages: Message[]) => merge(
+            this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+            of(messages)
+          )),
+          catchError((err: HttpErrorResponse) => {
+            // What status codes responsable for timeout errors? 408, 504 what else?
+            if (err.status === 408 || err.status === 504)
+              return of([] as Message[]);
+
+            return throwError(err);
+          })
+        );
+      }),
+      map((messages: Message[]) => messages.sort((a: Message, b: Message) => a.date - b.date)),
+      takeUntil(this.unsubscribe$)
+    );
+  }
+
+  getUnreadSecretMessagesWithMessagesBeforeByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.databaseService.isSynchronized$.pipe(
+      first(),
+      switchMap((isSynchronized: boolean) => {
+        if (isSynchronized) {
+          return zip(
+            this.databaseService.getSecretConferenceByParticipant(uuid),
+            this.databaseService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(uuid, timestamp, limit)
+          ).pipe(
+            switchMap(([ conference, messages ]) => {
+              if (
+                (messages.length === limit * 2 && (!!messages[messages.length - 1] && messages[messages.length - 1].uuid !== conference.last_message.uuid)) ||
+                messages.length === conference.messages_count
+              ) {
+                return of(messages);
+              }
+
+              return this.messengerService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(uuid, timestamp, limit).pipe(
+                delayWhen(() => this.databaseService.user$),
+                switchMap((messages: Message[]) => {
+                  let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));
+
+                  return zip(from(messages), decrypted$).pipe(
+                    reduce((acc, [ message, decrypted ]) => {
+                      message.content = decrypted;
+
+                      return [ ...acc, message ];
+                    }, [] as Message[])
+                  )
+                }),
+                switchMap((messages: Message[]) => merge(
+                  this.databaseService.bulkMessages(messages).pipe(ignoreElements()),
+                  of(messages)
+                )),
+                catchError((err: HttpErrorResponse) => {
+                  // What status codes responsable for timeout errors? 408, 504 what else?
+                  if (err.status === 408 || err.status === 504)
+                    return of(messages);
+
+                  return throwError(err);
+                })
+              );
+            })
+          );
+        }
+
+        return this.messengerService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(uuid, timestamp, limit).pipe(
           delayWhen(() => this.databaseService.user$),
           switchMap((messages: Message[]) => {
             let decrypted$ = concat(...messages.map(m => this.crypterService.decrypt(m.content, this.authService.user.private_key)));

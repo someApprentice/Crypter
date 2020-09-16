@@ -127,6 +127,15 @@ export class MessengerService {
     );
   }
 
+  getUnreadMessagesWithMessagesBeforeByConference(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.http.get<Message[]>(
+      `/api/messenger/unread_messages_with_messages_before/${uuid}?timestamp=${timestamp}&limit=${limit}`,
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
+    ).pipe(
+      first()
+    );
+  }
+
   getOldMessagesByConference(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/old_messages/${uuid}?timestamp=${timestamp}&limit=${limit}`,
@@ -163,6 +172,15 @@ export class MessengerService {
     );
   }
 
+  getUnreadMessagesWithMessagesBeforeByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.http.get<Message[]>(
+      `/api/messenger/unread_messages_with_messages_before_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
+    ).pipe(
+      first()
+    );
+  }
+
   getOldMessagesByParticipant(uuid: string, timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/old_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
@@ -193,6 +211,15 @@ export class MessengerService {
   getUnreadSecretMessagesByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
     return this.http.get<Message[]>(
       `/api/messenger/unread_secret_messages_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
+    ).pipe(
+      first()
+    );
+  }
+
+  getUnreadSecretMessagesWithMessagesBeforeByParticipant(uuid: string, timestamp: number = 0, limit: number = environment.batch_size): Observable<Message[]> {
+    return this.http.get<Message[]>(
+      `/api/messenger/unread_secret_messages_with_messages_before_by_participant/${uuid}?timestamp=${timestamp}&limit=${limit}`,
       { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` }) }
     ).pipe(
       first()

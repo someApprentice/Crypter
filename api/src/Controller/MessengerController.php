@@ -924,6 +924,101 @@ class MessengerController extends AbstractController
     }
 
     /**
+     * @Route("/api/messenger/unread_messages_with_messages_before/{conference}", name="get_unread_conference_messages_with_messages_before")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getUnreadConferenceMessagesWithMessagesBefore(Request $request, $conference): Response
+    {
+        // for some reason DateTime round milliseconds from unix timestamp
+        $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::createFromTimestampMs(0);
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
+
+        $user = $this->getUser();
+
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($conference, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
+
+        $conferenceReference = $this->em->getRepository(ConferenceReference::class)->findOneBy(['user' => $user->getUser(), 'conference' => $conference]);
+
+        if (!$conferenceReference) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $unreadMessages = $this->em->getRepository(Conference::class)->getUnreadMessages($conferenceReference->getConference(), $user, $limit);
+
+        $messagesBefore = [];
+
+        if (count($unreadMessages) > 0) {
+            $date = array_values(array_slice($unreadMessages, 0, 1))[0]->getDate();
+
+            $messagesBefore = $this->em->getRepository(Conference::class)->getMessages($conferenceReference->getConference(), $user, $date);
+        }
+
+        $messages = array_merge($messagesBefore, $unreadMessages);
+
+        $json = [];
+
+        $conference = [
+            'uuid' => $conferenceReference->getConference()->getUuid(),
+            'type' => $conferenceReference->getConference()->getType(),
+            'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+            'messages_count' => $conferenceReference->getMessagesCount(),
+            'unread_messages_count' => $conferenceReference->getUnreadMessagesCount()
+        ];
+
+        if ($participant = $conferenceReference->getParticipant()) {
+            $conference['participant'] = [
+                'uuid' => $participant->getUuid(),
+                'name' => $participant->getName(),
+                'public_key' => $participant->getPublicKey()
+            ];
+        }
+
+        $participants = $this->em->getRepository(Conference::class)->getParticipants($conferenceReference->getConference());
+
+        foreach ($participants as $participant) {
+            $conference['participants'][] = [
+                'uuid' => $participant->getUuid(),
+                'name' => $participant->getName(),
+                'public_key' => $participant->getPublicKey()
+            ];
+        }
+
+        foreach ($messages as $message) {
+            $author = $message->getAuthor();
+
+            $json[] = [
+                'uuid' => $message->getUuid(),
+                'author' => [
+                    'uuid' => $author->getUuid(),
+                    'name' => $author->getName(),
+                    'public_key' => $author->getPublicKey()
+                ],
+                'conference' => $conference,
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
+                'date' => (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
+            ];
+        }
+
+        usort($json, function($a, $b) {
+            return $a['date'] - $b['date'];
+        });
+
+        return new JsonResponse($json);
+    }
+
+    /**
      * @Route("/api/messenger/old_messages/{conference}", name="get_old_conference_messages")
      *
      * @IsGranted("ROLE_USER")
@@ -1213,6 +1308,107 @@ class MessengerController extends AbstractController
         }
 
         $messages = $this->em->getRepository(Conference::class)->getUnreadMessages($conferenceReference->getConference(), $user, $date, $limit);
+
+        $json = [];
+
+        $conference = [
+            'uuid' => $conferenceReference->getConference()->getUuid(),
+            'type' => $conferenceReference->getConference()->getType(),
+            'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+            'messages_count' => $conferenceReference->getMessagesCount(),
+            'unread_messages_count' => $conferenceReference->getUnreadMessagesCount()
+        ];
+
+        if ($participant = $conferenceReference->getParticipant()) {
+            $conference['participant'] = [
+                'uuid' => $participant->getUuid(),
+                'name' => $participant->getName(),
+                'public_key' => $participant->getPublicKey()
+            ];
+        }
+
+        $participants = $this->em->getRepository(Conference::class)->getParticipants($conferenceReference->getConference());
+
+        foreach ($participants as $participant) {
+            $conference['participants'][] = [
+                'uuid' => $participant->getUuid(),
+                'name' => $participant->getName(),
+                'public_key' => $participant->getPublicKey()
+            ];
+        }
+
+        foreach ($messages as $message) {
+            $author = $message->getAuthor();
+
+            $json[] = [
+                'uuid' => $message->getUuid(),
+                'author' => [
+                    'uuid' => $author->getUuid(),
+                    'name' => $author->getName(),
+                    'public_key' => $author->getPublicKey()
+                ],
+                'conference' => $conference,
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
+                'date' => (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
+            ];
+        }
+
+        usort($json, function($a, $b) {
+            return $a['date'] - $b['date'];
+        });
+
+        return new JsonResponse($json);
+    }
+
+    /**
+     * @Route("/api/messenger/unread_messages_with_messages_before_by_participant/{participant}", name="get_unread_conference_messages_with_messages_before_by_participant")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getUnreadConferenceMessagesWithMessagesBeforeByParticipant(Request $request, $participant): Response
+    {
+        // for some reason DateTime round milliseconds from unix timestamp
+        $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::createFromTimestampMs(0);
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
+
+        $user = $this->getUser();
+
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($participant, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
+
+        $participant = $this->em->getRepository(User::class)->find($participant);
+
+        if (!$participant) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $conferenceReference = $this->em->getRepository(ConferenceReference::class)->getConferenceByParticipant($participant->getUuid(), $user);
+
+        if (!$conferenceReference) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $unreadMessages = $this->em->getRepository(Conference::class)->getUnreadMessages($conferenceReference->getConference(), $user, $date, $limit);
+
+        $messagesBefore = [];
+
+        if (count($unreadMessages) > 0) {
+            $date = array_values(array_slice($unreadMessages, 0, 1))[0]->getDate();
+
+            $messagesBefore = $this->em->getRepository(Conference::class)->getMessages($conferenceReference->getConference(), $user, $date);
+        }
+
+        $messages = array_merge($messagesBefore, $unreadMessages);
 
         $json = [];
 
@@ -1571,6 +1767,107 @@ class MessengerController extends AbstractController
         }
 
         $messages = $this->em->getRepository(Conference::class)->getUnreadMessages($conferenceReference->getConference(), $user, $date, $limit);
+
+        $json = [];
+
+        $conference = [
+            'uuid' => $conferenceReference->getConference()->getUuid(),
+            'type' => $conferenceReference->getConference()->getType(),
+            'updated_at' => (float) $conferenceReference->getUpdatedAt()->format('U.u'),
+            'messages_count' => $conferenceReference->getMessagesCount(),
+            'unread_messages_count' => $conferenceReference->getUnreadMessagesCount()
+        ];
+
+        if ($participant = $conferenceReference->getParticipant()) {
+            $conference['participant'] = [
+                'uuid' => $participant->getUuid(),
+                'name' => $participant->getName(),
+                'public_key' => $participant->getPublicKey()
+            ];
+        }
+
+        $participants = $this->em->getRepository(Conference::class)->getParticipants($conferenceReference->getConference());
+
+        foreach ($participants as $participant) {
+            $conference['participants'][] = [
+                'uuid' => $participant->getUuid(),
+                'name' => $participant->getName(),
+                'public_key' => $participant->getPublicKey()
+            ];
+        }
+
+        foreach ($messages as $message) {
+            $author = $message->getAuthor();
+
+            $json[] = [
+                'uuid' => $message->getUuid(),
+                'author' => [
+                    'uuid' => $author->getUuid(),
+                    'name' => $author->getName(),
+                    'public_key' => $author->getPublicKey()
+                ],
+                'conference' => $conference,
+                'read' => $message->getRead(),
+                'readAt' => ($message->getReadAt()) ? (float) $message->getReadAt()->format('U.u') : $message->getReadAt(),
+                'date' => (float) $message->getDate()->format('U.u'),
+                'type' => $message->getType(),
+                'content' => $message->getContent(),
+                'consumed' => $message->getConsumed(),
+                'edited' => $message->getEdited()
+            ];
+        }
+
+        usort($json, function($a, $b) {
+            return $a['date'] - $b['date'];
+        });
+
+        return new JsonResponse($json);
+    }
+
+    /**
+     * @Route("/api/messenger/unread_secret_messages_with_messages_before_by_participant/{participant}", name="get_unread_secret_conference_messages_with_messages_before_by_participant")
+     *
+     * @IsGranted("ROLE_USER")
+     */
+    public function getUnreadSecretConferenceMessagesWithMessagesBeforeByParticipant(Request $request, $participant): Response
+    {
+        // for some reason DateTime round milliseconds from unix timestamp
+        $date = ($request->query->has('timestamp')) ? Carbon::createFromTimestampMs((float) $request->query->get('timestamp') * 1000) : Carbon::createFromTimestampMs(0);
+        $limit = ($request->query->has('limit')) ? $request->query->get('limit') : $this->getParameter('BATCH_SIZE');
+
+        $user = $this->getUser();
+
+        $validator = Validation::createValidator();
+
+        $errors = $validator->validate($participant, (new UuidConstraint()));
+
+        if (count($errors) > 0) {
+            return new Response((string) $errors, Response::HTTP_BAD_REQUEST);
+        }
+
+        $participant = $this->em->getRepository(User::class)->find($participant);
+
+        if (!$participant) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $conferenceReference = $this->em->getRepository(ConferenceReference::class)->getSecretConferenceByParticipant($participant->getUuid(), $user);
+
+        if (!$conferenceReference) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        $unreadMessages = $this->em->getRepository(Conference::class)->getUnreadMessages($conferenceReference->getConference(), $user, $date, $limit);
+
+        $messagesBefore = [];
+
+        if (count($unreadMessages) > 0) {
+            $date = array_values(array_slice($unreadMessages, 0, 1))[0]->getDate();
+
+            $messagesBefore = $this->em->getRepository(Conference::class)->getMessages($conferenceReference->getConference(), $user, $date);
+        }
+
+        $messages = array_merge($messagesBefore, $unreadMessages);
 
         $json = [];
 

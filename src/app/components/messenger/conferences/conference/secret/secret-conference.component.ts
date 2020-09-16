@@ -114,7 +114,7 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
             return of([] as Message[]);
 
           if (conference.unread_messages_count > environment.batch_size)
-            return this.messengerService.getUnreadSecretMessagesByParticipant(conference.participant.uuid);
+            return this.messengerService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
 
           return this.messengerService.getSecretMessagesByParticipant(conference.participant.uuid);
         })
@@ -197,7 +197,7 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
             this.isMessagesLoading = true;
 
             if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadSecretMessagesByParticipant(conference.participant.uuid);
+              return this.repositoryService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
 
             return this.repositoryService.getSecretMessagesByParticipant(conference.participant.uuid);
           }),
@@ -248,7 +248,7 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
               return of([] as Message[]);
 
             if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadSecretMessagesByParticipant(conference.participant.uuid);
+              return this.repositoryService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
 
             return this.repositoryService.getSecretMessagesByParticipant(conference.participant.uuid);
           }),

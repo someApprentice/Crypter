@@ -122,7 +122,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             return of([] as Message[]);
 
           if (conference.unread_messages_count > environment.batch_size)
-            return this.messengerService.getUnreadMessagesByParticipant(conference.participant.uuid);
+            return this.messengerService.getUnreadMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
 
           return this.messengerService.getMessagesByParticipant(conference.participant.uuid);
         })
@@ -173,7 +173,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             this.isMessagesLoading = true;
 
             if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
+              return this.repositoryService.getUnreadMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
 
             return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
           }),
@@ -228,7 +228,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
             this.isMessagesLoading = true;
 
             if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadMessagesByParticipant(conference.participant.uuid);
+              return this.repositoryService.getUnreadMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
 
             return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
           }),
