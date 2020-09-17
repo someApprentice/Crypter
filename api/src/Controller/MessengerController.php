@@ -39,12 +39,15 @@ class MessengerController extends AbstractController
     /**
      * @Route("/api/search", name="search_user")
      *
+     * @IsGranted("ROLE_USER")
      */
     public function searchUser(Request $request): Response
     {
         $query = $request->query->get('name');
 
-        $users = $this->em->getRepository(User::class)->search($query);
+        $user = $this->getUser();
+
+        $users = $this->em->getRepository(User::class)->search($user, $query);
 
         $json = [];
 
@@ -2387,6 +2390,10 @@ class MessengerController extends AbstractController
             return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
         }
 
+        if ($participant->getUuid() === $requester->getUuid()) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
         $conference = $this->em->getRepository(Conference::class)->getSecretConferenceByParticipant($requester, $participant);
 
         if ($conference) {
@@ -2525,6 +2532,10 @@ class MessengerController extends AbstractController
             return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
         }
 
+        if ($receiver->getUuid() === $sender->getUuid()) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
         $conference = $this->em->getRepository(Conference::class)->getSecretConferenceByParticipant($sender, $receiver);
 
         if (!$conference) {
@@ -2626,6 +2637,10 @@ class MessengerController extends AbstractController
         $receiver = $this->em->find(User::class, $user);
 
         if (!$receiver) {
+            return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($receiver->getUuid() === $sender->getUuid()) {
             return new Response('Bad Request', Response::HTTP_BAD_REQUEST);
         }
 

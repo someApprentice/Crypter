@@ -112,6 +112,11 @@ async def start_secret_chat(sid, data):
 
         return json
 
+    if participant.uuid == requester.uuid:
+        json['errors'] = { 'user': "You can't start secret chat with yourself" }
+
+        return json
+
     conference = database.session.query(Conference) \
         .join(Conference_Reference) \
         .filter(and_(
@@ -286,6 +291,11 @@ async def send_secret_message(sid, data):
 
     if not receiver:
         json['errors'] = { 'to': "Reciever doesn't exist" }
+
+        return json
+
+    if receiver.uuid == sender.uuid:
+        json['errors'] = { 'to': "You can't send secret messages to yourself" }
 
         return json
 
@@ -477,6 +487,11 @@ async def send_private_message(sid, data):
 
     if not receiver:
         json['errors'] = { 'to': "Reciever doesn't exist" }
+
+        return json
+
+    if receiver.uuid == sender.uuid:
+        json['errors'] = { 'to': "Saved messages isn't implemeted yet" }
 
         return json
 

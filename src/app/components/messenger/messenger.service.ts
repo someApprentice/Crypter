@@ -20,7 +20,10 @@ export class MessengerService {
   constructor(private http: HttpClient, private authService: AuthService) { }
 
   searchUsers(name: string): Observable<User[]> {
-    return this.http.get<User[]>(`/api/search?name=${name}`).pipe(
+    return this.http.get<User[]>(
+      `/api/search?name=${name}`,
+      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.user.hash}` })}
+    ).pipe(
       first()
     );
   }

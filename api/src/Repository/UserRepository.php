@@ -254,14 +254,14 @@ class UserRepository extends ServiceEntityRepository
         return $messages;
     }
 
-    public function search(string $name): array
+    public function search(User $user, string $name): array
     {
         $name = strtolower($name);
 
-        $dql = 'SELECT u FROM Crypter\Entity\User u WHERE LOWER(u.name) LIKE :name';
+        $dql = 'SELECT u FROM Crypter\Entity\User u WHERE LOWER(u.name) LIKE :name AND u.name != :userName';
 
         $query = $this->getEntityManager()->createQuery($dql);
-        $query->setParameter('name', "%{$name}%");
+        $query->setParameters(['userName' => $user->getName(), 'name' => "%{$name}%"]);
 
         $users = $query->getResult();
 
