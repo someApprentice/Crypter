@@ -59,6 +59,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   @ViewChildren('messagesList') private messagesList: QueryList<ElementRef>;
 
+  firstUnreadMessage?: Message;
+
   participant?: User;
   conference?: Conference;
   messages: Message[] = [];
@@ -121,8 +123,16 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
           if (!conference)
             return of([] as Message[]);
 
-          if (conference.unread_messages_count > environment.batch_size)
-            return this.messengerService.getUnreadMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
+          if (conference.unread_messages_count > environment.batch_size) {
+            return this.messengerService.getUnreadMessagesWithMessagesBeforeByParticipant(conference.participant.uuid).pipe(
+              tap((messages: Message[]) => {
+                let unreadMessages = messages.filter((m: Message) => m.read);
+
+                if (!!unreadMessages.length)
+                  this.firstUnreadMessage = unreadMessages[0];
+              })
+            );
+          }
 
           return this.messengerService.getMessagesByParticipant(conference.participant.uuid);
         })
@@ -172,8 +182,16 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
             this.isMessagesLoading = true;
 
-            if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
+            if (conference.unread_messages_count > environment.batch_size) {
+              return this.repositoryService.getUnreadMessagesWithMessagesBeforeByParticipant(conference.participant.uuid).pipe(
+                tap((messages: Message[]) => {
+                  let unreadMessages = messages.filter((m: Message) => m.read);
+
+                  if (!!unreadMessages.length)
+                    this.firstUnreadMessage = unreadMessages[0];
+                })
+              );
+            }
 
             return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
           }),
@@ -227,8 +245,16 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
             this.isMessagesLoading = true;
 
-            if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
+            if (conference.unread_messages_count > environment.batch_size) {
+              return this.repositoryService.getUnreadMessagesWithMessagesBeforeByParticipant(conference.participant.uuid).pipe(
+                tap((messages: Message[]) => {
+                  let unreadMessages = messages.filter((m: Message) => !m.read);
+
+                  if (!!unreadMessages.length)
+                    this.firstUnreadMessage = unreadMessages[0];
+                })
+              );
+            }
 
             return this.repositoryService.getMessagesByParticipant(conference.participant.uuid);
           }),

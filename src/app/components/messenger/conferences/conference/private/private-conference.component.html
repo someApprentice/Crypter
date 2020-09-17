@@ -49,13 +49,13 @@
             </div>
 
             <li
-                *ngFor="let message of messages"
+                *ngFor="let message of messages; let i = index"
 
                 #messagesList
 
                 [attr.data-uuid]="message.uuid"
 
-                class="message media mx-3 pb-2 mx-xl-5 pb-xl-3"
+                class="message media mx-3 mx-xl-5 mb-2"
             >
                 <div class="media-body">
                     <div class="title clearfix">
@@ -68,6 +68,12 @@
                     </div>
 
                     <div [innerHTML]="message.content | sanitize | linkify" class="content"></div>
+
+                    <div *ngIf="!!messages[i + 1] && !!firstUnreadMessage && firstUnreadMessage.uuid === messages[i + 1].uuid" class="divider row d-flex align-items-center mt-2">
+                      <div class="col px-2"><hr class="my-0"></div>
+                      <div class="col-auto px-0">Unread Messages</div>
+                      <div class="col px-2"><hr class="my-0"></div>
+                    </div>
                 </div>
             </li>
 

@@ -87,6 +87,10 @@ mat-menu {
     font-size: 13px;
 }
 
+.divider {
+    font-size: 14px;
+}
+
 .message-form textarea {
     resize: none;
 }

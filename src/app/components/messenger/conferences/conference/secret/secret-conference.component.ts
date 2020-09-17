@@ -58,6 +58,8 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
 
   @ViewChildren('messagesList') private messagesList: QueryList<ElementRef>;
 
+  firstUnreadMessage?: Message;
+
   participant?: User;
   conference?: Conference;
   messages: Message[] = [];
@@ -114,7 +116,14 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
             return of([] as Message[]);
 
           if (conference.unread_messages_count > environment.batch_size)
-            return this.messengerService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
+            return this.messengerService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(conference.participant.uuid).pipe(
+                tap((messages: Message[]) => {
+                  let unreadMessages = messages.filter((m: Message) => !m.read);
+
+                  if (!!unreadMessages.length)
+                    this.firstUnreadMessage = unreadMessages[0];
+                })
+              );
 
           return this.messengerService.getSecretMessagesByParticipant(conference.participant.uuid);
         })
@@ -197,7 +206,14 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
             this.isMessagesLoading = true;
 
             if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
+              return this.repositoryService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(conference.participant.uuid).pipe(
+                tap((messages: Message[]) => {
+                  let unreadMessages = messages.filter((m: Message) => !m.read);
+
+                  if (!!unreadMessages.length)
+                    this.firstUnreadMessage = unreadMessages[0];
+                })
+              );
 
             return this.repositoryService.getSecretMessagesByParticipant(conference.participant.uuid);
           }),
@@ -248,7 +264,14 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
               return of([] as Message[]);
 
             if (conference.unread_messages_count > environment.batch_size)
-              return this.repositoryService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(conference.participant.uuid);
+              return this.repositoryService.getUnreadSecretMessagesWithMessagesBeforeByParticipant(conference.participant.uuid).pipe(
+                tap((messages: Message[]) => {
+                  let unreadMessages = messages.filter((m: Message) => !m.read);
+
+                  if (!!unreadMessages.length)
+                    this.firstUnreadMessage = unreadMessages[0];
+                })
+              );
 
             return this.repositoryService.getSecretMessagesByParticipant(conference.participant.uuid);
           }),
