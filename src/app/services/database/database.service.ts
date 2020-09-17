@@ -2173,7 +2173,7 @@ export class DatabaseService implements OnDestroy {
                 if (!cursor || i === limit) {
                   if (!!ums.length) {
                     messagesIndex
-                      .openCursor(IDBKeyRange.upperBound(ums[ums.length - 1].date, true), 'prev') 
+                      .openCursor(IDBKeyRange.upperBound(ums[0].date, true), 'prev') 
                       .onsuccess = (e: Event) => {
                         let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
@@ -2805,7 +2805,7 @@ export class DatabaseService implements OnDestroy {
               if (!cursor || i === limit) {
                 if (!!ums.length) {
                   index
-                    .openCursor(IDBKeyRange.upperBound(ums[ums.length - 1].date, true), 'prev')
+                    .openCursor(IDBKeyRange.upperBound(ums[0].date, true), 'prev')
                     .onsuccess = (e: Event) => {
                       let cursor: IDBCursorWithValue = (e.target as IDBRequest).result;
 
