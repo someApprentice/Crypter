@@ -1,6 +1,8 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
+import { MessengerGuard } from './components/messenger/messenger.guard';
+
 import { MainComponent } from './components/main/main.component';
 import { SettingsComponent } from './components/messenger/settings/settings.component';
 import { ConferencesComponent } from './components/messenger/conferences/conferences.component';
@@ -17,10 +19,10 @@ const routes: Routes = [
     data: { animation: 'WelcomePage' },
     children: [
       { path: '', component: ConferencesComponent, data: { animation: 'ConferencesPage' } },
-      { path: 'conference/u/:uuid', component: PrivateConferenceComponent, data: { animation: 'PrivateConferencePage' } },
-      { path: 'conference/s/:uuid', component: SecretConferenceComponent, data: { animation: 'SecretConferencePage' } },
+      { path: 'conference/u/:uuid', component: PrivateConferenceComponent, data: { animation: 'PrivateConferencePage' }, canActivate: [MessengerGuard] },
+      { path: 'conference/s/:uuid', component: SecretConferenceComponent, data: { animation: 'SecretConferencePage' }, canActivate: [MessengerGuard] },
       // { path: 'conference/p/:uuid', component: PublicConferenceComponent }
-      { path: 'settings', component: SettingsComponent },
+      { path: 'settings', component: SettingsComponent, canActivate: [MessengerGuard] },
     ]
   },
   { path: '**', component: NotFoundComponent},
