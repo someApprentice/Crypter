@@ -206,7 +206,8 @@ CREATE TABLE public."user" (
     public_key text NOT NULL,
     private_key text NOT NULL,
     revocation_certificate text NOT NULL,
-    conferences_count integer DEFAULT 0 NOT NULL
+    conferences_count integer DEFAULT 0 NOT NULL,
+    fingerprint character varying NOT NULL
 );
 
 
