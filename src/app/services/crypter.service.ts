@@ -12,10 +12,10 @@ import { initWorker, config, key, message, generateKey, encrypt, decrypt, destro
 })
 export class CrypterService implements OnDestroy {
   constructor() {
-    initWorker({ path: 'openpgp.worker.min.js' });
-
     config.show_version = false;
     config.show_comment = false;
+
+    initWorker({ path: 'openpgp.worker.min.js' });
   }
   
   generateKey(name: string, email: string, passphrase: string): Observable<{
