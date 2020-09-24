@@ -11,6 +11,8 @@ import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, merge, timer, empty, throwError } from 'rxjs';
 import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, ignoreElements, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
 
+import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
+
 import { cloneDeep } from 'lodash';
 
 import { CrypterService } from '../../../../../services/crypter.service';
@@ -51,6 +53,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   isFocused: boolean = true;
 
+  isSmallScreen: boolean = !this.breakpointObserver.isMatched('(min-width: 1200px)');
+
   isParticipantLoading: boolean = false;
 
   isOldMessagesLoading: boolean = false;
@@ -83,6 +87,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
     private state: TransferState,
     private router: Router,
     private route: ActivatedRoute,
+    private breakpointObserver: BreakpointObserver,
     private injector: Injector,
   ) {
     if (isPlatformBrowser(this.platformId)) {
@@ -357,6 +362,11 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
         tap(() => this.writing = false),
         takeUntil(this.unsubscribe$)
       ).subscribe();
+
+      this.breakpointObserver.observe('(min-width: 1200px)').pipe(
+        tap((state: BreakpointState) => this.isSmallScreen = !state.matches),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
     }
   }
 
@@ -472,7 +482,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   onScroll(e: Event) {
     let scrollerEl = this.scroller.nativeElement;
 
-    this.isScrolledDown = scrollerEl.scrollTop + scrollerEl.offsetHeight === scrollerEl.scrollHeight;
+    this.isScrolledDown = scrollerEl.scrollTop + scrollerEl.offsetHeight >= scrollerEl.scrollHeight;
   }
 
   @HostListener('window:focus', ['$event'])
@@ -485,6 +495,12 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   @HostListener('window:blur', ['$event'])
   onBlur(event: Event): void {
     this.isFocused = false;
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: Event): void {
+    if (this.isScrolledDown && this.messagesList.last)
+      this.messagesList.last.nativeElement.scrollIntoView();
   }
 
   onSubmit(e: Event) {

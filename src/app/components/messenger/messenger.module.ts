@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { InfiniteScrollModule } from 'ngx-infinite-scroll';
+import { LayoutModule } from '@angular/cdk/layout';
 import { MatMenuModule } from '@angular/material/menu';
 import { AutofocusModule } from '../../modules/autofocus/autofocus.module';
 
@@ -36,6 +37,7 @@ import { LinkifyPipe } from '../../pipes/ng/linkify/linkify.pipe';
     FormsModule,
     ReactiveFormsModule,
     InfiniteScrollModule,
+    LayoutModule,
     MatMenuModule,
     AutofocusModule,
     MessengerRoutingModule

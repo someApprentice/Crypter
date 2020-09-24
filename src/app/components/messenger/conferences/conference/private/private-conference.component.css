@@ -43,7 +43,7 @@ mat-menu {
 
     /* @TODO: Refator this calculation with sass variables; */
     /* screen size - header size - dialog header size - form size */
-    height: calc(100vh - (40px + (.5rem * 2)) - (39px) - (29.500px + (.5rem * 2)));
+    height: calc((var(--vh, 1vh) * 100) - (40px + (.5rem * 2)) - (39px) - (29.500px + (.5rem * 2)));
 
     background-color: white;
 }
@@ -125,7 +125,7 @@ mat-menu {
     .messages {
         /* @TODO: Refator this calculation with sass variables; */
         /* screen size - header size - dialog header size - form size */
-        height: calc(100vh - (40px + (.5rem * 2)) - (42px + (.5rem * 2)) - (94px + (.5rem * 2)));
+        height: calc(var(--vh, 1vh) * 100 - (40px + (.5rem * 2)) - (42px + (.5rem * 2)) - (94px + (.5rem * 2)));
     }
 
     .message-form textarea.form-control {

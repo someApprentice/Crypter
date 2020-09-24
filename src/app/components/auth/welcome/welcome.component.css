@@ -1,7 +1,7 @@
 .wrapper {
     /* @TODO: Refator this calculation with sass variables; */
     /* screen size - header size */
-    height: calc(100vh - (40px + (.5rem * 2)));
+    height: calc((var(--vh, 1vh) * 100) - (40px + (.5rem * 2)));
 }
 
 @media (min-width: 576px) {

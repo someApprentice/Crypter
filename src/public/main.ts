@@ -15,3 +15,22 @@ document.addEventListener('DOMContentLoaded', () => {
   platformBrowserDynamic().bootstrapModule(AppModule)
     .catch(err => console.log(err));
 });
+
+// https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
+declare global {
+  interface Window {
+    calculateViewportHeight: () => void;
+  }
+};
+window.calculateViewportHeight = () => {
+  // In mobile version, for some reason innerHeight becomes larger than the window height after
+  // navigating from page with soft keyboard open
+  // let vh = window.innerHeight * 0.01;
+
+  let vh = document.documentElement.clientHeight * 0.01;
+
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+
+};
+window.addEventListener('resize', window.calculateViewportHeight);
+window.addEventListener('load', window.calculateViewportHeight);

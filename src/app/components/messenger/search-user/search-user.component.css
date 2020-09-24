@@ -16,7 +16,7 @@ ul {
 
     /* @TODO: Refator this calculation with sass variables; */
     /* screen size - header size - search form size */
-    height: calc(100vh - (40px + (.5rem * 2)) - (31px + (.5rem * 2) + 1px));
+    height: calc((var(--vh, 1vh) * 100) - (40px + (.5rem * 2)) - (31px + (.5rem * 2) + 1px));
 }
 
 .spinner {
@@ -54,6 +54,6 @@ li > a {
     ul {
         /* @TODO: Refator this calculation with sass variables; */
         /* screen size - header size - search form size - dialogs padding - dialogs bottom margin */
-        height: calc(100vh - (40px + (.5rem * 2)) - (38px + (.5rem * 2) + 1px) - (.5rem * 2)  - .5rem);
+        height: calc((var(--vh, 1vh) * 100) - (40px + (.5rem * 2)) - (38px + (.5rem * 2) + 1px) - (.5rem * 2)  - .5rem);
     }
 }

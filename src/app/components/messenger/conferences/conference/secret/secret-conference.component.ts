@@ -11,6 +11,8 @@ import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, merge, timer, empty, throwError } from 'rxjs';
 import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, ignoreElements, debounceTime, distinctUntilChanged, retry, catchError, takeUntil } from 'rxjs/operators';
 
+import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
+
 import { cloneDeep } from 'lodash';
 
 import { CrypterService } from '../../../../../services/crypter.service';
@@ -50,6 +52,8 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
 
   isFocused: boolean = true;
 
+  isSmallScreen: boolean = !this.breakpointObserver.isMatched('(min-width: 1200px)');
+
   isParticipantLoading: boolean = false;
 
   isOldMessagesLoading: boolean = false;
@@ -82,6 +86,7 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
     private state: TransferState,
     private router: Router,
     private route: ActivatedRoute,
+    private breakpointObserver: BreakpointObserver,
     private injector: Injector,
   ) {
     if (isPlatformBrowser(this.platformId)) {
@@ -362,6 +367,11 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
         tap(() => this.writing = false),
         takeUntil(this.unsubscribe$)
       ).subscribe();
+
+      this.breakpointObserver.observe('(min-width: 1200px)').pipe(
+        tap((state: BreakpointState) => this.isSmallScreen = !state.matches),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
     }
   }
 
@@ -490,6 +500,12 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
   @HostListener('window:blur', ['$event'])
   onBlur(event: Event): void {
     this.isFocused = false;
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: Event): void {
+    if (this.isScrolledDown && this.messagesList.last)
+      this.messagesList.last.nativeElement.scrollIntoView();
   }
 
   onSubmit(e: Event) {
