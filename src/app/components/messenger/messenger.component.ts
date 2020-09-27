@@ -256,12 +256,12 @@ export class MessengerComponent implements OnInit, OnDestroy {
       ).subscribe();
 
       this.socketService.secretMessage$.pipe(
-        concatMap((message: Message) => this.databaseService.upsertMessage(message)),
+        concatMap((message: Message) => this.databaseService.insertMessage(message)),
         takeUntil(this.unsubscribe$)
       ).subscribe();
 
       this.socketService.privateMessage$.pipe(
-        concatMap((message: Message) => this.databaseService.upsertMessage(message)),
+        concatMap((message: Message) => this.databaseService.insertMessage(message)),
         takeUntil(this.unsubscribe$)
       ).subscribe();
 

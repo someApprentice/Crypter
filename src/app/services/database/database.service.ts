@@ -3141,6 +3141,67 @@ export class DatabaseService implements OnDestroy {
     );
   }
 
+  insertMessage(message: Message): Observable<Message> {
+    return this.db$.pipe(
+      switchMap((db: IDBDatabase) => new Observable<Message>(subscriber => {
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ], 'readwrite');
+        let usersStore: IDBObjectStore = transaction.objectStore('users');
+        let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
+        let messagesStore: IDBObjectStore = transaction.objectStore('messages');
+
+        transaction.onerror = (err: Event) => {
+          subscriber.error(err);
+        };
+
+        let m: MessageSchema = {
+          ...message,
+          conference: message.conference.uuid,
+          author: message.author.uuid
+        };
+
+        messagesStore.get(message.uuid).onsuccess = (e: Event) => {
+          if ((e.target as IDBRequest).result) {
+            return;
+          }
+
+          let c: ConferenceSchema = omit(message.conference, [ 'participant', 'participants', 'last_message' ]);
+
+          if ('participant' in message.conference)
+            c.participant = message.conference.participant.uuid;
+
+          conferencesStore.get(message.conference.uuid).onsuccess = (e: Event) => {
+            if ((e.target as IDBRequest).result) {
+              conferencesStore.put(Object.assign((e.target as IDBRequest).result, c));
+
+              return;
+            }
+
+            if ('participant' in message.conference) {
+              usersStore.get(message.conference.participant.uuid).onsuccess = (e: Event) => {
+                if (!(e.target as IDBRequest).result)
+                  usersStore.put(message.conference.participant);
+              };
+            }
+
+            conferencesStore.put(c);
+          };
+
+          usersStore.get(message.author.uuid).onsuccess = (e: Event) => {
+            if (!(e.target as IDBRequest).result)
+              usersStore.put(message.author);
+          };
+
+          messagesStore.put(m);
+        };
+
+        transaction.oncomplete = (e: Event) => {
+          subscriber.next(message);
+          subscriber.complete();
+        };
+      }))
+    );
+  }
+
   upsertMessage(message: Message): Observable<Message> {
     return this.db$.pipe(
       switchMap((db: IDBDatabase) => new Observable<Message>(subscriber => {

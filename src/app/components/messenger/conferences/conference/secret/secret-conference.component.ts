@@ -326,7 +326,7 @@ export class SecretConferenceComponent implements OnInit, AfterViewInit, OnDestr
         takeUntil(this.unsubscribe$)
       ).subscribe((message: Message) => {
         if (this.messages.find((m: Message) => m.uuid === message.uuid))
-          return this.messages[this.messages.findIndex((m: Message) => m.uuid === message.uuid)] = message;
+          return;
 
         return this.messages.push(message);
       });
