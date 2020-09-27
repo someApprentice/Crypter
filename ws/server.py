@@ -950,7 +950,7 @@ async def read_messages_since(sid, data):
         .one_or_none()
 
     if not message_reference:
-        json['errors'] = { 'message': "Message doesn't exists" }
+        json['errors'] = { 'message': "Message doesn't exist" }
 
         return json
 
