@@ -9,7 +9,7 @@ import { isPlatformBrowser, isPlatformServer, DOCUMENT } from '@angular/common';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
 import { Observable, Subscription, Subject, of, from, fromEvent, zip, concat, merge, timer, empty, throwError } from 'rxjs';
-import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, reduce, filter, ignoreElements, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
+import { switchMap, concatMap, exhaustMap, delayWhen, map, tap, first, skip, reduce, filter, ignoreElements, debounceTime, distinctUntilChanged, retry, takeUntil } from 'rxjs/operators';
 
 import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
 
@@ -49,7 +49,16 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   isSecretChatLoading = false;
 
   @ViewChild('scroller') private scroller: ElementRef;
-  isScrolledDown: boolean = false;
+  wasScrolledDown: boolean = false;
+  _isScrolledDown: boolean = false;
+  get isScrolledDown(): boolean {
+    let scrollerEl = this.scroller.nativeElement;
+
+    return scrollerEl.scrollTop + scrollerEl.offsetHeight >= scrollerEl.scrollHeight;
+  }
+  set isScrolledDown(v: boolean) {
+    this._isScrolledDown = v;
+  }
 
   isFocused: boolean = true;
 
@@ -446,7 +455,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
               this.messagesList.changes.pipe(
                 first((ql: QueryList<ElementRef>) => !!ql.find(el => el.nativeElement.getAttribute('data-uuid') === messages[0].uuid)),
                 tap((ql: QueryList<ElementRef>) => {
-                  if (this.isScrolledDown) {
+                  if (this.wasScrolledDown) {
                     let lastMessageBeforeRequest = ql.find(el => el.nativeElement.getAttribute('data-uuid') === lastMessage.uuid);
 
                     lastMessageBeforeRequest.nativeElement.scrollIntoView({ block: 'end' });
@@ -480,9 +489,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
   }
 
   onScroll(e: Event) {
-    let scrollerEl = this.scroller.nativeElement;
-
-    this.isScrolledDown = scrollerEl.scrollTop + scrollerEl.offsetHeight >= scrollerEl.scrollHeight;
+    this.wasScrolledDown = this.isScrolledDown;
   }
 
   @HostListener('window:focus', ['$event'])
@@ -499,7 +506,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   @HostListener('window:resize', ['$event'])
   onResize(event: Event): void {
-    if (this.isScrolledDown && this.messagesList.last)
+    if (this.wasScrolledDown && this.messagesList.last)
       this.messagesList.last.nativeElement.scrollIntoView();
   }
 
@@ -616,6 +623,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
   ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
+      this.wasScrolledDown = this.isScrolledDown;
+
       // read & scroll down on init
       if (!!this.messagesList.length) {
         this.scrollDown();
@@ -639,9 +648,8 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
       // autoscroll on new message
       this.messagesList.changes.pipe(
-        takeUntil(this.unsubscribe$)
-      ).subscribe((ql: QueryList<ElementRef>) => {
-        if (this.isScrolledDown) {
+        filter(() => this.wasScrolledDown && this.isFocused),
+        tap((ql: QueryList<ElementRef>) => {
           let unreadMessages = this.messages.filter(m => m.author.uuid !== this.authService.user.uuid && !m.read);
 
           if (!!this.messages.length && !unreadMessages.length) {
@@ -653,8 +661,21 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
 
             firstUnreadMessage.nativeElement.scrollIntoView();
           }
-        }
-      });
+        }),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
+
+      // read meassages is case there is no overflow yet
+      this.messagesList.changes.pipe(
+        filter(() => (
+          this.scroller.nativeElement.scrollTop === 0 &&
+          this.isScrolledDown &&
+          this.isFocused
+        )),
+        concatMap((e: Event) => this.read$()),
+        retry(),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
 
       fromEvent(this.startSecretChat.nativeElement as HTMLElement, 'click').pipe(
         tap(() => this.isSecretChatLoading = true),
