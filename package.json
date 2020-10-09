@@ -8,6 +8,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "npm run css-compile && ng build && ng run Crypter:server && webpack --config webpack.server.config.js",
+    "build:prod": "npm run css-compile && ng build --prod && ng run Crypter:server && webpack --config webpack.server.config.js",
     "css-compile": "npm run bootstrap-compile && npm run material-icons-compile",
     "bootstrap-compile": "node-sass --output-style expanded --source-map true --source-map-contents true --precision 6 src/public/bootstrap/bootstrap.scss src/public/bootstrap.css",
     "material-icons-compile": "node-sass --output-style expanded --source-map true --source-map-contents true --precision 6 src/public/material-icons/material-icons.scss src/public/material-icons.css",

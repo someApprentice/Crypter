@@ -5,7 +5,7 @@
 export const environment = {
   production: false,
   test: false,
-  socket_url: 'http://46.180.106.211',
+  socket_url: 'localhost',
   socket_path: '/ws',
   batch_size: 20,
   rsa_bits: 2048,
