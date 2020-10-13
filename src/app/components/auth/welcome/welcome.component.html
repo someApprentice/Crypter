@@ -7,7 +7,7 @@
             placeholder="email"
             required
             maxlength="255"
-            autofocus
+            [autofocus]="!isSmallScreen"
             class="form-control flex-fill"
             [class.is-valid]="form.controls['email'].valid"
             [class.is-invalid]="form.controls['email'].invalid && form.controls['email'].dirty"

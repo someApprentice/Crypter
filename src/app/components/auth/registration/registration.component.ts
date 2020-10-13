@@ -1,11 +1,17 @@
 import { environment } from '../../../../environments/environment';
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
+
+import { PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser, isPlatformServer } from '@angular/common';
+
 import { FormGroup, FormControl, Validators, AbstractControl } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { Subscription, Subject, zip, of } from 'rxjs';
 import { debounceTime, take, map, switchMap, tap, takeUntil } from 'rxjs/operators';
+
+import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
 
 import { CrypterService } from '../../../services/crypter.service';
 import { AuthService } from '../auth.service';
@@ -73,6 +79,8 @@ export class RegistrationComponent implements OnInit, OnDestroy {
     ]
   );
 
+  isSmallScreen: boolean = !this.breakpointObserver.isMatched('(min-width: 1200px)');
+
   pending: boolean = false;
 
   error?: string;
@@ -80,10 +88,12 @@ export class RegistrationComponent implements OnInit, OnDestroy {
   private unsubscribe$ = new Subject<void>();
 
   constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
     private crypterService: CrypterService,
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
+    private breakpointObserver: BreakpointObserver
   ) { }
 
   ngOnInit() {
@@ -98,6 +108,13 @@ export class RegistrationComponent implements OnInit, OnDestroy {
         this.form.get('email').setValue(d['email']);
       }
     });
+
+    if (isPlatformBrowser(this.platformId)) {
+      this.breakpointObserver.observe('(min-width: 1200px)').pipe(
+        tap((state: BreakpointState) => this.isSmallScreen = !state.matches),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
+    }
   }
 
   registrate(e: Event) {

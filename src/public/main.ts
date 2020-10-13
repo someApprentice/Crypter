@@ -32,5 +32,4 @@ window.calculateViewportHeight = () => {
   document.documentElement.style.setProperty('--vh', `${vh}px`);
 
 };
-window.addEventListener('resize', window.calculateViewportHeight);
 window.addEventListener('load', window.calculateViewportHeight);

@@ -1,12 +1,17 @@
 import { environment } from '../../../../environments/environment';
 
-import { Component, ViewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
+import { Component, ViewChild, ElementRef, Inject, OnInit, OnDestroy } from '@angular/core';
+
+import { PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { Subject, zip, of } from 'rxjs';
 import { map, tap, switchMap, takeUntil } from 'rxjs/operators'
+
+import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
 
 import { AuthService } from '../auth.service';
 import { CrypterService } from '../../../services/crypter.service';
@@ -37,6 +42,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     recaptcha: new FormControl('')
   });
 
+  isSmallScreen: boolean = !this.breakpointObserver.isMatched('(min-width: 1200px)');
+
   pending: boolean = false
 
   error?: string;
@@ -44,10 +51,12 @@ export class LoginComponent implements OnInit, OnDestroy {
   private unsubscribe$ = new Subject<void>();
 
   constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
     private authService: AuthService,
     private crypterService: CrypterService,
     private router: Router,
     private route: ActivatedRoute,
+    private breakpointObserver: BreakpointObserver
   ) { }
 
   ngOnInit() {
@@ -60,6 +69,13 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.form.get('email').setValue(d['email']);
       }
     });
+
+    if (isPlatformBrowser(this.platformId)) {
+      this.breakpointObserver.observe('(min-width: 1200px)').pipe(
+        tap((state: BreakpointState) => this.isSmallScreen = !state.matches),
+        takeUntil(this.unsubscribe$)
+      ).subscribe();
+    }
   }
 
   login(e: Event) {

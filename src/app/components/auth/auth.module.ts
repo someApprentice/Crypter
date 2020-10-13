@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
+import { LayoutModule } from '@angular/cdk/layout';
 import { AutofocusModule } from '../../modules/autofocus/autofocus.module';
 import { RecaptchaModule } from '../../modules/recaptcha/recaptcha.module';
 
@@ -23,6 +24,7 @@ import { LogoutComponent } from './logout/logout.component';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    LayoutModule,
     AutofocusModule,
     RecaptchaModule,
     AuthRoutingModule,

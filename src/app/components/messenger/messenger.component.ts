@@ -1,4 +1,4 @@
-import { Component, Input, Injector, Inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Injector, Inject, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
@@ -10,7 +10,7 @@ import {
   transition, animate, style, query
 } from '@angular/animations';
 
-import { Subject, of, concat, zip } from 'rxjs';
+import { Subject, of, fromEvent, concat, zip } from 'rxjs';
 import { tap, first, switchMap, concatMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../auth/auth.service';
@@ -161,7 +161,7 @@ import Message from '../../models/message.model';
   ],
   providers: [ DatabaseService, RepositoryService, SocketService ]
 })
-export class MessengerComponent implements OnInit, OnDestroy {
+export class MessengerComponent implements OnInit, AfterViewInit, OnDestroy {
   private unsubscribe$ = new Subject<void>();
 
   private databaseService: DatabaseService;
@@ -279,6 +279,14 @@ export class MessengerComponent implements OnInit, OnDestroy {
 
   prepareRoute(outlet: RouterOutlet) {
     return outlet && outlet.activatedRouteData && outlet.activatedRouteData['animation'];
+  }
+
+  ngAfterViewInit() {
+    if (isPlatformBrowser(this.platformId)) {
+      fromEvent(window, 'resize').pipe(
+        takeUntil(this.unsubscribe$)
+      ).subscribe(window.calculateViewportHeight);
+    }
   }
 
   ngOnDestroy() {

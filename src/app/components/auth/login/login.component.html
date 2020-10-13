@@ -5,7 +5,7 @@
             type="email" name="email"
             placeholder="email"
             required maxlength="255"
-            [autofocus]="!form.get('email').value"
+            [autofocus]="!isSmallScreen && !form.get('email').value"
             class="form-control my-1"
             [class.is-valid]="form.controls['email'].valid"
             [class.is-invalid]="form.controls['email'].invalid && form.controls['email'].dirty"
