@@ -535,7 +535,7 @@ export class DatabaseService implements OnDestroy {
   getOldConferences(timestamp: number = Date.now() / 1000, limit: number = environment.batch_size): Observable<Conference[]> {
     return this.db$.pipe(
       switchMap((db: IDBDatabase) => new Observable<Conference[]>(subscriber => {
-        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences' ]);
+        let transaction: IDBTransaction = db.transaction([ 'users', 'conferences', 'messages' ]);
         let usersStore: IDBObjectStore = transaction.objectStore('users');
         let conferencesStore: IDBObjectStore = transaction.objectStore('conferences');
         let messagesStore: IDBObjectStore = transaction.objectStore('messages');
@@ -558,7 +558,7 @@ export class DatabaseService implements OnDestroy {
         transaction.onabort = (e: Event) => {
           subscriber.error(e);
         };
-        
+
         index
           .openCursor(IDBKeyRange.upperBound(timestamp, true), 'prev')
           .onsuccess = (e: Event) => {
@@ -605,8 +605,10 @@ export class DatabaseService implements OnDestroy {
                   }
 
                   let a: UserSchema = (e.target as IDBRequest).result;
+
+                  as.push(a);
                 };
-              };
+              }
             }
 
             i++;
