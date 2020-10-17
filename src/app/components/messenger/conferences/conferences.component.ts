@@ -139,22 +139,25 @@ export class ConferencesComponent implements OnInit, OnDestroy {
       }
 
       this.socketService.secretChatStarted$.pipe(
-        takeUntil(this.unsubscribe$),
-      ).subscribe((conference: Conference) => {
-        if (this.conferences.find(c => c.uuid === conference.uuid))
-          return this.conferences[this.conferences.findIndex(c => c.uuid === conference.uuid)] = conference;
+        tap((conference: Conference) => {
+          if (this.conferences.find(c => c.uuid === conference.uuid))
+            return this.conferences[this.conferences.findIndex(c => c.uuid === conference.uuid)] = conference;
 
-        return this.conferences.unshift(conference);
-      });
+          return this.conferences.unshift(conference);
+        }),
+        tap(() => this.conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at)),
+        takeUntil(this.unsubscribe$),
+      ).subscribe();
 
       this.socketService.conferenceUpdated$.pipe(
-        takeUntil(this.unsubscribe$),
-      ).subscribe((conference: Conference) => {
-        if (this.conferences.find(c => c.uuid === conference.uuid))
-          return this.conferences[this.conferences.findIndex(c => c.uuid === conference.uuid)] = conference;
+        tap((conference: Conference) => {
+          if (this.conferences.find(c => c.uuid === conference.uuid))
+            return this.conferences[this.conferences.findIndex(c => c.uuid === conference.uuid)] = conference;
 
-        return this.conferences.unshift(conference);
-      });
+          return this.conferences.unshift(conference);
+        }),
+        tap(() => this.conferences.sort((a: Conference, b: Conference) => b.updated_at - a.updated_at)),
+      ).subscribe();
     }
   }
 
