@@ -957,6 +957,7 @@ async def read_messages_since(sid, data):
     messages = database.session.query(Message) \
         .filter(
             Message.conference_uuid == message.conference_uuid,
+            Message.author_uuid != user['uuid'],
             Message.read == False,
             Message.date <= message.date
         ) \
