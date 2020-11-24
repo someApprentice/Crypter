@@ -365,7 +365,7 @@ export class PrivateConferenceComponent implements OnInit, AfterViewInit, OnDest
       ).subscribe();
 
       this.socketService.wroteToUser$.pipe(
-        filter((user: User) => user.uuid === this.participant.uuid),
+        filter((user: User) => !!this.participant && user.uuid === this.participant.uuid),
         tap(() => this.writing = true),
         switchMap(() => timer(2333)),
         tap(() => this.writing = false),
