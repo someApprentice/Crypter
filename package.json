@@ -40,7 +40,7 @@
     "bootstrap": "^4.3.1",
     "cookie-parser": "^1.4.4",
     "core-js": "^2.6.5",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "material-icons": "^0.3.1",
     "ngx-infinite-scroll": "^7.2.0",
     "openpgp": "^4.10.8",
