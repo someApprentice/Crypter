@@ -49,12 +49,12 @@
     "rxdb": "^8.9.0",
     "rxjs": "^6.5.5",
     "socket.io-client": "^2.3.0",
-    "ts-loader": "^5.4.5",
+    "ts-loader": "^9.4.2",
     "tslib": "^1.9.0",
     "zone.js": "^0.8.29"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.11.0",
+    "@angular-devkit/build-angular": "~15.0.4",
     "@angular/cli": "~7.1.4",
     "@angular/compiler-cli": "~7.1.0",
     "@angular/language-service": "~7.1.0",
@@ -81,7 +81,7 @@
     "ts-node": "^7.0.1",
     "tslint": "~5.11.0",
     "typescript": "^3.1.6",
-    "webpack-cli": "^3.3.2",
+    "webpack-cli": "^5.0.1",
     "webpack-node-externals": "^1.7.2"
   }
 }
